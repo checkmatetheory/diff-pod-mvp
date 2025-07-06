@@ -35,7 +35,7 @@ export default function Auth() {
           variant: 'destructive',
         });
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (error) {
       toast({

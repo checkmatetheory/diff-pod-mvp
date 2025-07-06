@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const features = [
   {
@@ -44,6 +46,15 @@ const podcastCardVariants = {
 };
 
 export default function Index() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
   return (
     <div className="min-h-screen bg-primary flex flex-col font-sans">
       {/* Header */}
