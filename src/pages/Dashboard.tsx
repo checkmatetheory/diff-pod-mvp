@@ -1,235 +1,99 @@
-import React, { useState } from "react";
-import { AppShell } from "../components/layout/AppShell";
-import { BrandGrid, Brand } from "../components/ui/BrandGrid";
-import { EpisodeCard, Episode } from "../components/ui/EpisodeCard";
-import { Button } from "../components/ui/button";
-import { EpisodeUpload } from "../components/ui/EpisodeUpload";
-import { AnalyticsCards } from "../components/dashboard/AnalyticsCards";
-import { SponsorCards, Sponsor } from "../components/dashboard/SponsorCards";
-import { VideoSocialRoadmap } from "../components/dashboard/VideoSocialRoadmap";
+import React from "react";
+import { motion } from "framer-motion";
 
-// Sample data for demo
-const initialBrands: Brand[] = [
-  {
-    id: "billboard",
-    name: "Billboard",
-    logo: "/logos/billboard.png",
-    established: "Est. 1894",
-    color: "#4F8CFF",
-  },
-  {
-    id: "cedia",
-    name: "CEDIA Expo",
-    logo: "/logos/cedia.png",
-    established: "Est. 1989",
-    color: "#FF7A1A",
-  },
-  {
-    id: "egypt-mining",
-    name: "Egypt Mining Forum",
-    logo: "/logos/egypt-mining.png",
-    established: "Est. 2025",
-    color: "#2D1C13",
-  },
+const stats = [
+  { label: "Total Episodes", value: "57", color: "text-blue" },
+  { label: "Total Listens", value: "29.4K", color: "text-accent" },
+  { label: "Sponsor Revenue", value: "$105K", color: "text-blue" },
+  { label: "Active Hosts", value: "12", color: "text-accent" },
 ];
 
-const initialEpisodes: Record<string, Episode[]> = {
-  billboard: [
-    {
-      id: "ep1",
-      number: 1,
-      image: "/episodes/ep1.jpg",
-      title: "Music Industry Trends 2024",
-      host: "Jane Smith",
-      category: "Industry Analysis",
-      duration: "1 hr 10 mins",
-    },
-    {
-      id: "ep2",
-      number: 2,
-      image: "/episodes/ep2.jpg",
-      title: "Top 10 Albums of the Year",
-      host: "John Doe",
-      category: "Music Review",
-      duration: "55 mins",
-    },
-  ],
-  cedia: [
-    {
-      id: "ep1",
-      number: 1,
-      image: "/episodes/cedia1.jpg",
-      title: "Smart Home Innovations",
-      host: "Alex Lee",
-      category: "Technology",
-      duration: "48 mins",
-    },
-  ],
-  "egypt-mining": [
-    {
-      id: "ep1",
-      number: 1,
-      image: "/episodes/mining1.jpg",
-      title: "Mining in North Africa",
-      host: "Fatima Hassan",
-      category: "Mining & Resources",
-      duration: "1 hr 20 mins",
-    },
-  ],
+const event = {
+  title: "AI in Fintech: Future Trends Panel",
+  date: "2024-01-15",
+  duration: "47 min",
+  hosts: ["Sarah Chen", "Michael Rodriguez", "Dr. Lisa Zhang"],
+  listens: 1234,
+  revenue: 3400,
+  image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=facearea&w=400&h=400&q=80",
 };
 
-// Demo stats per brand
-const demoStats: Record<string, { episodes: number; listens: number; revenue: number }> = {
-  billboard: { episodes: 2, listens: 12000, revenue: 3400 },
-  cedia: { episodes: 1, listens: 4200, revenue: 900 },
-  "egypt-mining": { episodes: 1, listens: 1800, revenue: 500 },
+const statVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: 0.2 + i * 0.1, duration: 0.6 } }),
 };
 
-// Demo sponsors per brand
-const demoSponsors: Record<string, Sponsor[]> = {
-  billboard: [
-    { id: 'spotify', name: 'Spotify', logo: '/sponsors/spotify.png', adReads: 12, revenue: 1200 },
-    { id: 'apple', name: 'Apple Music', logo: '/sponsors/apple.png', adReads: 8, revenue: 900 },
-  ],
-  cedia: [
-    { id: 'sonos', name: 'Sonos', logo: '/sponsors/sonos.png', adReads: 5, revenue: 400 },
-  ],
-  "egypt-mining": [
-    { id: 'miningco', name: 'MiningCo', logo: '/sponsors/miningco.png', adReads: 3, revenue: 250 },
-  ],
+const cardVariants = {
+  hidden: { opacity: 0, scale: 0.96 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.7 } },
 };
-
-function EpisodeCreateInline({ brandId, onPublish, onCancel }: { brandId: string; onPublish: (ep: Episode) => void; onCancel: () => void }) {
-  const [step, setStep] = useState<'upload' | 'edit' | 'done'>('upload');
-  const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [transcript, setTranscript] = useState('');
-
-  // Simulate AI processing
-  const processFile = (file: File) => {
-    setStep('edit');
-    setTitle('AI Generated Title for ' + file.name);
-    setDescription('This is an AI-generated description based on the transcript of ' + file.name + '.');
-    setTranscript('This is a simulated transcript for ' + file.name + '.\nLorem ipsum dolor sit amet, consectetur adipiscing elit.');
-  };
-
-  const handlePublish = () => {
-    const newEpisode: Episode = {
-      id: 'ep' + Math.random().toString(36).slice(2, 8),
-      number: 0, // Will be set by parent
-      image: "/episodes/placeholder.jpg",
-      title,
-      host: "You",
-      category: "AI Generated",
-      duration: "TBD",
-    };
-    onPublish(newEpisode);
-    setStep('done');
-  };
-
-  return (
-    <div style={{ maxWidth: 600, margin: '0 auto', marginTop: 32 }}>
-      <h2 style={{ fontWeight: 700, fontSize: 22, marginBottom: 16 }}>Create Podcast Episode</h2>
-      {step === 'upload' && (
-        <EpisodeUpload onUpload={file => { setFile(file); processFile(file); }} />
-      )}
-      {step === 'edit' && (
-        <div style={{ background: 'var(--color-card)', borderRadius: 20, boxShadow: '0 4px 24px 0 rgba(45,28,19,0.08)', padding: 32, marginTop: 32 }}>
-          <label style={{ fontWeight: 500 }}>Title</label>
-          <input
-            style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #ececec', marginBottom: 16, marginTop: 4 }}
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-          />
-          <label style={{ fontWeight: 500 }}>Description</label>
-          <textarea
-            style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #ececec', marginBottom: 16, marginTop: 4, minHeight: 80 }}
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-          />
-          <label style={{ fontWeight: 500 }}>Transcript (read-only)</label>
-          <textarea
-            style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #ececec', background: '#f6f6f6', color: '#888', marginBottom: 24, marginTop: 4, minHeight: 120 }}
-            value={transcript}
-            readOnly
-          />
-          <div style={{ display: 'flex', gap: 16 }}>
-            <Button onClick={handlePublish}>Publish Episode</Button>
-            <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          </div>
-        </div>
-      )}
-      {step === 'done' && (
-        <div style={{ background: 'var(--color-blue-light)', borderRadius: 20, padding: 32, marginTop: 32, textAlign: 'center' }}>
-          <h2 style={{ color: 'var(--color-blue)', fontWeight: 700, fontSize: 22 }}>Episode Published!</h2>
-          <p style={{ color: 'var(--color-text-secondary)', marginTop: 12 }}>Your podcast episode is now live and ready to share.</p>
-          <Button style={{ marginTop: 16 }} onClick={onCancel}>Back to Episodes</Button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function Dashboard() {
-  const [brands] = useState<Brand[]>(initialBrands);
-  const [episodes, setEpisodes] = useState<Record<string, Episode[]>>(initialEpisodes);
-  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
-
-  const handlePublish = (ep: Episode) => {
-    if (!selectedBrand) return;
-    const groupEpisodes = episodes[selectedBrand.id] || [];
-    const newEp = { ...ep, number: groupEpisodes.length + 1 };
-    setEpisodes({
-      ...episodes,
-      [selectedBrand.id]: [newEp, ...groupEpisodes],
-    });
-    setShowCreate(false);
-  };
-
   return (
-    <AppShell>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        {!selectedBrand ? (
-          <>
-            <h1 style={{ fontWeight: 700, fontSize: 32, marginBottom: 32 }}>Your Media Groups</h1>
-            <BrandGrid brands={brands} onSelect={setSelectedBrand} />
-          </>
-        ) : (
-          <>
-            <button
-              style={{ marginBottom: 32, color: 'var(--color-blue)', background: 'none', border: 'none', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
-              onClick={() => { setSelectedBrand(null); setShowCreate(false); }}
+    <div className="min-h-screen bg-primary flex flex-col font-sans">
+      {/* Header */}
+      <header className="w-full flex items-center justify-between px-8 py-6 bg-primary">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl font-bold text-accent">PodHub</span>
+        </div>
+        <nav className="flex gap-8 text-cardAlt text-lg font-medium">
+          <a href="#" className="hover:text-accent transition">Dashboard</a>
+          <a href="#analytics" className="hover:text-accent transition">Analytics</a>
+          <a href="#events" className="hover:text-accent transition">Events</a>
+        </nav>
+        <button className="bg-accent text-white rounded-full px-6 py-2 font-semibold shadow-card hover:opacity-90 transition">New Episode</button>
+      </header>
+
+      {/* Stats Section */}
+      <section className="px-8 py-16 bg-gradient-to-br from-primary via-primaryDark to-accentLight">
+        <h2 className="text-4xl font-bold text-card mb-10 text-center">Your Podcast Overview</h2>
+        <div className="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          {stats.map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              className="rounded-2xl bg-cardAlt p-8 shadow-card flex flex-col items-center"
+              custom={i}
+              variants={statVariants}
+              initial="hidden"
+              animate="visible"
             >
-              ← Back to Media Groups
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 32 }}>
-              <img src={selectedBrand.logo} alt={selectedBrand.name} style={{ height: 48 }} />
-              <h2 style={{ fontWeight: 700, fontSize: 28 }}>{selectedBrand.name}</h2>
-              <span style={{ color: 'var(--color-text-secondary)', fontSize: 16 }}>{selectedBrand.established}</span>
-              <Button style={{ marginLeft: 'auto' }} onClick={() => setShowCreate(true)}>
-                + Create Episode
-              </Button>
-            </div>
-            <AnalyticsCards stats={demoStats[selectedBrand.id] || { episodes: 0, listens: 0, revenue: 0 }} />
-            <SponsorCards sponsors={demoSponsors[selectedBrand.id] || []} />
-            {showCreate && (
-              <EpisodeCreateInline
-                brandId={selectedBrand.id}
-                onPublish={handlePublish}
-                onCancel={() => setShowCreate(false)}
-              />
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 32 }}>
-              {episodes[selectedBrand.id]?.map((ep) => (
-                <EpisodeCard key={ep.id} episode={ep} />
+              <div className={`text-4xl font-extrabold mb-2 ${stat.color}`}>{stat.value}</div>
+              <div className="text-lg text-textSecondary font-semibold">{stat.label}</div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* Event/Profile Card */}
+      <section className="px-8 py-20 bg-background">
+        <h2 className="text-3xl font-bold text-primary mb-10 text-center">Featured Event</h2>
+        <motion.div
+          className="max-w-3xl mx-auto rounded-3xl bg-card shadow-card flex flex-col md:flex-row items-center p-8 gap-8"
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <img
+            src={event.image}
+            alt={event.title}
+            className="w-40 h-40 rounded-2xl object-cover mb-6 md:mb-0"
+          />
+          <div className="flex-1">
+            <div className="text-xl font-bold text-primary mb-2">{event.title}</div>
+            <div className="text-md text-textSecondary mb-2">{event.date} • {event.duration}</div>
+            <div className="flex gap-2 mb-4 flex-wrap">
+              {event.hosts.map((host) => (
+                <span key={host} className="bg-blueLight text-blue rounded-full px-4 py-1 text-sm font-semibold mr-2 mb-2">{host}</span>
               ))}
             </div>
-            <VideoSocialRoadmap />
-          </>
-        )}
-      </div>
-    </AppShell>
+            <div className="flex gap-4 items-center mb-4">
+              <span className="bg-accentLight text-accent rounded-full px-4 py-1 text-sm font-semibold">{event.listens} Listens</span>
+              <span className="bg-blueLight text-blue rounded-full px-4 py-1 text-sm font-semibold">${event.revenue} Revenue</span>
+            </div>
+            <button className="bg-accent text-white rounded-full px-8 py-3 font-bold text-lg shadow-card hover:opacity-90 transition">View Details</button>
+          </div>
+        </motion.div>
+      </section>
+    </div>
   );
 } 

@@ -1,291 +1,141 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Upload, Sparkles, Headphones, Mic, Building2, Users, DollarSign, Settings, Play, Briefcase, Megaphone, Volume2, LogIn } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { UserMenu } from "@/components/UserMenu";
-import SessionUpload from "@/components/SessionUpload";
+import React from "react";
+import { motion } from "framer-motion";
 
-const Index = () => {
-  const [showUpload, setShowUpload] = useState(false);
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
+const features = [
+  {
+    icon: "🎙️",
+    title: "Podcast Episodes",
+    description: "Turn ideas into episodes with beautiful, modern cards and smooth animations.",
+    color: "bg-blueLight text-blue",
+  },
+  {
+    icon: "📊",
+    title: "Analytics",
+    description: "Track your growth with minimal, easy-to-read analytics widgets.",
+    color: "bg-accentLight text-accent",
+  },
+  {
+    icon: "🧑‍💼",
+    title: "Host Profiles",
+    description: "Showcase your hosts with profile cards and social links.",
+    color: "bg-blueLight text-blue",
+  },
+];
 
-  useEffect(() => {
-    if (user && !showUpload) {
-      navigate('/portfolios');
-    }
-  }, [user, showUpload, navigate]);
+const EASE = [0.4, 0, 0.2, 1];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-hero">
-      {/* Header */}
-      <div className="bg-card/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Building2 className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold">Enterprise Podcast Platform</span>
-          </div>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <UserMenu />
-            ) : (
-              <Link to="/auth">
-                <Button variant="outline">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Sign In
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        {!showUpload ? (
-          <>
-            {/* Enterprise Hero Section */}
-            <div className="text-center mb-20">
-              <div className="flex justify-center mb-8">
-                <div className="p-8 rounded-full bg-gradient-primary shadow-xl">
-                  <Building2 className="h-16 w-16 text-white" />
-                </div>
-              </div>
-              <h1 className="text-6xl font-bold text-gradient-primary mb-6 leading-tight">
-                Enterprise AI Podcast Platform
-              </h1>
-              <p className="text-2xl text-muted-foreground mb-8 max-w-4xl mx-auto leading-relaxed">
-                Transform your conference portfolio into professional podcast content with custom voices, 
-                sponsor integrations, and multi-host AI generation for media groups and enterprise clients.
-              </p>
-              <div className="flex justify-center gap-6 flex-wrap">
-                {user ? (
-                  <Button 
-                    onClick={() => setShowUpload(true)}
-                    size="lg"
-                    className="bg-gradient-accent hover:opacity-90 transition-opacity text-xl px-10 py-6"
-                  >
-                    <Upload className="h-6 w-6 mr-3" />
-                    Upload Content
-                  </Button>
-                ) : (
-                  <Link to="/auth">
-                    <Button 
-                      size="lg"
-                      className="bg-gradient-accent hover:opacity-90 transition-opacity text-xl px-10 py-6"
-                    >
-                      <Upload className="h-6 w-6 mr-3" />
-                      Start Enterprise Trial
-                    </Button>
-                  </Link>
-                )}
-                <Button variant="outline" size="lg" className="text-xl px-10 py-6">
-                  <Briefcase className="h-6 w-6 mr-3" />
-                  Schedule Demo
-                </Button>
-              </div>
-            </div>
-
-            {/* Enterprise Features Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
-              <Card className="shadow-xl border-0 bg-card hover:shadow-2xl transition-shadow">
-                <CardHeader className="text-center pb-6">
-                  <div className="p-6 rounded-full bg-primary-subtle mx-auto mb-6 w-fit">
-                    <Building2 className="h-10 w-10 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">Portfolio Management</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <CardDescription className="text-lg">
-                    Manage multiple conference brands and events under unified portfolios with custom branding and audio assets
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-xl border-0 bg-card hover:shadow-2xl transition-shadow">
-                <CardHeader className="text-center pb-6">
-                  <div className="p-6 rounded-full bg-accent-subtle mx-auto mb-6 w-fit">
-                    <Volume2 className="h-10 w-10 text-accent" />
-                  </div>
-                  <CardTitle className="text-2xl">Custom Voice Training</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <CardDescription className="text-lg">
-                    Train custom AI voices for your hosts, create unique brand voices, and support multi-host podcast formats
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-xl border-0 bg-card hover:shadow-2xl transition-shadow">
-                <CardHeader className="text-center pb-6">
-                  <div className="p-6 rounded-full bg-primary-subtle mx-auto mb-6 w-fit">
-                    <DollarSign className="h-10 w-10 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">Sponsor Integration</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <CardDescription className="text-lg">
-                    Seamlessly integrate sponsor ads with custom placement, revenue tracking, and automated ad insertion
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-xl border-0 bg-card hover:shadow-2xl transition-shadow">
-                <CardHeader className="text-center pb-6">
-                  <div className="p-6 rounded-full bg-accent-subtle mx-auto mb-6 w-fit">
-                    <Sparkles className="h-10 w-10 text-accent" />
-                  </div>
-                  <CardTitle className="text-2xl">AI-Powered Production</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <CardDescription className="text-lg">
-                    Advanced AI creates professional podcast content with custom intro/outro music and intelligent editing
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-xl border-0 bg-card hover:shadow-2xl transition-shadow">
-                <CardHeader className="text-center pb-6">
-                  <div className="p-6 rounded-full bg-primary-subtle mx-auto mb-6 w-fit">
-                    <Users className="h-10 w-10 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">Multi-Host Support</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <CardDescription className="text-lg">
-                    Configure multiple podcast hosts per event with custom voice assignments and speaking time distribution
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-xl border-0 bg-card hover:shadow-2xl transition-shadow">
-                <CardHeader className="text-center pb-6">
-                  <div className="p-6 rounded-full bg-accent-subtle mx-auto mb-6 w-fit">
-                    <Megaphone className="h-10 w-10 text-accent" />
-                  </div>
-                  <CardTitle className="text-2xl">Enterprise Distribution</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <CardDescription className="text-lg">
-                    White-label RSS feeds, custom embed codes, and enterprise-grade analytics for media distribution
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Enterprise Stats */}
-            <div className="grid md:grid-cols-4 gap-6 mb-20">
-              <Card className="shadow-lg border-0 bg-card text-center p-8">
-                <div className="text-4xl font-bold text-primary mb-2">500+</div>
-                <p className="text-muted-foreground">Enterprise Clients</p>
-              </Card>
-              <Card className="shadow-lg border-0 bg-card text-center p-8">
-                <div className="text-4xl font-bold text-accent mb-2">10K+</div>
-                <p className="text-muted-foreground">Conferences Processed</p>
-              </Card>
-              <Card className="shadow-lg border-0 bg-card text-center p-8">
-                <div className="text-4xl font-bold text-primary mb-2">$2M+</div>
-                <p className="text-muted-foreground">Sponsor Revenue Generated</p>
-              </Card>
-              <Card className="shadow-lg border-0 bg-card text-center p-8">
-                <div className="text-4xl font-bold text-accent mb-2">99.9%</div>
-                <p className="text-muted-foreground">Enterprise Uptime</p>
-              </Card>
-            </div>
-
-            {/* Enterprise CTA */}
-            <div className="text-center bg-card p-16 rounded-3xl shadow-xl">
-              <h2 className="text-4xl font-bold mb-6 text-gradient-primary">Ready for Enterprise Scale?</h2>
-              <p className="text-xl text-muted-foreground mb-10 max-w-3xl mx-auto">
-                Join leading media groups and conference organizers who trust our platform to monetize their content 
-                and deliver professional podcast experiences to millions of listeners.
-              </p>
-              <div className="flex justify-center gap-6 flex-wrap">
-                {user ? (
-                  <>
-                    <Button 
-                      onClick={() => setShowUpload(true)}
-                      size="lg"
-                      className="bg-gradient-primary hover:opacity-90 text-xl px-10 py-6"
-                    >
-                      <Upload className="h-6 w-6 mr-3" />
-                      Start Production
-                    </Button>
-                    <Link to="/portfolios">
-                      <Button variant="outline" size="lg" className="text-xl px-10 py-6">
-                        <Play className="h-6 w-6 mr-3" />
-                        View Portfolios
-                      </Button>
-                    </Link>
-                  </>
-                ) : (
-                  <Link to="/auth">
-                    <Button 
-                      size="lg"
-                      className="bg-gradient-primary hover:opacity-90 text-xl px-10 py-6"
-                    >
-                      <Upload className="h-6 w-6 mr-3" />
-                      Get Started
-                    </Button>
-                  </Link>
-                )}
-              </div>
-              <div className="mt-8 flex justify-center gap-8 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    <Settings className="h-3 w-3 mr-1" />
-                    Enterprise SSO
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                    <Headphones className="h-3 w-3 mr-1" />
-                    24/7 Support
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                    <DollarSign className="h-3 w-3 mr-1" />
-                    Revenue Sharing
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div>
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-4xl font-bold text-gradient-primary">Enterprise Podcast Studio</h1>
-                <p className="text-muted-foreground mt-2 text-lg">Upload your conference content to generate professional multi-host podcasts with sponsor integration</p>
-              </div>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowUpload(false)}
-                size="lg"
-              >
-                Back to Home
-              </Button>
-            </div>
-            <SessionUpload />
-          </div>
-        )}
-      </div>
-    </div>
-  );
+const heroVariants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8 } },
 };
 
-export default Index;
+const featureVariants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: 0.3 + i * 0.15, duration: 0.7 },
+  }),
+};
+
+const podcastCardVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.7 } },
+};
+
+export default function Index() {
+  return (
+    <div className="min-h-screen bg-primary flex flex-col font-sans">
+      {/* Header */}
+      <header className="w-full flex items-center justify-between px-8 py-6 bg-primary">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl font-bold text-accent">PodHub</span>
+        </div>
+        <nav className="flex gap-8 text-cardAlt text-lg font-medium">
+          <a href="#episodes" className="hover:text-accent transition">Episodes</a>
+          <a href="#features" className="hover:text-accent transition">Features</a>
+          <a href="#hosts" className="hover:text-accent transition">Hosts</a>
+          <a href="#about" className="hover:text-accent transition">About</a>
+        </nav>
+        <button className="bg-accent text-white rounded-full px-6 py-2 font-semibold shadow-card hover:opacity-90 transition">Subscribe</button>
+      </header>
+
+      {/* Hero Section */}
+      <motion.section
+        className="flex flex-col md:flex-row items-center justify-between px-8 py-20 bg-gradient-to-br from-primary via-primaryDark to-accentLight"
+        variants={heroVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="max-w-xl">
+          <h1 className="text-5xl md:text-6xl font-extrabold text-card mb-6 leading-tight">
+            Turn Ideas Into <span className="text-accent">Episodes</span>,<br />Dreams Into <span className="text-blue">Reality</span>
+          </h1>
+          <p className="text-xl text-cardAlt mb-8">
+            Discover, create, and share podcasts with a stunning, modern platform. Minimal, beautiful, and fast.
+          </p>
+          <div className="flex gap-4">
+            <button className="bg-accent text-white rounded-full px-8 py-4 font-bold text-lg shadow-card hover:opacity-90 transition">Start Listening</button>
+            <button className="bg-blue text-white rounded-full px-8 py-4 font-bold text-lg shadow-card hover:opacity-90 transition">Browse Episodes</button>
+          </div>
+        </div>
+        <div className="mt-12 md:mt-0 md:ml-16 flex-shrink-0">
+          {/* Placeholder for hero image or animation */}
+          <motion.div
+            className="w-80 h-80 rounded-3xl bg-cardAlt flex items-center justify-center shadow-card"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            <span className="text-[7rem]">🎧</span>
+          </motion.div>
+        </div>
+      </motion.section>
+
+      {/* Features Grid */}
+      <section id="features" className="px-8 py-20 bg-background">
+        <h2 className="text-4xl font-bold text-primary mb-12 text-center">Features That Enhance Your Experience</h2>
+        <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
+          {features.map((f, i) => (
+            <motion.div
+              key={i}
+              className={`rounded-2xl p-8 shadow-card ${f.color} flex flex-col items-center`}
+              custom={i}
+              variants={featureVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <div className="text-5xl mb-4">{f.icon}</div>
+              <div className="text-2xl font-bold mb-2">{f.title}</div>
+              <div className="text-lg text-textSecondary text-center">{f.description}</div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* Sample Podcast Card */}
+      <section id="episodes" className="px-8 py-20 bg-cardAlt">
+        <h2 className="text-4xl font-bold text-primary mb-12 text-center">Featured Episode</h2>
+        <motion.div
+          className="max-w-2xl mx-auto rounded-3xl bg-card shadow-card flex flex-col md:flex-row items-center p-8 gap-8"
+          variants={podcastCardVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className="w-40 h-40 rounded-2xl bg-blueLight flex items-center justify-center">
+            <span className="text-6xl">🎤</span>
+          </div>
+          <div className="flex-1">
+            <div className="text-xl font-bold text-primary mb-2">The Curious Mind Podcast</div>
+            <div className="text-md text-textSecondary mb-4">with Kristin Watson</div>
+            <div className="flex gap-4 items-center mb-4">
+              <span className="bg-accentLight text-accent rounded-full px-4 py-1 text-sm font-semibold">150K Listens</span>
+              <span className="bg-blueLight text-blue rounded-full px-4 py-1 text-sm font-semibold">45 mins</span>
+            </div>
+            <button className="bg-accent text-white rounded-full px-8 py-3 font-bold text-lg shadow-card hover:opacity-90 transition">Listen Now</button>
+          </div>
+        </motion.div>
+      </section>
+    </div>
+  );
+}

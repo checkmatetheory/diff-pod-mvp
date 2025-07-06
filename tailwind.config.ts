@@ -17,52 +17,29 @@ export default {
 				'2xl': '1400px'
 			}
 		},
+		fontFamily: {
+			'sans': ['Inter', 'system-ui', 'sans-serif'],
+		},
 		extend: {
-			fontFamily: {
-				'sans': ['Inter', 'system-ui', 'sans-serif'],
-				'display': ['Playfair Display', 'serif'],
-			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
-				background: 'hsl(var(--background))',
+				background: '#FFF8F3',
 				foreground: 'hsl(var(--foreground))',
-				primary: {
-					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))',
-					hover: 'hsl(var(--primary-hover))',
-					light: 'hsl(var(--primary-light))',
-					subtle: 'hsl(var(--primary-subtle))',
-					muted: 'hsl(var(--primary-muted))'
-				},
-				secondary: {
-					DEFAULT: 'hsl(var(--secondary))',
-					foreground: 'hsl(var(--secondary-foreground))'
-				},
-				destructive: {
-					DEFAULT: 'hsl(var(--destructive))',
-					foreground: 'hsl(var(--destructive-foreground))'
-				},
-				muted: {
-					DEFAULT: 'hsl(var(--muted))',
-					foreground: 'hsl(var(--muted-foreground))'
-				},
-				accent: {
-					DEFAULT: 'hsl(var(--accent))',
-					foreground: 'hsl(var(--accent-foreground))',
-					hover: 'hsl(var(--accent-hover))',
-					light: 'hsl(var(--accent-light))',
-					subtle: 'hsl(var(--accent-subtle))',
-					muted: 'hsl(var(--accent-muted))'
-				},
+				primary: '#2D1C13',
+				primaryDark: '#3B241A',
+				accent: '#FF7A1A',
+				accentLight: '#FFF3E6',
+				blue: '#4F8CFF',
+				blueLight: '#E6F0FF',
+				card: '#FFFFFF',
+				cardAlt: '#FFF8F3',
+				text: '#2D1C13',
+				textSecondary: '#6B6B6B',
 				popover: {
 					DEFAULT: 'hsl(var(--popover))',
 					foreground: 'hsl(var(--popover-foreground))'
-				},
-				card: {
-					DEFAULT: 'hsl(var(--card))',
-					foreground: 'hsl(var(--card-foreground))'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
@@ -76,9 +53,12 @@ export default {
 				}
 			},
 			borderRadius: {
-				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				lg: '1.5rem',
+				md: '1rem',
+				sm: '0.5rem'
+			},
+			boxShadow: {
+				card: '0 4px 24px 0 rgba(45,28,19,0.08)',
 			},
 			keyframes: {
 				'accordion-down': {

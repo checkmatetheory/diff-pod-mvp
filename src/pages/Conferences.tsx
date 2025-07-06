@@ -1,238 +1,119 @@
-import { Calendar, Users, Clock, Play, Star, Eye } from "lucide-react";
-import { AppSidebar } from "@/components/AppSidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import Header from "@/components/Header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { motion } from "framer-motion";
 
-const conferenceEvents = [
+const mediaGroups = [
   {
-    id: "1",
-    title: "TechCrunch Disrupt 2024",
-    description: "The premier startup conference featuring the latest innovations in technology and entrepreneurship.",
-    category: "Technology",
-    date: "2024-10-15",
-    duration: "8h 30m",
-    speakers: ["Reid Hoffman", "Sarah Guo", "Josh Kopelman"],
-    sessions: 24,
-    views: 15420,
-    thumbnail: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=225&fit=crop",
-    featured: true
+    id: "fintech",
+    name: "FinTech Innovation Summit",
+    industry: "Financial Technology",
+    logo: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=facearea&w=200&h=200&q=80",
+    color: "#4F8CFF",
+    podcasts: [
+      {
+        title: "AI in Fintech: Future Trends Panel",
+        host: "Sarah Chen",
+        duration: "47 min",
+        listens: 1234,
+        image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=facearea&w=400&h=400&q=80",
+      },
+      {
+        title: "Quarterly Investment Review",
+        host: "Michael Rodriguez",
+        duration: "32 min",
+        listens: 980,
+        image: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=facearea&w=400&h=400&q=80",
+      },
+    ],
   },
   {
-    id: "2",
-    title: "Web Summit 2024",
-    description: "Europe's largest tech conference bringing together global leaders in innovation.",
-    category: "Technology",
-    date: "2024-11-11",
-    duration: "6h 45m",
-    speakers: ["Melinda Gates", "Drew Houston", "Stewart Butterfield"],
-    sessions: 18,
-    views: 12800,
-    thumbnail: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=225&fit=crop"
+    id: "healthtech",
+    name: "Healthcare Digital Transformation",
+    industry: "Healthcare Technology",
+    logo: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=facearea&w=200&h=200&q=80",
+    color: "#FF7A1A",
+    podcasts: [
+      {
+        title: "AI in Healthcare - Expert Panel Discussion",
+        host: "Dr. Sarah Chen",
+        duration: "42 min",
+        listens: 850,
+        image: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=facearea&w=400&h=400&q=80",
+      },
+    ],
   },
-  {
-    id: "3",
-    title: "SaaStr Annual 2024",
-    description: "The world's largest community of SaaS executives, founders, and entrepreneurs.",
-    category: "SaaS",
-    date: "2024-09-10",
-    duration: "7h 15m",
-    speakers: ["Jason Lemkin", "Tien Tzuo", "Ali Ghodsi"],
-    sessions: 21,
-    views: 9650,
-    thumbnail: "https://images.unsplash.com/photo-1591115765373-5207764f72e7?w=400&h=225&fit=crop"
-  },
-  {
-    id: "4",
-    title: "Collision Conference 2024",
-    description: "North America's fastest-growing tech conference with startups and Fortune 500s.",
-    category: "Startup",
-    date: "2024-06-17",
-    duration: "5h 20m",
-    speakers: ["Katrina Lake", "Logan Green", "Apoorva Mehta"],
-    sessions: 16,
-    views: 8200,
-    thumbnail: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=400&h=225&fit=crop"
-  },
-  {
-    id: "5",
-    title: "Money20/20 2024",
-    description: "The leading global fintech conference connecting the entire fintech ecosystem.",
-    category: "Fintech",
-    date: "2024-10-27",
-    duration: "6h 10m",
-    speakers: ["Max Levchin", "Renaud Laplanche", "Nigel Morris"],
-    sessions: 19,
-    views: 7800,
-    thumbnail: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&h=225&fit=crop"
-  },
-  {
-    id: "6",
-    title: "Rise Conference 2024",
-    description: "Asia's largest tech conference featuring the most promising startups and investors.",
-    category: "Investment",
-    date: "2024-07-15",
-    duration: "4h 35m",
-    speakers: ["Aileen Lee", "Hans Tung", "Jenny Lee"],
-    sessions: 14,
-    views: 6500,
-    thumbnail: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=400&h=225&fit=crop"
-  }
 ];
 
-const categoryColors = {
-  Technology: "hsl(var(--chart-1))",
-  SaaS: "hsl(var(--chart-2))",
-  Startup: "hsl(var(--chart-3))",
-  Fintech: "hsl(var(--chart-4))",
-  Investment: "hsl(var(--chart-5))"
+const groupVariants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: 0.2 + i * 0.15, duration: 0.7 } }),
+};
+
+const podcastVariants = {
+  hidden: { opacity: 0, scale: 0.96 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.6 } },
 };
 
 export default function Conferences() {
-  const featuredEvent = conferenceEvents.find(event => event.featured);
-  const regularEvents = conferenceEvents.filter(event => !event.featured);
-
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <SidebarInset className="flex-1">
-          <Header />
-          
-          <main className="flex-1 p-6 space-y-8">
-            {/* Hero Section - Featured Conference */}
-            {featuredEvent && (
-              <section className="relative">
-                <div className="relative h-[400px] rounded-2xl overflow-hidden bg-gradient-to-r from-primary/20 to-accent/20">
-                  <div className="absolute inset-0 bg-black/50" />
-                  <img 
-                    src={featuredEvent.thumbnail} 
-                    alt={featuredEvent.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 flex items-end p-8">
-                    <div className="text-white space-y-4 max-w-2xl">
-                      <Badge 
-                        variant="secondary" 
-                        className="mb-2"
-                        style={{ backgroundColor: categoryColors[featuredEvent.category as keyof typeof categoryColors] }}
-                      >
-                        Featured Conference
-                      </Badge>
-                      <h1 className="text-4xl font-bold mb-2">{featuredEvent.title}</h1>
-                      <p className="text-lg text-white/90 mb-4">{featuredEvent.description}</p>
-                      <div className="flex items-center gap-6 text-sm text-white/80">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>{new Date(featuredEvent.date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          <span>{featuredEvent.duration}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          <span>{featuredEvent.sessions} Sessions</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Eye className="h-4 w-4" />
-                          <span>{featuredEvent.views.toLocaleString()} views</span>
-                        </div>
-                      </div>
-                      <Button size="lg" className="mt-6">
-                        <Play className="h-5 w-5 mr-2" />
-                        Watch Now
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
+    <div className="min-h-screen bg-primary flex flex-col font-sans">
+      {/* Header */}
+      <header className="w-full flex items-center justify-between px-8 py-6 bg-primary">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl font-bold text-accent">PodHub</span>
+        </div>
+        <nav className="flex gap-8 text-cardAlt text-lg font-medium">
+          <a href="#dashboard" className="hover:text-accent transition">Dashboard</a>
+          <a href="#analytics" className="hover:text-accent transition">Analytics</a>
+          <a href="#conferences" className="hover:text-accent transition">Conferences</a>
+        </nav>
+        <button className="bg-accent text-white rounded-full px-6 py-2 font-semibold shadow-card hover:opacity-90 transition">New Conference</button>
+      </header>
 
-            {/* All Conferences Grid */}
-            <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">All Conferences</h2>
-                <p className="text-muted-foreground">{conferenceEvents.length} conferences available</p>
+      {/* Media Groups */}
+      <section className="px-8 py-16 bg-gradient-to-br from-primary via-primaryDark to-accentLight">
+        <h2 className="text-4xl font-bold text-card mb-10 text-center">Media Groups & Conferences</h2>
+        <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
+          {mediaGroups.map((group, i) => (
+            <motion.div
+              key={group.id}
+              className="rounded-3xl bg-cardAlt shadow-card p-8 flex flex-col md:flex-row items-center gap-8"
+              custom={i}
+              variants={groupVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <div className="flex flex-col items-center md:items-start md:w-56">
+                <img src={group.logo} alt={group.name} className="w-24 h-24 rounded-2xl object-cover mb-4 border-4" style={{ borderColor: group.color }} />
+                <div className="text-xl font-bold text-primary mb-1">{group.name}</div>
+                <div className="text-md text-textSecondary mb-2">{group.industry}</div>
+                <span className="bg-blueLight text-blue rounded-full px-4 py-1 text-sm font-semibold">{group.podcasts.length} Podcasts</span>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {regularEvents.map((event) => (
-                  <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
-                    <div className="relative">
-                      <img 
-                        src={event.thumbnail} 
-                        alt={event.title}
-                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-3 right-3">
-                        <Badge 
-                          variant="secondary"
-                          style={{ backgroundColor: categoryColors[event.category as keyof typeof categoryColors] }}
-                        >
-                          {event.category}
-                        </Badge>
+              <div className="flex-1 grid gap-6">
+                {group.podcasts.map((podcast, j) => (
+                  <motion.div
+                    key={podcast.title}
+                    className="rounded-2xl bg-card shadow-card flex flex-col md:flex-row items-center p-6 gap-6"
+                    variants={podcastVariants}
+                    initial="hidden"
+                    animate="visible"
+                  >
+                    <img src={podcast.image} alt={podcast.title} className="w-20 h-20 rounded-xl object-cover mb-4 md:mb-0" />
+                    <div className="flex-1">
+                      <div className="text-lg font-bold text-primary mb-1">{podcast.title}</div>
+                      <div className="text-md text-textSecondary mb-1">Host: {podcast.host}</div>
+                      <div className="flex gap-2 mb-2">
+                        <span className="bg-accentLight text-accent rounded-full px-3 py-1 text-xs font-semibold">{podcast.duration}</span>
+                        <span className="bg-blueLight text-blue rounded-full px-3 py-1 text-xs font-semibold">{podcast.listens} Listens</span>
                       </div>
-                      <div className="absolute bottom-3 left-3">
-                        <Badge variant="outline" className="bg-black/50 text-white border-white/20">
-                          {event.duration}
-                        </Badge>
-                      </div>
+                      <button className="bg-accent text-white rounded-full px-6 py-2 font-bold text-sm shadow-card hover:opacity-90 transition">View Podcast</button>
                     </div>
-                    
-                    <CardHeader className="pb-2">
-                      <CardTitle className="line-clamp-1">{event.title}</CardTitle>
-                      <CardDescription className="line-clamp-2">{event.description}</CardDescription>
-                    </CardHeader>
-                    
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{new Date(event.date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          <span>{event.sessions} sessions</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Eye className="h-3 w-3" />
-                          <span>{event.views.toLocaleString()} views</span>
-                        </div>
-                        <Button size="sm" className="ml-auto">
-                          <Play className="h-3 w-3 mr-1" />
-                          Watch
-                        </Button>
-                      </div>
-                      
-                      <div className="pt-2">
-                        <p className="text-xs text-muted-foreground mb-1">Speakers:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {event.speakers.slice(0, 2).map((speaker, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {speaker}
-                            </Badge>
-                          ))}
-                          {event.speakers.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{event.speakers.length - 2} more
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  </motion.div>
                 ))}
               </div>
-            </section>
-          </main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
