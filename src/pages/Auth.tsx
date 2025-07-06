@@ -49,59 +49,59 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex items-center justify-center p-8">
       <div className="w-full max-w-md">
-        <Link to="/" className="inline-flex items-center gap-2 mb-6 text-muted-foreground hover:text-foreground transition-colors">
+        <Link to="/" className="inline-flex items-center gap-2 mb-8 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Back to Home
         </Link>
         
-        <Card className="shadow-xl">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-primary-subtle">
-                <Building2 className="h-8 w-8 text-primary" />
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="text-center pb-8">
+            <div className="flex justify-center mb-6">
+              <div className="p-4 rounded-2xl bg-primary/10">
+                <Building2 className="h-10 w-10 text-primary" />
               </div>
             </div>
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-3xl font-bold">
               {isLogin ? 'Welcome Back' : 'Create Account'}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base mt-2">
               {isLogin 
                 ? 'Sign in to your enterprise podcast platform'
                 : 'Join the enterprise podcast platform'
               }
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+          <CardContent className="p-8 pt-0">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="email" className="text-base font-medium">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
+                    className="pl-12 py-3 text-base"
                     required
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+              <div className="space-y-3">
+                <Label htmlFor="password" className="text-base font-medium">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="password"
                     type="password"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
+                    className="pl-12 py-3 text-base"
                     required
                   />
                 </div>
@@ -109,28 +109,29 @@ export default function Auth() {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-primary hover:opacity-90"
+                className="w-full bg-primary hover:bg-primary/90 text-white py-3 text-base"
                 disabled={loading}
+                size="lg"
               >
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
                     {isLogin ? 'Signing In...' : 'Creating Account...'}
                   </>
                 ) : (
                   <>
-                    <User className="h-4 w-4 mr-2" />
+                    <User className="h-5 w-5 mr-2" />
                     {isLogin ? 'Sign In' : 'Create Account'}
                   </>
                 )}
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-8 text-center">
               <button
                 type="button"
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                className="text-base text-muted-foreground hover:text-primary transition-colors"
               >
                 {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>

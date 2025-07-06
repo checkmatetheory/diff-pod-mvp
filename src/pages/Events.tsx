@@ -99,84 +99,92 @@ export default function Events() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero">
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* Enhanced Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
-          <div className="space-y-3">
-            <h1 className="text-5xl font-bold text-gradient-primary animate-fade-in">
-              Conference Events
-            </h1>
-            <p className="text-xl text-muted-foreground animate-slide-up">
-              Manage conferences, upload sessions, and generate AI-powered podcasts
-            </p>
-          </div>
-          <div className="flex gap-4 flex-wrap animate-fade-in">
-            <Link to="/events/new">
-              <Button variant="gradient" size="lg">
-                <Plus className="h-5 w-5 mr-2" />
-                New Event
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-8 py-12">
+        {/* Header */}
+        <div className="mb-16">
+          <div className="flex items-center justify-between mb-8">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold text-foreground">Conference Events</h1>
+              <p className="text-lg text-muted-foreground">
+                Manage conferences, upload sessions, and generate AI-powered podcasts
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <Link to="/events/new">
+                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white">
+                  <Plus className="h-5 w-5 mr-2" />
+                  New Event
+                </Button>
+              </Link>
+              <Button variant="outline" size="lg" onClick={handleSettingsClick}>
+                <Settings className="h-5 w-5 mr-2" />
+                Settings
               </Button>
-            </Link>
-            <Button variant="outline" size="lg" onClick={handleSettingsClick}>
-              <Settings className="h-5 w-5 mr-2" />
-              Settings
-            </Button>
+            </div>
           </div>
         </div>
 
-        {/* Stats Dashboard */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <Card className="shadow-glow hover-lift animate-scale-in">
-            <CardContent className="p-6">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-primary mb-2">{events.length}</div>
-                  <p className="text-sm text-muted-foreground font-medium">Active Events</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Active Events</p>
+                  <p className="text-3xl font-bold text-foreground">{events.length}</p>
                 </div>
-                <Calendar className="h-10 w-10 text-primary opacity-70" />
+                <div className="p-4 rounded-2xl bg-primary/10">
+                  <Calendar className="h-6 w-6 text-primary" />
+                </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="shadow-glow hover-lift animate-scale-in" style={{ animationDelay: '0.1s' }}>
-            <CardContent className="p-6">
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-accent mb-2">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Total Sessions</p>
+                  <p className="text-3xl font-bold text-foreground">
                     {events.reduce((sum, e) => sum + e.sessions, 0)}
-                  </div>
-                  <p className="text-sm text-muted-foreground font-medium">Total Sessions</p>
+                  </p>
                 </div>
-                <Mic className="h-10 w-10 text-accent opacity-70" />
+                <div className="p-4 rounded-2xl bg-accent/10">
+                  <Mic className="h-6 w-6 text-accent" />
+                </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="shadow-glow hover-lift animate-scale-in" style={{ animationDelay: '0.2s' }}>
-            <CardContent className="p-6">
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-primary mb-2">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Total Views</p>
+                  <p className="text-3xl font-bold text-foreground">
                     {events.reduce((sum, e) => sum + (e.views || 0), 0).toLocaleString()}
-                  </div>
-                  <p className="text-sm text-muted-foreground font-medium">Total Views</p>
+                  </p>
                 </div>
-                <Play className="h-10 w-10 text-primary opacity-70" />
+                <div className="p-4 rounded-2xl bg-blue/10">
+                  <Play className="h-6 w-6 text-blue" />
+                </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="shadow-glow hover-lift animate-scale-in" style={{ animationDelay: '0.3s' }}>
-            <CardContent className="p-6">
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-accent mb-2">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Ready Sessions</p>
+                  <p className="text-3xl font-bold text-foreground">
                     {sessions.filter(s => s.status === 'complete').length}
-                  </div>
-                  <p className="text-sm text-muted-foreground font-medium">Ready Sessions</p>
+                  </p>
                 </div>
-                <Headphones className="h-10 w-10 text-accent opacity-70" />
+                <div className="p-4 rounded-2xl bg-green-50">
+                  <Headphones className="h-6 w-6 text-green-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -184,18 +192,18 @@ export default function Events() {
 
         {/* Featured Event */}
         {featuredEvent && (
-          <div className="space-y-6 mb-16">
-            <h2 className="text-3xl font-semibold text-foreground">Featured Event</h2>
+          <div className="mb-16">
+            <h2 className="text-2xl font-semibold text-foreground mb-8">Featured Event</h2>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2">
                 <EventCard event={featuredEvent} featured />
               </div>
-              <div className="space-y-4">
-                <Card className="shadow-card">
+              <div>
+                <Card className="border-0 shadow-sm bg-white">
                   <CardHeader>
                     <CardTitle className="text-lg">Event Statistics</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-6">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Total Sessions</span>
                       <span className="font-semibold">{featuredEvent.sessions}</span>
@@ -215,17 +223,17 @@ export default function Events() {
           </div>
         )}
 
-        {/* All Events Grid */}
-        <div className="space-y-8 mb-16">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-semibold text-foreground">All Events</h2>
+        {/* All Events */}
+        <div className="mb-16">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-semibold text-foreground">All Events</h2>
             <Button variant="outline" onClick={handleSettingsClick}>
               <Settings className="h-4 w-4 mr-2" />
               Manage All
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {events.slice(1).map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
@@ -233,9 +241,9 @@ export default function Events() {
         </div>
 
         {/* Recent Sessions */}
-        <div className="space-y-6">
-          <h2 className="text-3xl font-semibold text-foreground">Recent Sessions</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="mb-16">
+          <h2 className="text-2xl font-semibold text-foreground mb-8">Recent Sessions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {sessions.map((session) => (
               <SessionCard key={session.id} session={session} />
             ))}
@@ -245,16 +253,16 @@ export default function Events() {
         {/* Empty State */}
         {events.length === 0 && (
           <div className="text-center py-20">
-            <div className="w-32 h-32 mx-auto mb-8 rounded-full bg-muted flex items-center justify-center">
-              <Calendar className="h-16 w-16 text-muted-foreground" />
+            <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-6">
+              <Calendar className="h-10 w-10 text-muted-foreground" />
             </div>
-            <h3 className="text-3xl font-semibold mb-4">Create Your First Event</h3>
-            <p className="text-muted-foreground mb-8 max-w-md mx-auto text-lg">
+            <h3 className="text-2xl font-semibold mb-3">Create Your First Event</h3>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
               Set up a conference event to start uploading sessions and generating AI-powered podcasts
             </p>
             <Link to="/events/new">
-              <Button variant="gradient" size="lg">
-                <Plus className="h-6 w-6 mr-3" />
+              <Button size="lg">
+                <Plus className="h-5 w-5 mr-2" />
                 Create Event
               </Button>
             </Link>

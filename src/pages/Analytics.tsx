@@ -111,40 +111,40 @@ const Analytics = () => {
         <AppSidebar />
         <SidebarInset className="flex-1">
           <Header />
-          <main className="flex-1 p-6">
-            <div className="space-y-8">
+          <main className="flex-1 px-8 py-12">
+            <div className="max-w-7xl mx-auto space-y-12">
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">Analytics Dashboard</h1>
-                  <p className="text-muted-foreground">
+                  <h1 className="text-4xl font-bold mb-2">Analytics Dashboard</h1>
+                  <p className="text-lg text-muted-foreground">
                     Track performance, revenue, and engagement across all your podcasts
                   </p>
                 </div>
-                <div className="flex gap-3">
-                  <Button variant="outline" onClick={handleExportReport}>
-                    <Share2 className="h-4 w-4 mr-2" />
+                <div className="flex gap-4">
+                  <Button variant="outline" size="lg" onClick={handleExportReport}>
+                    <Share2 className="h-5 w-5 mr-2" />
                     Export Report
                   </Button>
-                  <Button onClick={handleDownloadData}>
-                    <Download className="h-4 w-4 mr-2" />
+                  <Button size="lg" onClick={handleDownloadData}>
+                    <Download className="h-5 w-5 mr-2" />
                     Download Data
                   </Button>
                 </div>
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {stats.map((stat) => (
-                  <Card key={stat.title} className="shadow-card">
-                    <CardContent className="p-6">
+                  <Card key={stat.title} className="border-0 shadow-sm bg-white">
+                    <CardContent className="p-8">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-muted-foreground">
+                          <p className="text-sm font-medium text-muted-foreground mb-2">
                             {stat.title}
                           </p>
-                          <p className="text-2xl font-bold">{stat.value}</p>
-                          <div className="flex items-center gap-1 mt-1">
+                          <p className="text-3xl font-bold">{stat.value}</p>
+                          <div className="flex items-center gap-1 mt-3">
                             {stat.trend === 'up' ? (
                               <TrendingUp className="h-4 w-4 text-green-600" />
                             ) : (
@@ -155,8 +155,8 @@ const Analytics = () => {
                             </p>
                           </div>
                         </div>
-                        <div className={`p-3 rounded-full bg-primary-subtle ${stat.color}`}>
-                          <stat.icon className="h-5 w-5" />
+                        <div className={`p-4 rounded-2xl bg-primary/10 ${stat.color}`}>
+                          <stat.icon className="h-6 w-6" />
                         </div>
                       </div>
                     </CardContent>
@@ -165,16 +165,16 @@ const Analytics = () => {
               </div>
 
               {/* Charts Row */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Revenue Chart */}
-                <Card className="shadow-card">
-                  <CardHeader>
-                    <CardTitle>Revenue Growth</CardTitle>
-                    <CardDescription>
+                <Card className="border-0 shadow-sm bg-white">
+                  <CardHeader className="pb-8">
+                    <CardTitle className="text-xl">Revenue Growth</CardTitle>
+                    <CardDescription className="text-base">
                       Monthly revenue and episode count over time
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-8 pt-0">
                     <ResponsiveContainer width="100%" height={300}>
                       <LineChart data={revenueData}>
                         <XAxis dataKey="month" stroke="#888888" fontSize={12} />
@@ -199,39 +199,31 @@ const Analytics = () => {
                 </Card>
 
                 {/* Platform Distribution */}
-                <Card className="shadow-card">
-                  <CardHeader>
-                    <CardTitle>Platform Distribution</CardTitle>
-                    <CardDescription>
-                      Where your audience listens to your podcasts
+                <Card className="border-0 shadow-sm bg-white">
+                  <CardHeader className="pb-8">
+                    <CardTitle className="text-xl">Platform Distribution</CardTitle>
+                    <CardDescription className="text-base">
+                      Audience breakdown by platform
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-8 pt-0">
                     <ResponsiveContainer width="100%" height={300}>
                       <PieChart>
                         <Pie
                           data={platformData}
-                          dataKey="value"
-                          nameKey="name"
                           cx="50%"
                           cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                           outerRadius={80}
-                          innerRadius={40}
-                          paddingAngle={2}
+                          fill="#8884d8"
+                          dataKey="value"
                         >
                           {platformData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip 
-                          formatter={(value) => [`${value}%`, 'Share']}
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--card))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px'
-                          }} 
-                        />
-                        <Legend />
+                        <Tooltip />
                       </PieChart>
                     </ResponsiveContainer>
                   </CardContent>
@@ -239,46 +231,75 @@ const Analytics = () => {
               </div>
 
               {/* Top Episodes */}
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle>Top Performing Episodes</CardTitle>
-                  <CardDescription>
+              <Card className="border-0 shadow-sm bg-white">
+                <CardHeader className="pb-8">
+                  <CardTitle className="text-xl">Top Performing Episodes</CardTitle>
+                  <CardDescription className="text-base">
                     Your most successful episodes by views and revenue
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
+                <CardContent className="p-8 pt-0">
+                  <div className="space-y-6">
                     {topEpisodes.map((episode, index) => (
-                      <div key={episode.title} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-full text-sm font-bold">
+                      <div key={episode.title} className="flex items-center justify-between p-6 rounded-2xl bg-muted/30">
+                        <div className="flex items-center gap-6">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
                             {index + 1}
                           </div>
                           <div>
-                            <h4 className="font-semibold">{episode.title}</h4>
-                            <p className="text-sm text-muted-foreground">{episode.date}</p>
+                            <h3 className="font-semibold text-lg">{episode.title}</h3>
+                            <p className="text-muted-foreground">{episode.date}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-6">
-                          <div className="text-right">
-                            <p className="text-sm font-medium">{episode.views.toLocaleString()} views</p>
-                            <p className="text-sm text-muted-foreground">${episode.revenue.toLocaleString()} revenue</p>
+                        <div className="flex items-center gap-8">
+                          <div className="text-center">
+                            <p className="text-2xl font-bold">{episode.views.toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground">Views</p>
                           </div>
-                          <Badge variant="secondary">
-                            {episode.engagement}% engagement
-                          </Badge>
+                          <div className="text-center">
+                            <p className="text-2xl font-bold text-green-600">${episode.revenue.toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground">Revenue</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-2xl font-bold text-blue-600">{episode.engagement}%</p>
+                            <p className="text-sm text-muted-foreground">Engagement</p>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Additional Metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <Card className="border-0 shadow-sm bg-white">
+                  <CardContent className="p-8 text-center">
+                    <div className="text-3xl font-bold text-primary mb-2">94.2%</div>
+                    <p className="text-muted-foreground">Completion Rate</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-0 shadow-sm bg-white">
+                  <CardContent className="p-8 text-center">
+                    <div className="text-3xl font-bold text-accent mb-2">4.8/5</div>
+                    <p className="text-muted-foreground">Average Rating</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-0 shadow-sm bg-white">
+                  <CardContent className="p-8 text-center">
+                    <div className="text-3xl font-bold text-green-600 mb-2">42</div>
+                    <p className="text-muted-foreground">Total Episodes</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </main>
         </SidebarInset>
       </div>
     </SidebarProvider>
   );
-};
-
-export default Analytics;
+  };
+  
+  export default Analytics;

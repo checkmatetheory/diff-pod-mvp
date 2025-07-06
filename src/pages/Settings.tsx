@@ -59,53 +59,54 @@ const Settings = () => {
         <SidebarInset className="flex-1">
           <Header />
           <main className="flex-1">
-            <div className="container mx-auto px-6 py-8 max-w-4xl">
-              <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2">Settings</h1>
-                <p className="text-muted-foreground">
+            <div className="container mx-auto px-8 py-12 max-w-5xl">
+              <div className="mb-16">
+                <h1 className="text-4xl font-bold mb-2">Settings</h1>
+                <p className="text-lg text-muted-foreground">
                   Customize your brand and manage your Diffused experience
                 </p>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-12">
                 {/* Brand Settings */}
-                <Card className="shadow-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Palette className="h-5 w-5 text-primary" />
+                <Card className="border-0 shadow-sm bg-white">
+                  <CardHeader className="pb-8">
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <Palette className="h-6 w-6 text-primary" />
                       Brand Settings
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-base">
                       Customize how your content appears to your audience
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="company-name">Company Name</Label>
+                  <CardContent className="space-y-8 p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-3">
+                        <Label htmlFor="company-name" className="text-base font-medium">Company Name</Label>
                         <Input
                           id="company-name"
                           value={settings.companyName}
                           onChange={(e) => setSettings({...settings, companyName: e.target.value})}
                           placeholder="Your company name"
+                          className="py-3 text-base"
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="subdomain">Subdomain</Label>
+                      <div className="space-y-3">
+                        <Label htmlFor="subdomain" className="text-base font-medium">Subdomain</Label>
                         <div className="flex items-center">
                           <Input
                             id="subdomain"
                             value={settings.subdomain}
                             onChange={(e) => setSettings({...settings, subdomain: e.target.value})}
                             placeholder="your-brand"
-                            className="rounded-r-none"
+                            className="rounded-r-none py-3 text-base"
                           />
-                          <div className="px-3 py-2 bg-muted border border-l-0 rounded-r-md text-sm text-muted-foreground">
+                          <div className="px-4 py-3 bg-muted border border-l-0 rounded-r-md text-base text-muted-foreground">
                             .diffused.app
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           Your content will be available at {previewUrl}
                         </p>
                       </div>
@@ -196,17 +197,17 @@ const Settings = () => {
                 </Card>
 
                 {/* Content Settings */}
-                <Card className="shadow-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <SettingsIcon className="h-5 w-5 text-primary" />
+                <Card className="border-0 shadow-sm bg-white">
+                  <CardHeader className="pb-8">
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <SettingsIcon className="h-6 w-6 text-primary" />
                       Content Settings
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-base">
                       Configure how your content is generated and displayed
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-8 p-8">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="email-capture">Email Capture</Label>
@@ -254,17 +255,17 @@ const Settings = () => {
                 </Card>
 
                 {/* Domain Settings */}
-                <Card className="shadow-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Globe className="h-5 w-5 text-primary" />
+                <Card className="border-0 shadow-sm bg-white">
+                  <CardHeader className="pb-8">
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <Globe className="h-6 w-6 text-primary" />
                       Domain Settings
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-base">
                       Manage your custom domain and subdomain settings
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-8 p-8">
                     <div className="bg-muted/30 p-4 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium">Current URL</span>
@@ -295,17 +296,17 @@ const Settings = () => {
                 </Card>
 
                 {/* Preview */}
-                <Card className="shadow-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Eye className="h-5 w-5 text-primary" />
+                <Card className="border-0 shadow-sm bg-white">
+                  <CardHeader className="pb-8">
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <Eye className="h-6 w-6 text-primary" />
                       Preview
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-base">
                       See how your branding will appear to visitors
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-8">
                     <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 bg-muted/10">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
@@ -336,9 +337,9 @@ const Settings = () => {
                 </Card>
 
                 {/* Save Button */}
-                <div className="flex justify-end">
-                  <Button onClick={handleSave} className="bg-accent hover:bg-accent-hover">
-                    <Save className="h-4 w-4 mr-2" />
+                <div className="flex justify-end pt-8">
+                  <Button onClick={handleSave} size="lg" className="bg-primary hover:bg-primary/90 text-white">
+                    <Save className="h-5 w-5 mr-2" />
                     Save Settings
                   </Button>
                 </div>

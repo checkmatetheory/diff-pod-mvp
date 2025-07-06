@@ -76,7 +76,7 @@ export default function Browse() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Loading sessions...</p>
@@ -86,86 +86,91 @@ export default function Browse() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Browse All Sessions</h1>
-        <p className="text-muted-foreground">
-          Discover and explore your complete library of conference content
-        </p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-8 py-12">
+        {/* Header */}
+        <div className="mb-16">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-foreground mb-2">Browse All Sessions</h1>
+            <p className="text-lg text-muted-foreground">
+              Discover and explore your complete library of conference content
+            </p>
+          </div>
 
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search sessions, speakers, or topics..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </Button>
-          <div className="flex border rounded-md">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className="rounded-r-none"
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
+          {/* Search and Filters */}
+          <div className="flex flex-col sm:flex-row gap-6 mb-8">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Search sessions, speakers, or topics..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-12 py-3 text-base border-0 bg-white shadow-sm"
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
+              </Button>
+              <div className="flex border rounded-lg overflow-hidden">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="rounded-none"
+                >
+                  <Grid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="rounded-none"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Category Filter */}
+          <div className="flex flex-wrap gap-3">
+            {categories.map((category) => (
+              <Badge
+                key={category}
+                variant="secondary"
+                className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors px-4 py-2"
+              >
+                {category}
+              </Badge>
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* Category Filter */}
-      <div className="flex flex-wrap gap-2">
-        {categories.map((category) => (
-          <Badge
-            key={category}
-            variant="secondary"
-            className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-          >
-            {category}
-          </Badge>
-        ))}
-      </div>
+        {/* Sessions Grid */}
+        <div className={viewMode === 'grid' 
+          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" 
+          : "space-y-6"
+        }>
+          {transformedSessions.map((session) => (
+            <SessionCard key={session.id} session={session} />
+          ))}
+        </div>
 
-      <div className={viewMode === 'grid' 
-        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
-        : "space-y-4"
-      }>
-        {transformedSessions.map((session) => (
-          <SessionCard key={session.id} session={session} />
-        ))}
+        {/* Empty State */}
+        {transformedSessions.length === 0 && (
+          <div className="text-center py-20">
+            <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-6">
+              <Search className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-2xl font-semibold mb-3">No sessions found</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Try adjusting your search terms or filters to find the content you're looking for
+            </p>
+          </div>
+        )}
       </div>
-
-      {/* Empty State */}
-      {transformedSessions.length === 0 && (
-        <Card className="shadow-card">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Search className="h-12 w-12 text-muted-foreground mb-4" />
-            <CardTitle className="mb-2">No sessions found</CardTitle>
-            <CardDescription>
-              Try adjusting your search terms or filters
-            </CardDescription>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
