@@ -1,0 +1,15 @@
+{
+  "name": "Diffused",
+  "short_name": "Diffused",
+  "description": "AI-Powered Event Recaps",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#4FC3F7",
+  "background_color": "#ffffff",
+  "display": "standalone"
+} 
