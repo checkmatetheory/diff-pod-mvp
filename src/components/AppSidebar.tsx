@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import diffusedLogo from "@/assets/diffused-logo.svg";
 
 const mainNavItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
@@ -81,13 +82,15 @@ export function AppSidebar() {
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
       <SidebarHeader className="p-6 border-b border-sidebar-border/50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center flex-shrink-0 shadow-primary">
-            <span className="text-white font-bold text-lg">D</span>
-          </div>
-          {!isCollapsed && (
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display font-bold text-xl text-gradient-primary truncate">Diffused</h2>
-              <p className="text-xs text-sidebar-foreground/70 truncate font-medium">AI Event Recaps</p>
+          {!isCollapsed ? (
+            <img 
+              src={diffusedLogo} 
+              alt="Diffused Podcasts" 
+              className="h-8 w-auto"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center flex-shrink-0 shadow-primary">
+              <span className="text-white font-bold text-lg">D</span>
             </div>
           )}
         </div>
@@ -101,8 +104,9 @@ export function AppSidebar() {
               className="h-10 bg-sidebar-accent/10 border-sidebar-border/50 text-sidebar-foreground placeholder:text-sidebar-foreground/50"
             />
             <Button 
+              variant="gradient-accent"
               size="sm" 
-              className="w-full bg-gradient-accent hover:shadow-accent transition-all duration-300 text-white hover:text-white"
+              className="w-full transition-all duration-300 font-semibold"
               onClick={() => navigate('/upload')}
             >
               <Plus className="h-4 w-4 mr-2" />

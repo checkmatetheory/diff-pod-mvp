@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Building2, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import diffusedLogo from '@/assets/diffused-logo.svg';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -59,17 +60,19 @@ export default function Auth() {
         <Card className="border-0 shadow-sm bg-white">
           <CardHeader className="text-center pb-8">
             <div className="flex justify-center mb-6">
-              <div className="p-4 rounded-2xl bg-primary/10">
-                <Building2 className="h-10 w-10 text-primary" />
-              </div>
+              <img 
+                src={diffusedLogo} 
+                alt="Diffused Podcasts" 
+                className="h-16 w-auto"
+              />
             </div>
             <CardTitle className="text-3xl font-bold">
               {isLogin ? 'Welcome Back' : 'Create Account'}
             </CardTitle>
             <CardDescription className="text-base mt-2">
               {isLogin 
-                ? 'Sign in to your enterprise podcast platform'
-                : 'Join the enterprise podcast platform'
+                ? 'Sign in to your AI-powered podcast platform'
+                : 'Join the AI-powered podcast platform'
               }
             </CardDescription>
           </CardHeader>

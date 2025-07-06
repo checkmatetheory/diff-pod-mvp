@@ -144,21 +144,21 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto px-8 py-12">
         {/* Hero Section */}
         <div className="mb-16">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary to-primary/80 p-12">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-primary p-12 shadow-lg">
             <div className="relative z-10 max-w-2xl">
               <h1 className="text-4xl font-bold text-white mb-4">
-                Welcome to <span className="text-accent">Diffused</span>
+                Welcome to <span className="text-accent-light">Diffused</span>
               </h1>
-              <p className="text-xl text-white/90 mb-8">
+              <p className="text-xl text-white/95 mb-8 leading-relaxed">
                 Manage your conference portfolios, monitor automated content generation, 
                 and track revenue across all your podcast brands.
               </p>
               <div className="flex gap-4">
-                <Button size="lg" className="bg-white text-primary hover:bg-white/90" onClick={() => navigate('/portfolios')}>
+                <Button size="lg" className="bg-white text-primary hover:bg-white/95 font-semibold shadow-md" onClick={() => navigate('/portfolios')}>
                   <Building2 className="h-5 w-5 mr-2" />
                   Manage Portfolios
                 </Button>
-                <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10" onClick={handleUploadClick}>
+                <Button variant="outline" size="lg" className="border-white/80 text-white hover:bg-white/15 font-semibold" onClick={handleUploadClick}>
                   Upload Content
                 </Button>
               </div>

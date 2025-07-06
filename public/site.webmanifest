@@ -1,7 +1,7 @@
 {
-  "name": "Diffused",
+  "name": "Diffused Podcasts",
   "short_name": "Diffused",
-  "description": "AI-Powered Event Recaps",
+  "description": "AI-Powered Podcast Generation from Conference Content",
   "icons": [
     {
       "src": "/favicon.svg",

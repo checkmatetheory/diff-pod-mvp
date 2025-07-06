@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import diffusedLogo from "@/assets/diffused-logo.svg";
 
 const features = [
   {
@@ -60,7 +61,11 @@ export default function Index() {
       {/* Header */}
       <header className="w-full flex items-center justify-between px-8 py-6 bg-primary">
         <div className="flex items-center gap-3">
-          <span className="text-2xl font-bold text-accent">PodHub</span>
+          <img 
+            src={diffusedLogo} 
+            alt="Diffused Podcasts" 
+            className="h-8 w-auto"
+          />
         </div>
         <nav className="flex gap-8 text-cardAlt text-lg font-medium">
           <a href="#episodes" className="hover:text-accent transition">Episodes</a>
@@ -80,14 +85,24 @@ export default function Index() {
       >
         <div className="max-w-xl">
           <h1 className="text-5xl md:text-6xl font-extrabold text-card mb-6 leading-tight">
-            Turn Ideas Into <span className="text-accent">Episodes</span>,<br />Dreams Into <span className="text-blue">Reality</span>
+            Turn Conference Content Into <span className="text-accent">Podcasts</span>,<br />Events Into <span className="text-blue">Insights</span>
           </h1>
           <p className="text-xl text-cardAlt mb-8">
-            Discover, create, and share podcasts with a stunning, modern platform. Minimal, beautiful, and fast.
+            Transform your conference recordings into engaging AI-powered podcasts. Minimal, beautiful, and fast.
           </p>
           <div className="flex gap-4">
-            <button className="bg-accent text-white rounded-full px-8 py-4 font-bold text-lg shadow-card hover:opacity-90 transition">Start Listening</button>
-            <button className="bg-blue text-white rounded-full px-8 py-4 font-bold text-lg shadow-card hover:opacity-90 transition">Browse Episodes</button>
+            <button 
+              className="bg-accent text-white rounded-full px-8 py-4 font-bold text-lg shadow-card hover:opacity-90 transition"
+              onClick={() => navigate("/auth")}
+            >
+              Get Started
+            </button>
+            <button 
+              className="bg-blue text-white rounded-full px-8 py-4 font-bold text-lg shadow-card hover:opacity-90 transition"
+              onClick={() => navigate("/browse")}
+            >
+              Browse Content
+            </button>
           </div>
         </div>
         <div className="mt-12 md:mt-0 md:ml-16 flex-shrink-0">

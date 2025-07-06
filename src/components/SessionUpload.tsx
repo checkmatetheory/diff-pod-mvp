@@ -348,33 +348,45 @@ const SessionUpload = () => {
           {/* Drag & Drop Area */}
           <div
             className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
+              "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
               dragActive 
                 ? "border-primary bg-primary-subtle" 
-                : "border-muted-foreground/25 hover:border-primary/50"
+                : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30"
             )}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
+            onClick={() => document.getElementById('file-input')?.click()}
           >
-            <div className="flex flex-col items-center gap-2">
-              <div className="p-3 rounded-full bg-primary-subtle">
-                <FileVideo className="h-6 w-6 text-primary" />
+            <div className="flex flex-col items-center gap-4">
+              <div className="p-4 rounded-full bg-primary/10">
+                <Upload className="h-8 w-8 text-primary" />
               </div>
               <div>
-                <p className="font-medium">Drop files here or click to browse</p>
+                <p className="font-semibold text-foreground mb-1">Drop files here or click to browse</p>
                 <p className="text-sm text-muted-foreground">
                   Supports MP4, MP3, MOV, WAV, TXT, PDF, DOC (up to 500MB)
                 </p>
               </div>
-              <Button 
-                variant="outline" 
-                className="mt-2"
-                onClick={() => document.getElementById('file-input')?.click()}
-              >
-                Select Files
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2 mt-2">
+                <Badge variant="outline" className="gap-1 border-primary/20 text-primary bg-primary/5">
+                  <FileVideo className="h-3 w-3" />
+                  Video
+                </Badge>
+                <Badge variant="outline" className="gap-1 border-accent/20 text-accent bg-accent/5">
+                  <FileAudio className="h-3 w-3" />
+                  Audio
+                </Badge>
+                <Badge variant="outline" className="gap-1 border-primary/20 text-primary bg-primary/5">
+                  <FileText className="h-3 w-3" />
+                  Text
+                </Badge>
+                <Badge variant="outline" className="gap-1 border-muted-foreground/20 text-muted-foreground bg-muted/50">
+                  <File className="h-3 w-3" />
+                  Documents
+                </Badge>
+              </div>
               <input
                 id="file-input"
                 type="file"
