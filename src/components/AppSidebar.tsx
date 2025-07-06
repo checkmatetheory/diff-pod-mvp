@@ -16,7 +16,7 @@ import {
   Search,
   Plus
 } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -57,6 +57,7 @@ const contentTypeItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const isCollapsed = state === "collapsed";
 
@@ -99,7 +100,11 @@ export function AppSidebar() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-10 bg-sidebar-accent/10 border-sidebar-border/50 text-sidebar-foreground placeholder:text-sidebar-foreground/50"
             />
-            <Button size="sm" className="w-full bg-gradient-accent hover:shadow-accent transition-all duration-300">
+            <Button 
+              size="sm" 
+              className="w-full bg-gradient-accent hover:shadow-accent transition-all duration-300 text-white hover:text-white"
+              onClick={() => navigate('/upload')}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Upload Session
             </Button>
