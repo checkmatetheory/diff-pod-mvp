@@ -1,127 +1,284 @@
-import React from "react";
-import { motion } from "framer-motion";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import Header from "@/components/Header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar } from "recharts";
+import { TrendingUp, TrendingDown, DollarSign, Users, Eye, Headphones, Download, Share2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
-const statCards = [
-  { label: "Total Listens", value: "29.4K", color: "text-accent" },
-  { label: "Avg. Engagement", value: "78%", color: "text-blue" },
-  { label: "Revenue", value: "$105K", color: "text-accent" },
-  { label: "Episodes", value: "57", color: "text-blue" },
-];
+const Analytics = () => {
+  const handleExportReport = () => {
+    toast({
+      title: "Report exported successfully!",
+      description: "Your analytics report has been generated and downloaded.",
+    });
+  };
 
-const lineData = [
-  { month: "Jan", listens: 4000 },
-  { month: "Feb", listens: 6000 },
-  { month: "Mar", listens: 8000 },
-  { month: "Apr", listens: 12000 },
-  { month: "May", listens: 15000 },
-  { month: "Jun", listens: 18000 },
-];
+  const handleDownloadData = () => {
+    toast({
+      title: "Data download started",
+      description: "Your analytics data is being prepared for download.",
+    });
+  };
 
-const pieData = [
-  { name: "Spotify", value: 45, color: "#4F8CFF" },
-  { name: "Apple Podcasts", value: 30, color: "#FF7A1A" },
-  { name: "Google Podcasts", value: 15, color: "#2D1C13" },
-  { name: "Other", value: 10, color: "#E6F0FF" },
-];
+  const stats = [
+    {
+      title: 'Total Revenue',
+      value: '$105,234',
+      change: '+12.5%',
+      trend: 'up',
+      icon: DollarSign,
+      color: 'text-green-600'
+    },
+    {
+      title: 'Total Views',
+      value: '29.4K',
+      change: '+18.2%',
+      trend: 'up',
+      icon: Eye,
+      color: 'text-blue-600'
+    },
+    {
+      title: 'Total Downloads',
+      value: '18.7K',
+      change: '+8.1%',
+      trend: 'up',
+      icon: Download,
+      color: 'text-purple-600'
+    },
+    {
+      title: 'Engagement Rate',
+      value: '78.5%',
+      change: '-2.3%',
+      trend: 'down',
+      icon: Users,
+      color: 'text-orange-600'
+    }
+  ];
 
-const statVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: 0.2 + i * 0.1, duration: 0.6 } }),
-};
+  const revenueData = [
+    { month: 'Jan', revenue: 8500, episodes: 4 },
+    { month: 'Feb', revenue: 12000, episodes: 6 },
+    { month: 'Mar', revenue: 15400, episodes: 8 },
+    { month: 'Apr', revenue: 18200, episodes: 9 },
+    { month: 'May', revenue: 22100, episodes: 11 },
+    { month: 'Jun', revenue: 25800, episodes: 12 },
+  ];
 
-const chartVariants = {
-  hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8 } },
-};
+  const platformData = [
+    { name: 'Spotify', value: 45, color: '#1DB954' },
+    { name: 'Apple Podcasts', value: 30, color: '#A855F7' },
+    { name: 'YouTube', value: 15, color: '#FF0000' },
+    { name: 'Google Podcasts', value: 10, color: '#4285F4' },
+  ];
 
-export default function Analytics() {
+  const topEpisodes = [
+    {
+      title: 'AI in Fintech: Future Trends Panel',
+      views: 8500,
+      revenue: 2400,
+      date: '2024-01-15',
+      engagement: 85
+    },
+    {
+      title: 'Crypto Market Analysis Q4 2024',
+      views: 7200,
+      revenue: 1950,
+      date: '2024-01-12',
+      engagement: 78
+    },
+    {
+      title: 'Startup Funding Landscape',
+      views: 6800,
+      revenue: 1750,
+      date: '2024-01-10',
+      engagement: 82
+    },
+    {
+      title: 'Tech Innovation Summit Recap',
+      views: 6200,
+      revenue: 1600,
+      date: '2024-01-08',
+      engagement: 76
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-primary flex flex-col font-sans">
-      {/* Header */}
-      <header className="w-full flex items-center justify-between px-8 py-6 bg-primary">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl font-bold text-accent">PodHub</span>
-        </div>
-        <nav className="flex gap-8 text-cardAlt text-lg font-medium">
-          <a href="#dashboard" className="hover:text-accent transition">Dashboard</a>
-          <a href="#analytics" className="hover:text-accent transition">Analytics</a>
-          <a href="#events" className="hover:text-accent transition">Events</a>
-        </nav>
-        <button className="bg-accent text-white rounded-full px-6 py-2 font-semibold shadow-card hover:opacity-90 transition">Export Data</button>
-      </header>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar />
+        <SidebarInset className="flex-1">
+          <Header />
+          <main className="flex-1 p-6">
+            <div className="space-y-8">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold mb-2">Analytics Dashboard</h1>
+                  <p className="text-muted-foreground">
+                    Track performance, revenue, and engagement across all your podcasts
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={handleExportReport}>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Export Report
+                  </Button>
+                  <Button onClick={handleDownloadData}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Data
+                  </Button>
+                </div>
+              </div>
 
-      {/* Stat Cards */}
-      <section className="px-8 py-16 bg-gradient-to-br from-primary via-primaryDark to-accentLight">
-        <h2 className="text-4xl font-bold text-card mb-10 text-center">Podcast Analytics</h2>
-        <div className="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-          {statCards.map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              className="rounded-2xl bg-cardAlt p-8 shadow-card flex flex-col items-center"
-              custom={i}
-              variants={statVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <div className={`text-4xl font-extrabold mb-2 ${stat.color}`}>{stat.value}</div>
-              <div className="text-lg text-textSecondary font-semibold">{stat.label}</div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Charts Section */}
-      <section className="px-8 py-20 bg-background grid md:grid-cols-2 gap-16 max-w-6xl mx-auto">
-        {/* Line Chart */}
-        <motion.div
-          className="bg-card rounded-3xl shadow-card p-8 flex flex-col items-center"
-          variants={chartVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <h3 className="text-2xl font-bold text-primary mb-6">Monthly Listens</h3>
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={lineData} margin={{ left: 0, right: 0, top: 10, bottom: 0 }}>
-              <XAxis dataKey="month" stroke="#6B6B6B" fontSize={14} tickLine={false} axisLine={false} />
-              <YAxis stroke="#6B6B6B" fontSize={14} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={{ background: '#FFF8F3', borderRadius: 12, border: 'none', color: '#2D1C13' }} />
-              <Line type="monotone" dataKey="listens" stroke="#4F8CFF" strokeWidth={4} dot={{ r: 6, fill: '#FF7A1A', stroke: '#FFF', strokeWidth: 2 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </motion.div>
-
-        {/* Pie Chart */}
-        <motion.div
-          className="bg-card rounded-3xl shadow-card p-8 flex flex-col items-center"
-          variants={chartVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <h3 className="text-2xl font-bold text-primary mb-6">Listener Platforms</h3>
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={90}
-                innerRadius={50}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                stroke="#FFF8F3"
-                strokeWidth={4}
-              >
-                {pieData.map((entry, i) => (
-                  <Cell key={`cell-${i}`} fill={entry.color} />
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {stats.map((stat) => (
+                  <Card key={stat.title} className="shadow-card">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">
+                            {stat.title}
+                          </p>
+                          <p className="text-2xl font-bold">{stat.value}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            {stat.trend === 'up' ? (
+                              <TrendingUp className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <TrendingDown className="h-4 w-4 text-red-600" />
+                            )}
+                            <p className={`text-sm ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                              {stat.change}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={`p-3 rounded-full bg-primary-subtle ${stat.color}`}>
+                          <stat.icon className="h-5 w-5" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
-              </Pie>
-              <Legend verticalAlign="bottom" height={36} iconType="circle" />
-            </PieChart>
-          </ResponsiveContainer>
-        </motion.div>
-      </section>
-    </div>
+              </div>
+
+              {/* Charts Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Revenue Chart */}
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle>Revenue Growth</CardTitle>
+                    <CardDescription>
+                      Monthly revenue and episode count over time
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={revenueData}>
+                        <XAxis dataKey="month" stroke="#888888" fontSize={12} />
+                        <YAxis stroke="#888888" fontSize={12} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px'
+                          }} 
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="revenue" 
+                          stroke="hsl(var(--primary))" 
+                          strokeWidth={3}
+                          dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Platform Distribution */}
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle>Platform Distribution</CardTitle>
+                    <CardDescription>
+                      Where your audience listens to your podcasts
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={platformData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          innerRadius={40}
+                          paddingAngle={2}
+                        >
+                          {platformData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value) => [`${value}%`, 'Share']}
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px'
+                          }} 
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Top Episodes */}
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle>Top Performing Episodes</CardTitle>
+                  <CardDescription>
+                    Your most successful episodes by views and revenue
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {topEpisodes.map((episode, index) => (
+                      <div key={episode.title} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-full text-sm font-bold">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold">{episode.title}</h4>
+                            <p className="text-sm text-muted-foreground">{episode.date}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <div className="text-right">
+                            <p className="text-sm font-medium">{episode.views.toLocaleString()} views</p>
+                            <p className="text-sm text-muted-foreground">${episode.revenue.toLocaleString()} revenue</p>
+                          </div>
+                          <Badge variant="secondary">
+                            {episode.engagement}% engagement
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
-}
+};
+
+export default Analytics;

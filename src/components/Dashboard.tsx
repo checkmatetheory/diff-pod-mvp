@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-diffused.jpg";
+import { toast } from "@/hooks/use-toast";
 
 interface SessionData {
   id: string;
@@ -40,6 +41,13 @@ interface SessionData {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  
+  const handleUploadClick = () => {
+    toast({
+      title: "Upload feature coming soon!",
+      description: "We're working on the upload functionality. Check back soon!",
+    });
+  };
   
   // Mock portfolio data
   const portfolios = [
@@ -148,7 +156,7 @@ const Dashboard = () => {
               <Building2 className="h-5 w-5 mr-2" />
               Manage Portfolios
             </Button>
-            <Button variant="outline" size="lg" onClick={() => navigate('/?tab=upload')}>
+            <Button variant="outline" size="lg" onClick={handleUploadClick}>
               Upload New Content
             </Button>
           </div>

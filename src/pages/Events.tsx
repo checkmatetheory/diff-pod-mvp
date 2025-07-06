@@ -6,6 +6,7 @@ import { Plus, Calendar, Clock, Play, Share2, Download, Headphones, Building2, U
 import { Link } from "react-router-dom";
 import { EventCard } from "@/components/EventCard";
 import { SessionCard } from "@/components/SessionCard";
+import { toast } from "@/hooks/use-toast";
 
 const sampleEvents = [
   {
@@ -90,6 +91,13 @@ export default function Events() {
   const [sessions] = useState(recentSessions);
   const featuredEvent = events[0];
 
+  const handleSettingsClick = () => {
+    toast({
+      title: "Settings coming soon!",
+      description: "Event settings and management features are being developed.",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-hero">
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -110,7 +118,7 @@ export default function Events() {
                 New Event
               </Button>
             </Link>
-            <Button variant="outline" size="lg">
+            <Button variant="outline" size="lg" onClick={handleSettingsClick}>
               <Settings className="h-5 w-5 mr-2" />
               Settings
             </Button>
@@ -211,7 +219,7 @@ export default function Events() {
         <div className="space-y-8 mb-16">
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-semibold text-foreground">All Events</h2>
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleSettingsClick}>
               <Settings className="h-4 w-4 mr-2" />
               Manage All
             </Button>
