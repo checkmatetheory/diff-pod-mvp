@@ -8,14 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Link, FileVideo, FileAudio, X, Check } from "lucide-react";
+import { Upload, Link, FileVideo, FileAudio, FileText, File, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 
 interface UploadedFile {
   id: string;
   name: string;
-  type: 'video' | 'audio' | 'url';
+  type: 'video' | 'audio' | 'url' | 'text' | 'document';
   size?: string;
   progress: number;
   status: 'uploading' | 'processing' | 'complete' | 'error';
@@ -28,6 +29,7 @@ const SessionUpload = () => {
   const [dragActive, setDragActive] = useState(false);
   const [uploads, setUploads] = useState<UploadedFile[]>([]);
   const [urlInput, setUrlInput] = useState("");
+  const [textInput, setTextInput] = useState("");
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -59,10 +61,23 @@ const SessionUpload = () => {
     }
 
     for (const file of files) {
+      // Determine file type
+      let fileType: 'video' | 'audio' | 'text' | 'document' = 'document';
+      if (file.type.includes('video')) {
+        fileType = 'video';
+      } else if (file.type.includes('audio')) {
+        fileType = 'audio';
+      } else if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+        fileType = 'text';
+      } else if (file.type.includes('pdf') || file.name.endsWith('.pdf') || 
+                 file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
+        fileType = 'document';
+      }
+
       const newUpload: UploadedFile = {
         id: Date.now().toString() + Math.random(),
         name: file.name,
-        type: file.type.includes('video') ? 'video' : 'audio',
+        type: fileType,
         size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
         progress: 0,
         status: 'uploading',
@@ -97,13 +112,26 @@ const SessionUpload = () => {
             : upload
         ));
 
+        // For text files, extract content
+        let textContent = '';
+        if (fileType === 'text') {
+          try {
+            textContent = await file.text();
+          } catch (error) {
+            console.error('Error reading text file:', error);
+          }
+        }
+
         // Create session record
         const { data: session, error: sessionError } = await supabase
           .from('user_sessions')
           .insert({
             session_name: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
             user_id: user.id,
-            processing_status: 'uploaded'
+            processing_status: 'uploaded',
+            content_type: fileType === 'video' ? 'video_audio' : 
+                         fileType === 'audio' ? 'audio_only' : 'transcript',
+            session_data: textContent ? { text_content: textContent } : null
           })
           .select()
           .single();
@@ -123,7 +151,9 @@ const SessionUpload = () => {
         const { error: processError } = await supabase.functions.invoke('process-session', {
           body: { 
             sessionId: session.id, 
-            filePath: fileName 
+            filePath: fileName,
+            fileType: fileType,
+            textContent: textContent
           }
         });
 
@@ -232,6 +262,71 @@ const SessionUpload = () => {
     setUrlInput("");
   };
 
+  const handleTextSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!textInput.trim() || !user) return;
+
+    const newUpload: UploadedFile = {
+      id: Date.now().toString(),
+      name: textInput,
+      type: 'text',
+      progress: 0,
+      status: 'uploading',
+      tags: []
+    };
+    
+    setUploads(prev => [...prev, newUpload]);
+
+    try {
+      // Create session record for text content
+      const { data: session, error: sessionError } = await supabase
+        .from('user_sessions')
+        .insert({
+          session_name: `Text Session - ${textInput.slice(0, 50)}`, // Limit session name length
+          user_id: user.id,
+          processing_status: 'uploaded',
+          session_data: { text_content: textInput }
+        })
+        .select()
+        .single();
+
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      setUploads(prev => prev.map(upload => 
+        upload.id === newUpload.id 
+          ? { ...upload, progress: 100, status: 'complete' }
+          : upload
+      ));
+
+      toast({
+        title: "Text added successfully",
+        description: "Your text content has been saved and will be processed.",
+      });
+
+      setTimeout(() => {
+        navigate(`/session/${session.id}`);
+      }, 1000);
+
+    } catch (error) {
+      console.error('Text submission error:', error);
+      setUploads(prev => prev.map(upload => 
+        upload.id === newUpload.id 
+          ? { ...upload, status: 'error' }
+          : upload
+      ));
+      
+      toast({
+        title: "Failed to save text content",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    }
+
+    setTextInput("");
+  };
+
   const removeUpload = (id: string) => {
     setUploads(prev => prev.filter(upload => upload.id !== id));
   };
@@ -246,7 +341,7 @@ const SessionUpload = () => {
             Upload Session
           </CardTitle>
           <CardDescription>
-            Upload video/audio files or paste links from YouTube, Vimeo, or Zoom
+            Upload video/audio files, text documents, or paste links from YouTube, Vimeo, or Zoom
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -270,7 +365,7 @@ const SessionUpload = () => {
               <div>
                 <p className="font-medium">Drop files here or click to browse</p>
                 <p className="text-sm text-muted-foreground">
-                  Supports MP4, MP3, MOV, WAV (up to 500MB)
+                  Supports MP4, MP3, MOV, WAV, TXT, PDF, DOC (up to 500MB)
                 </p>
               </div>
               <Button 
@@ -284,7 +379,7 @@ const SessionUpload = () => {
                 id="file-input"
                 type="file"
                 multiple
-                accept="audio/*,video/*"
+                accept="audio/*,video/*,text/*,.txt,.md,.pdf,.doc,.docx"
                 className="hidden"
                 onChange={(e) => {
                   if (e.target.files) {
@@ -310,6 +405,26 @@ const SessionUpload = () => {
               </Button>
             </form>
           </div>
+
+          {/* Text Content Input */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Or paste text content directly</span>
+            </div>
+            <form onSubmit={handleTextSubmit} className="space-y-3">
+              <Textarea
+                placeholder="Paste blog post, article, or any text content you want to convert to a podcast..."
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                className="min-h-[120px] resize-none"
+              />
+              <Button type="submit" size="sm" disabled={!textInput.trim()} variant="default" className="bg-primary hover:bg-primary/90">
+                <FileText className="h-4 w-4 mr-2" />
+                Process Text
+              </Button>
+            </form>
+          </div>
         </CardContent>
       </Card>
 
@@ -329,6 +444,8 @@ const SessionUpload = () => {
                   {upload.type === 'video' && <FileVideo className="h-4 w-4 text-primary" />}
                   {upload.type === 'audio' && <FileAudio className="h-4 w-4 text-primary" />}
                   {upload.type === 'url' && <Link className="h-4 w-4 text-primary" />}
+                  {upload.type === 'text' && <FileText className="h-4 w-4 text-primary" />}
+                  {upload.type === 'document' && <File className="h-4 w-4 text-primary" />}
                 </div>
                 
                 <div className="flex-1 min-w-0">

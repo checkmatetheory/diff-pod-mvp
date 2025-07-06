@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, Users, Upload, Eye, Settings, Share2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface EventCardProps {
   event: {
@@ -22,6 +22,8 @@ interface EventCardProps {
 }
 
 export const EventCard = ({ event, featured = false }: EventCardProps) => {
+  const navigate = useNavigate();
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'live': return 'bg-red-500 text-white animate-pulse';
@@ -98,7 +100,11 @@ export const EventCard = ({ event, featured = false }: EventCardProps) => {
           </div>
           
           <div className="flex gap-3">
-            <Button variant="gradient" className="flex-1">
+            <Button 
+              variant="gradient" 
+              className="flex-1 bg-primary hover:bg-primary/90 text-white border-0"
+              onClick={() => navigate('/upload')}
+            >
               <Upload className="h-4 w-4 mr-2" />
               Upload Session
             </Button>
@@ -168,7 +174,11 @@ export const EventCard = ({ event, featured = false }: EventCardProps) => {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="default" size="sm" className="flex-1">
+          <Button 
+            variant="gradient" 
+            className="flex-1 bg-primary hover:bg-primary/90 text-white border-0"
+            onClick={() => navigate('/upload')}
+          >
             <Upload className="h-3 w-3 mr-2" />
             Upload
           </Button>
