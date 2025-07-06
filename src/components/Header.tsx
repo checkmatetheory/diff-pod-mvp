@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Settings, User, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { UserMenu } from "@/components/UserMenu";
 
 const Header = () => {
   return (
@@ -24,14 +25,20 @@ const Header = () => {
 
         {/* Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
-          <Link to="/" className="text-sm font-medium transition-colors hover:text-primary">
+          <Link to="/dashboard" className="text-sm font-medium transition-colors hover:text-primary">
             Dashboard
-          </Link>
-          <Link to="/settings" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-            Settings
           </Link>
           <Link to="/analytics" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
             Analytics
+          </Link>
+          <Link to="/events" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+            Events
+          </Link>
+          <Link to="/portfolios" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+            Portfolios
+          </Link>
+          <Link to="/settings" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+            Settings
           </Link>
         </nav>
 
@@ -52,6 +59,7 @@ const Header = () => {
           <Button size="sm" className="bg-gradient-accent hover:shadow-accent transition-all duration-300">
             Upgrade Pro
           </Button>
+          <UserMenu />
         </div>
       </div>
     </header>

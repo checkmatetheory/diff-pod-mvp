@@ -34,17 +34,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const mainNavItems = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Browse All", url: "/browse", icon: Search },
-  { title: "Recently Added", url: "/recent", icon: Clock },
-  { title: "Continue Watching", url: "/continue", icon: PlayCircle },
-  { title: "My Favorites", url: "/favorites", icon: Star },
-  { title: "History", url: "/history", icon: History },
+  { title: "Dashboard", url: "/dashboard", icon: Home },
+  { title: "Analytics", url: "/analytics", icon: TrendingUp },
+  { title: "Events", url: "/events", icon: Calendar },
+  { title: "Portfolios", url: "/portfolios", icon: Archive },
+  { title: "Browse", url: "/browse", icon: Search },
+  { title: "Favorites", url: "/favorites", icon: Star },
+  { title: "Settings", url: "/settings", icon: Users },
 ];
 
 const eventPortfolioItems = [
   { title: "Add New Event", url: "/events/new", icon: Plus, color: "hsl(var(--accent))" },
-  { title: "My Event Portfolios", url: "/events", icon: Building2, color: "hsl(var(--primary))" },
+  { title: "New Portfolio", url: "/portfolio/new", icon: Plus, color: "hsl(var(--primary))" },
 ];
 
 const contentTypeItems = [
