@@ -35,14 +35,7 @@ export default function Auth() {
           variant: 'destructive',
         });
       } else {
-        if (!isLogin) {
-          toast({
-            title: 'Check your email',
-            description: 'Please check your email for a confirmation link.',
-          });
-        } else {
-          navigate('/');
-        }
+        navigate('/');
       }
     } catch (error) {
       toast({
