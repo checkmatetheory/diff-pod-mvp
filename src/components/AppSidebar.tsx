@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import diffusedLogo from "@/assets/diffused-logo.svg";
 
 const mainNavItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
@@ -84,7 +83,7 @@ export function AppSidebar() {
         <div className="flex items-center gap-3">
           {!isCollapsed ? (
             <img 
-              src={diffusedLogo} 
+              src="/diffused-logo.svg" 
               alt="Diffused Podcasts" 
               className="h-8 w-auto"
             />

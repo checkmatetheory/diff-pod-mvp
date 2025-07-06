@@ -4,7 +4,6 @@ import { Settings, User, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { UserMenu } from "@/components/UserMenu";
-import diffusedLogo from "@/assets/diffused-logo.svg";
 
 const Header = () => {
   return (
@@ -15,7 +14,7 @@ const Header = () => {
           <SidebarTrigger />
           <Link to="/dashboard" className="flex items-center hover:opacity-80 transition-opacity">
             <img 
-              src={diffusedLogo} 
+              src="/diffused-logo.svg" 
               alt="Diffused Podcasts" 
               className="h-8 w-auto"
             />

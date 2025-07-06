@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import diffusedLogo from "@/assets/diffused-logo.svg";
 
 const features = [
   {
@@ -62,7 +61,7 @@ export default function Index() {
       <header className="w-full flex items-center justify-between px-8 py-6 bg-primary">
         <div className="flex items-center gap-3">
           <img 
-            src={diffusedLogo} 
+            src="/diffused-logo.svg" 
             alt="Diffused Podcasts" 
             className="h-8 w-auto"
           />
