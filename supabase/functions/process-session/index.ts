@@ -18,9 +18,9 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { sessionId, filePath } = await req.json();
+    const { sessionId, filePath, fileType, textContent } = await req.json();
 
-    console.log('Processing session:', sessionId, 'file:', filePath);
+    console.log('Processing session:', sessionId, 'file:', filePath, 'type:', fileType);
 
     // Update session status to processing
     await supabase
@@ -28,13 +28,31 @@ serve(async (req) => {
       .update({ processing_status: 'processing' })
       .eq('id', sessionId);
 
-    // Get file from storage
-    const { data: fileData, error: fileError } = await supabase.storage
-      .from('session-uploads')
-      .download(filePath);
+    // Get session data to check for text content
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('user_sessions')
+      .select('session_data')
+      .eq('id', sessionId)
+      .single();
 
-    if (fileError) {
-      throw new Error(`Failed to download file: ${fileError.message}`);
+    let contentToProcess = textContent;
+    
+    // If we have text content from session data, use that
+    if (sessionData?.session_data?.text_content) {
+      contentToProcess = sessionData.session_data.text_content;
+    }
+
+    // Get file from storage only if it's not text content
+    let fileData = null;
+    if (filePath && fileType !== 'text') {
+      const { data, error: fileError } = await supabase.storage
+        .from('session-uploads')
+        .download(filePath);
+
+      if (fileError) {
+        throw new Error(`Failed to download file: ${fileError.message}`);
+      }
+      fileData = data;
     }
 
     // Real AI processing pipeline
@@ -48,19 +66,33 @@ serve(async (req) => {
     };
 
     try {
-      // Step 1: For now, we'll create a basic summary and title
-      // In a full implementation, this would involve:
-      // - Audio extraction from video files
-      // - Speech-to-text transcription
-      // - AI-powered summary generation
-      
       // Generate basic content based on file type
-      const fileName = filePath.split('/').pop() || 'session';
+      const fileName = filePath ? filePath.split('/').pop() || 'session' : 'text-content';
       const fileBaseName = fileName.replace(/\.[^/.]+$/, "");
       
-      processedData.title = `AI Processed: ${fileBaseName}`;
-      processedData.summary = `This session has been processed using AI technology. The content includes strategic discussions and key insights from the uploaded session.`;
-      processedData.transcript = `Transcript processing initiated for ${fileName}.`;
+      // Enhanced content processing for text
+      if (contentToProcess && contentToProcess.trim()) {
+        // Extract title from text content (first line or first 100 characters)
+        const lines = contentToProcess.split('\n').filter(line => line.trim());
+        const potentialTitle = lines[0] || contentToProcess.slice(0, 100);
+        
+        processedData.title = potentialTitle.length > 100 ? 
+          potentialTitle.slice(0, 100) + '...' : potentialTitle;
+        
+        // Generate summary from text content
+        const wordCount = contentToProcess.split(' ').length;
+        processedData.summary = wordCount > 200 ? 
+          contentToProcess.slice(0, 500) + '...' : contentToProcess;
+        
+        processedData.transcript = contentToProcess;
+        
+        console.log('Processing text content:', wordCount, 'words');
+      } else {
+        // Default processing for other file types
+        processedData.title = `AI Processed: ${fileBaseName}`;
+        processedData.summary = `This session has been processed using AI technology. The content includes strategic discussions and key insights from the uploaded session.`;
+        processedData.transcript = `Transcript processing initiated for ${fileName}.`;
+      }
       
       // Step 2: Generate podcast using ElevenLabs (basic implementation)
       if (elevenlabsApiKey) {

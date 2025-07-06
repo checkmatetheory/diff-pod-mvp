@@ -225,7 +225,16 @@ const Dashboard = () => {
                       <h3 className="font-semibold mb-1">{session.title}</h3>
                       <p className="text-sm text-muted-foreground">{session.date} • {session.duration}</p>
                     </div>
-                    <Badge variant={session.status === 'complete' ? 'default' : 'secondary'}>
+                    <Badge 
+                      variant={session.status === 'complete' ? 'default' : 'secondary'}
+                      className={
+                        session.status === 'complete' 
+                          ? 'bg-black text-white border-2 border-gray-400 hover:border-gray-600' 
+                          : session.status === 'processing' 
+                          ? 'bg-orange-100 text-orange-800 border-2 border-orange-300 hover:bg-orange-200'
+                          : 'border-2 border-gray-300'
+                      }
+                    >
                       {session.status}
                     </Badge>
                   </div>

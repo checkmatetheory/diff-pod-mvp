@@ -20,6 +20,7 @@ import PortfolioAnalytics from "./pages/PortfolioAnalytics";
 import NewPortfolio from "./pages/NewPortfolio";
 import Browse from "./pages/Browse";
 import Favorites from "./pages/Favorites";
+import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/portfolio/:portfolioId/analytics" element={<ProtectedRoute><PortfolioAnalytics /></ProtectedRoute>} />
             <Route path="/browse" element={<ProtectedRoute><Browse /></ProtectedRoute>} />
             <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+            <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
             <Route path="/category/conference" element={<ProtectedRoute><Conferences /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

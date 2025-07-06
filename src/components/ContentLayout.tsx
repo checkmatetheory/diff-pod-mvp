@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -153,6 +154,7 @@ interface ContentLayoutProps {
 }
 
 export const ContentLayout = ({ sessions, isLoading }: ContentLayoutProps) => {
+  const navigate = useNavigate();
   const [featuredSession, setFeaturedSession] = useState<Session | null>(null);
 
   useEffect(() => {
@@ -257,7 +259,7 @@ export const ContentLayout = ({ sessions, isLoading }: ContentLayoutProps) => {
             <p className="text-muted-foreground mb-4">
               Upload your first conference session to get started
             </p>
-            <Button>Upload Session</Button>
+            <Button onClick={() => navigate('/upload')}>Upload Session</Button>
           </div>
         )}
       </div>
