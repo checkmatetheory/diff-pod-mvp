@@ -1,0 +1,57 @@
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Index from "./pages/Index";
+import Auth from "./pages/Auth";
+import SessionDetail from "./pages/SessionDetail";
+import Settings from "./pages/Settings";
+import PublicRecap from "./pages/PublicRecap";
+import Analytics from "./pages/Analytics";
+import Conferences from "./pages/Conferences";
+import Events from "./pages/Events";
+import NewEvent from "./pages/NewEvent";
+import Portfolios from "./pages/Portfolios";
+import PortfolioAnalytics from "./pages/PortfolioAnalytics";
+import NewPortfolio from "./pages/NewPortfolio";
+import Browse from "./pages/Browse";
+import Favorites from "./pages/Favorites";
+import NotFound from "./pages/NotFound";
+
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/recap/:id" element={<PublicRecap />} />
+            <Route path="/session/:id" element={<ProtectedRoute><SessionDetail /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+            <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+            <Route path="/events/new" element={<ProtectedRoute><NewEvent /></ProtectedRoute>} />
+            <Route path="/portfolios" element={<ProtectedRoute><Portfolios /></ProtectedRoute>} />
+            <Route path="/portfolio/new" element={<ProtectedRoute><NewPortfolio /></ProtectedRoute>} />
+            <Route path="/portfolio/:portfolioId/analytics" element={<ProtectedRoute><PortfolioAnalytics /></ProtectedRoute>} />
+            <Route path="/browse" element={<ProtectedRoute><Browse /></ProtectedRoute>} />
+            <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+            <Route path="/category/conference" element={<ProtectedRoute><Conferences /></ProtectedRoute>} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
+  </QueryClientProvider>
+);
+
+export default App;
