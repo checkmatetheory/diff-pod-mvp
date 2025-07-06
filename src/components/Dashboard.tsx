@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
 import { 
   FileVideo, 
@@ -16,7 +15,8 @@ import {
   BarChart3,
   Building2,
   DollarSign,
-  Mic
+  Mic,
+  ArrowUpRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-diffused.jpg";
@@ -128,125 +128,164 @@ const Dashboard = () => {
       value: '29.4K',
       change: '+18% this month',
       icon: Eye,
-      color: 'text-green-600'
+      color: 'text-blue'
     },
     {
       title: 'Sponsor Revenue',
       value: '$105K',
       change: '+$24K this month',
       icon: DollarSign,
-      color: 'text-blue-600'
+      color: 'text-green-600'
     }
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-hero p-8 lg:p-12">
-        <div className="relative z-10 max-w-2xl">
-          <h1 className="text-4xl font-bold tracking-tight mb-4">
-            Welcome to <span className="text-gradient-primary">Enterprise Dashboard</span>
-          </h1>
-          <p className="text-lg text-muted-foreground mb-6">
-            Manage your conference portfolios, monitor automated content generation, 
-            and track revenue across all your podcast brands.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Button size="lg" className="bg-accent hover:bg-accent-hover" onClick={() => navigate('/portfolios')}>
-              <Building2 className="h-5 w-5 mr-2" />
-              Manage Portfolios
-            </Button>
-            <Button variant="outline" size="lg" onClick={handleUploadClick}>
-              Upload New Content
-            </Button>
-          </div>
-        </div>
-        <div className="absolute inset-0 opacity-30">
-          <img 
-            src={heroImage} 
-            alt="Enterprise Dashboard" 
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <Card key={stat.title} className="shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-sm text-green-600">{stat.change}</p>
-                </div>
-                <div className={`p-3 rounded-full bg-primary-subtle ${stat.color}`}>
-                  <stat.icon className="h-5 w-5" />
-                </div>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-8 py-12">
+        {/* Hero Section */}
+        <div className="mb-16">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary to-primary/80 p-12">
+            <div className="relative z-10 max-w-2xl">
+              <h1 className="text-4xl font-bold text-white mb-4">
+                Welcome to <span className="text-accent">Diffused</span>
+              </h1>
+              <p className="text-xl text-white/90 mb-8">
+                Manage your conference portfolios, monitor automated content generation, 
+                and track revenue across all your podcast brands.
+              </p>
+              <div className="flex gap-4">
+                <Button size="lg" className="bg-white text-primary hover:bg-white/90" onClick={() => navigate('/portfolios')}>
+                  <Building2 className="h-5 w-5 mr-2" />
+                  Manage Portfolios
+                </Button>
+                <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10" onClick={handleUploadClick}>
+                  Upload Content
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Portfolio Overview */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl">Your Conference Portfolios</CardTitle>
-              <CardDescription>
-                AI-powered podcast generation with enterprise analytics
-              </CardDescription>
             </div>
-            <Button variant="outline" onClick={() => navigate('/portfolios')}>View All</Button>
+            <div className="absolute inset-0 opacity-20">
+              <img 
+                src={heroImage} 
+                alt="Dashboard" 
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="mb-16">
+          <h2 className="text-2xl font-semibold text-foreground mb-8">Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {stats.map((stat) => (
+              <Card key={stat.title} className="border-0 shadow-sm bg-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-2">
+                        {stat.title}
+                      </p>
+                      <p className="text-3xl font-bold mb-1">{stat.value}</p>
+                      <p className="text-sm text-green-600">{stat.change}</p>
+                    </div>
+                    <div className={`p-4 rounded-2xl bg-primary/10`}>
+                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Portfolio Overview */}
+        <div className="mb-16">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground">Your Portfolios</h2>
+              <p className="text-muted-foreground">AI-powered podcast generation with enterprise analytics</p>
+            </div>
+            <Button variant="outline" onClick={() => navigate('/portfolios')}>
+              View All
+              <ArrowUpRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
           <PortfolioGrid portfolios={portfolios} showCreateCard={false} />
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Enterprise Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="shadow-card hover:shadow-glow transition-shadow cursor-pointer" onClick={() => navigate('/portfolios')}>
-          <CardContent className="p-6 text-center">
-            <div className="p-3 rounded-full bg-primary-subtle w-fit mx-auto mb-4">
-              <Building2 className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="font-semibold mb-2">Portfolio Management</h3>
-            <p className="text-sm text-muted-foreground">
-              Create and manage conference portfolios with automated podcast generation
-            </p>
-          </CardContent>
-        </Card>
+        {/* Recent Activity */}
+        <div className="mb-16">
+          <h2 className="text-2xl font-semibold text-foreground mb-8">Recent Sessions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {sessions.map((session) => (
+              <Card key={session.id} className="border-0 shadow-sm bg-white">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold mb-1">{session.title}</h3>
+                      <p className="text-sm text-muted-foreground">{session.date} • {session.duration}</p>
+                    </div>
+                    <Badge variant={session.status === 'complete' ? 'default' : 'secondary'}>
+                      {session.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      {session.speakers} speakers
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Eye className="h-4 w-4" />
+                      {session.views} views
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
 
-        <Card className="shadow-card hover:shadow-glow transition-shadow cursor-pointer" onClick={() => navigate('/analytics')}>
-          <CardContent className="p-6 text-center">
-            <div className="p-3 rounded-full bg-accent-subtle w-fit mx-auto mb-4">
-              <BarChart3 className="h-6 w-6 text-accent" />
-            </div>
-            <h3 className="font-semibold mb-2">Enterprise Analytics</h3>
-            <p className="text-sm text-muted-foreground">
-              Track performance, revenue, and engagement across all portfolios
-            </p>
-          </CardContent>
-        </Card>
+        {/* Quick Actions */}
+        <div>
+          <h2 className="text-2xl font-semibold text-foreground mb-8">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/portfolios')}>
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Building2 className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="font-semibold mb-2">Portfolio Management</h3>
+                <p className="text-sm text-muted-foreground">
+                  Create and manage conference portfolios with automated podcast generation
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card className="shadow-card hover:shadow-glow transition-shadow cursor-pointer">
-          <CardContent className="p-6 text-center">
-            <div className="p-3 rounded-full bg-green-100 w-fit mx-auto mb-4">
-              <TrendingUp className="h-6 w-6 text-green-600" />
-            </div>
-            <h3 className="font-semibold mb-2">Revenue Optimization</h3>
-            <p className="text-sm text-muted-foreground">
-              Maximize sponsor revenue with automated ad placement and analytics
-            </p>
-          </CardContent>
-        </Card>
+            <Card className="border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/analytics')}>
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
+                  <BarChart3 className="h-8 w-8 text-accent" />
+                </div>
+                <h3 className="font-semibold mb-2">Enterprise Analytics</h3>
+                <p className="text-sm text-muted-foreground">
+                  Track performance, revenue, and engagement across all portfolios
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
+                  <TrendingUp className="h-8 w-8 text-green-600" />
+                </div>
+                <h3 className="font-semibold mb-2">Revenue Optimization</h3>
+                <p className="text-sm text-muted-foreground">
+                  Maximize sponsor revenue with automated ad placement and analytics
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -2,20 +2,17 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { 
   Building2, 
   Plus, 
-  TrendingUp, 
   Eye, 
   DollarSign,
   Mic,
-  Filter,
   Search
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 
 const Portfolios = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -135,9 +132,8 @@ const Portfolios = () => {
   const totalStats = displayPortfolios.reduce((acc, portfolio) => ({
     episodes: acc.episodes + portfolio.analytics.total_episodes,
     views: acc.views + portfolio.analytics.total_views,
-    downloads: acc.downloads + portfolio.analytics.total_downloads,
     revenue: acc.revenue + portfolio.analytics.total_sponsor_revenue,
-  }), { episodes: 0, views: 0, downloads: 0, revenue: 0 });
+  }), { episodes: 0, views: 0, revenue: 0 });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -156,7 +152,7 @@ const Portfolios = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Loading portfolios...</p>
@@ -166,133 +162,86 @@ const Portfolios = () => {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Conference Portfolios</h1>
-          <p className="text-muted-foreground">
-            Manage your enterprise podcast portfolios with automated content generation and analytics
-          </p>
-        </div>
-        <Button className="bg-gradient-primary hover:opacity-90">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Portfolio
-        </Button>
-      </div>
-
-      {/* Overall Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="shadow-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Episodes</p>
-                <p className="text-2xl font-bold">{totalStats.episodes}</p>
-              </div>
-              <div className="p-3 rounded-full bg-primary-subtle">
-                <Mic className="h-5 w-5 text-primary" />
-              </div>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-8 py-12">
+        {/* Header Section */}
+        <div className="mb-16">
+          <div className="flex items-center justify-between mb-8">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold text-foreground">Conference Portfolios</h1>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                Manage your enterprise podcast portfolios with automated content generation and analytics
+              </p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Views</p>
-                <p className="text-2xl font-bold">{formatNumber(totalStats.views)}</p>
-              </div>
-              <div className="p-3 rounded-full bg-accent-subtle">
-                <Eye className="h-5 w-5 text-accent" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(totalStats.revenue)}</p>
-              </div>
-              <div className="p-3 rounded-full bg-green-100">
-                <DollarSign className="h-5 w-5 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Portfolios</p>
-                <p className="text-2xl font-bold">{displayPortfolios.length}</p>
-              </div>
-              <div className="p-3 rounded-full bg-blue-100">
-                <Building2 className="h-5 w-5 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search portfolios..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button variant="outline">
-          <Filter className="h-4 w-4 mr-2" />
-          Filter
-        </Button>
-      </div>
-
-      {/* Portfolio Grid */}
-      <PortfolioGrid portfolios={filteredPortfolios} showCreateCard={true} />
-
-      {/* Quick Actions */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>
-            Streamline your portfolio management with these enterprise tools
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-auto p-4 justify-start">
-              <div className="text-left">
-                <div className="font-semibold">Bulk Episode Generation</div>
-                <div className="text-sm text-muted-foreground">Process multiple conference recordings at once</div>
-              </div>
-            </Button>
-            
-            <Button variant="outline" className="h-auto p-4 justify-start">
-              <div className="text-left">
-                <div className="font-semibold">Website Monitoring Setup</div>
-                <div className="text-sm text-muted-foreground">Configure automated content detection</div>
-              </div>
-            </Button>
-            
-            <Button variant="outline" className="h-auto p-4 justify-start">
-              <div className="text-left">
-                <div className="font-semibold">Analytics Export</div>
-                <div className="text-sm text-muted-foreground">Generate comprehensive performance reports</div>
-              </div>
+            <Button size="lg" className="bg-primary hover:bg-primary/90 text-white px-8 py-3">
+              <Plus className="h-5 w-5 mr-2" />
+              Create Portfolio
             </Button>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Search */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Search portfolios..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 py-3 text-base border-0 bg-white shadow-sm"
+            />
+          </div>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Total Episodes</p>
+                  <p className="text-3xl font-bold text-foreground">{totalStats.episodes}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-primary/10">
+                  <Mic className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Total Views</p>
+                  <p className="text-3xl font-bold text-foreground">{formatNumber(totalStats.views)}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-blue/10">
+                  <Eye className="h-6 w-6 text-blue" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Total Revenue</p>
+                  <p className="text-3xl font-bold text-green-600">{formatCurrency(totalStats.revenue)}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-green-50">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Portfolio Grid */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-foreground mb-8">Active Portfolios</h2>
+          <PortfolioGrid portfolios={filteredPortfolios} showCreateCard={true} />
+        </div>
+      </div>
     </div>
   );
 };

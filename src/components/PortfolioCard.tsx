@@ -1,19 +1,14 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { 
   Building2, 
   TrendingUp, 
-  TrendingDown, 
   Eye, 
-  Download, 
   DollarSign, 
   Mic, 
   BarChart3,
-  Settings,
-  Calendar,
-  Globe
+  ArrowUpRight
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -59,140 +54,84 @@ export const PortfolioCard = ({ portfolio }: PortfolioCardProps) => {
     }).format(num);
   };
 
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case 'up':
-        return <TrendingUp className="h-4 w-4 text-green-600" />;
-      case 'down':
-        return <TrendingDown className="h-4 w-4 text-red-600" />;
-      default:
-        return <div className="h-4 w-4" />;
-    }
-  };
-
   return (
-    <Card className="shadow-card hover:shadow-glow transition-all duration-300 border-0 bg-card">
-      <CardHeader className="pb-4">
+    <Card className="border-0 shadow-sm bg-white hover:shadow-md transition-all duration-300 group">
+      <CardHeader className="pb-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            {portfolio.brand_logo_url ? (
-              <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                <img 
-                  src={portfolio.brand_logo_url} 
-                  alt={`${portfolio.name} logo`}
-                  className="w-full h-full object-contain"
-                />
-              </div>
-            ) : (
-              <div className="w-16 h-16 rounded-lg bg-primary-subtle flex items-center justify-center">
-                <Building2 className="h-8 w-8 text-primary" />
-              </div>
-            )}
-            
-            <div className="flex-1">
-              <CardTitle className="text-xl mb-1">{portfolio.name}</CardTitle>
-              <CardDescription className="text-sm line-clamp-2">
-                {portfolio.description || "Professional podcast portfolio"}
-              </CardDescription>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="outline" className="text-xs">
-                  {portfolio.category}
-                </Badge>
-                {portfolio.website_monitor?.is_active && (
-                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
-                    <Globe className="h-3 w-3 mr-1" />
-                    Auto-Monitor
-                  </Badge>
-                )}
-              </div>
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Building2 className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-xl mb-1 group-hover:text-primary transition-colors">
+                {portfolio.name}
+              </CardTitle>
+              <Badge variant="secondary" className="text-xs font-medium">
+                {portfolio.category}
+              </Badge>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <Link to={`/portfolio/${portfolio.id}/settings`}>
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
+          <Link to={`/portfolio/${portfolio.id}/analytics`}>
+            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <ArrowUpRight className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-6">
-        {/* Episode Count with Trend */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Mic className="h-5 w-5 text-primary" />
-            <span className="text-2xl font-bold">{portfolio.analytics.total_episodes}</span>
-            <span className="text-muted-foreground">episodes</span>
-            {getTrendIcon(portfolio.analytics.episode_trend)}
-          </div>
-        </div>
+      <CardContent className="pt-0">
+        <p className="text-muted-foreground mb-8 line-clamp-2">
+          {portfolio.description || "Professional podcast portfolio"}
+        </p>
 
-        {/* Key Metrics Grid */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-2 gap-6 mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Mic className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Episodes</span>
+            </div>
             <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold">{portfolio.analytics.total_episodes}</span>
+              {portfolio.analytics.episode_trend === 'up' && (
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <div className="flex items-center gap-2 mb-2">
               <Eye className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Views</span>
             </div>
-            <p className="text-lg font-semibold">{formatNumber(portfolio.analytics.total_views)}</p>
+            <span className="text-2xl font-bold">{formatNumber(portfolio.analytics.total_views)}</span>
           </div>
           
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Download className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Downloads</span>
-            </div>
-            <p className="text-lg font-semibold">{formatNumber(portfolio.analytics.total_downloads)}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
               <DollarSign className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Revenue</span>
             </div>
-            <p className="text-lg font-semibold text-green-600">
+            <span className="text-2xl font-bold text-green-600">
               {formatCurrency(portfolio.analytics.total_sponsor_revenue)}
-            </p>
+            </span>
           </div>
           
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Engagement</span>
             </div>
-            <p className="text-lg font-semibold">{portfolio.analytics.avg_engagement_rate.toFixed(1)}%</p>
+            <span className="text-2xl font-bold">{portfolio.analytics.avg_engagement_rate.toFixed(1)}%</span>
           </div>
         </div>
 
-        {/* Engagement Progress Bar */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Engagement Rate</span>
-            <span className="font-medium">{portfolio.analytics.avg_engagement_rate.toFixed(1)}%</span>
-          </div>
-          <Progress 
-            value={portfolio.analytics.avg_engagement_rate} 
-            className="h-2"
-          />
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-2">
-          <Link to={`/portfolio/${portfolio.id}/analytics`} className="flex-1">
-            <Button variant="outline" className="w-full">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
-            </Button>
-          </Link>
-          <Link to={`/portfolio/${portfolio.id}/calendar`} className="flex-1">
-            <Button variant="outline" className="w-full">
-              <Calendar className="h-4 w-4 mr-2" />
-              Calendar
-            </Button>
-          </Link>
-        </div>
+        {/* Action Button */}
+        <Link to={`/portfolio/${portfolio.id}/analytics`} className="block">
+          <Button variant="outline" className="w-full">
+            View Analytics
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );
