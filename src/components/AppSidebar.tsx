@@ -83,9 +83,9 @@ export function AppSidebar() {
         <div className="flex items-center gap-3">
           {!isCollapsed ? (
             <img 
-              src="/diffused-logo.svg" 
+              src="/diffused-pod-logo-new-2.png" 
               alt="Diffused Podcasts" 
-              className="h-8 w-auto"
+              className="h-12 w-auto"
             />
           ) : (
             <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center flex-shrink-0 shadow-primary">

@@ -60,9 +60,9 @@ export default function Auth() {
           <CardHeader className="text-center pb-8">
             <div className="flex justify-center mb-6">
               <img 
-                src="/diffused-logo.svg" 
-                alt="Diffused Podcasts" 
-                className="h-16 w-auto"
+                src="/diffused-pod-logo-new-2.png" 
+                alt="Diffused Podcasts Logo"
+                style={{ height: 48, width: 'auto' }}
               />
             </div>
             <CardTitle className="text-3xl font-bold">

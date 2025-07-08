@@ -9,19 +9,19 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm hover:shadow-md",
+        default: "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm hover:shadow-md font-semibold",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm hover:shadow-md",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm hover:shadow-md font-semibold",
         outline:
-          "border border-border bg-background hover:bg-muted hover:text-foreground shadow-sm",
+          "border border-border bg-background hover:bg-muted hover:text-foreground shadow-sm font-medium",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm",
-        ghost: "hover:bg-muted hover:text-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        gradient: "bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-md hover:shadow-glow",
-        "gradient-accent": "bg-gradient-accent text-accent-foreground hover:opacity-90 shadow-md hover:shadow-accent-glow",
-        success: "bg-green-500 text-white hover:bg-green-600 shadow-sm hover:shadow-md",
-        premium: "bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-md hover:shadow-lg",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm font-medium",
+        ghost: "hover:bg-muted hover:text-foreground font-medium",
+        link: "text-primary underline-offset-4 hover:underline font-medium",
+        gradient: "bg-gradient-primary text-primary-foreground hover:opacity-90 shadow-md hover:shadow-glow font-semibold",
+        "gradient-accent": "bg-gradient-accent text-accent-foreground hover:opacity-90 shadow-md hover:shadow-accent-glow font-semibold",
+        success: "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow-md font-semibold",
+        premium: "bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-md hover:shadow-lg font-semibold",
       },
       size: {
         default: "h-10 px-4 py-2",

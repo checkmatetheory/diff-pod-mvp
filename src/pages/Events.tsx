@@ -1,274 +1,211 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Plus, ExternalLink, Share2, Users, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, Clock, Play, Share2, Download, Headphones, Building2, Users, DollarSign, Mic, Volume2, Settings } from "lucide-react";
-import { Link } from "react-router-dom";
-import { EventCard } from "@/components/EventCard";
-import { SessionCard } from "@/components/SessionCard";
-import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-const sampleEvents = [
-  {
-    id: "1",
-    title: "TechCrunch Disrupt 2024",
-    description: "The premier startup conference featuring the latest innovations in technology and entrepreneurship.",
-    date: "2024-10-15",
-    location: "San Francisco, CA",
-    sessions: 24,
-    status: "completed" as const,
-    thumbnail: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=225&fit=crop",
-    category: "Technology",
-    views: 15420
-  },
-  {
-    id: "2", 
-    title: "Web Summit 2024",
-    description: "Europe's largest tech conference bringing together global leaders in innovation.",
-    date: "2024-11-11",
-    location: "Lisbon, Portugal",
-    sessions: 18,
-    status: "upcoming" as const,
-    thumbnail: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=225&fit=crop",
-    category: "Technology",
-    views: 12800
-  },
-  {
-    id: "3",
-    title: "SaaStr Annual 2024",
-    description: "The world's largest community of SaaS executives, founders, and entrepreneurs.",
-    date: "2024-09-10",
-    location: "San Francisco, CA",
-    sessions: 21,
-    status: "live" as const,
-    thumbnail: "https://images.unsplash.com/photo-1591115765373-5207764f72e7?w=400&h=225&fit=crop",
-    category: "SaaS",
-    views: 9650
-  }
-];
-
-const recentSessions = [
-  {
-    id: "1",
-    title: "AI in Healthcare - Expert Panel Discussion",
-    speakers: ["Dr. Sarah Chen", "Marcus Rodriguez"],
-    duration: "42:18",
-    uploadDate: "2024-01-15",
-    status: "complete" as const,
-    thumbnail: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400&h=225&fit=crop",
-    views: 8500,
-    downloads: 1200,
-    revenue: 1250,
-    category: "Healthcare"
-  },
-  {
-    id: "2",
-    title: "Crypto Market Trends - Q4 Analysis",
-    speakers: ["Alexandra Kim", "David Thompson", "Lisa Park"],
-    duration: "38:45",
-    uploadDate: "2024-01-14",
-    status: "complete" as const,
-    thumbnail: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=225&fit=crop",
-    views: 12400,
-    downloads: 890,
-    revenue: 980,
-    category: "Finance"
-  },
-  {
-    id: "3",
-    title: "Tech Startup Funding Landscape",
-    speakers: ["James Wilson", "Emma Chang"],
-    duration: "35:12",
-    uploadDate: "2024-01-13",
-    status: "generating" as const,
-    progress: 65,
-    category: "Startup"
-  }
-];
+interface Event {
+  id: string;
+  subdomain: string;
+  name: string;
+  description: string;
+  next_event_date: string;
+  is_active: boolean;
+  created_at: string;
+  _analytics?: {
+    total_leads: number;
+    total_shares: number;
+    total_views: number;
+  };
+}
 
 export default function Events() {
-  const [events] = useState(sampleEvents);
-  const [sessions] = useState(recentSessions);
-  const featuredEvent = events[0];
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSettingsClick = () => {
-    toast({
-      title: "Settings coming soon!",
-      description: "Event settings and management features are being developed.",
-    });
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select(`
+          *,
+          _analytics:diffusion_analytics(
+            metric_type,
+            metric_value
+          )
+        `)
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Process analytics data
+      const processedEvents = data?.map(event => {
+        const analytics = event._analytics || [];
+        const total_leads = analytics
+          .filter((a: any) => a.metric_type === 'email_capture')
+          .reduce((sum: number, a: any) => sum + a.metric_value, 0);
+        const total_shares = analytics
+          .filter((a: any) => a.metric_type === 'share')
+          .reduce((sum: number, a: any) => sum + a.metric_value, 0);
+        const total_views = analytics
+          .filter((a: any) => a.metric_type === 'recap_view')
+          .reduce((sum: number, a: any) => sum + a.metric_value, 0);
+
+        return {
+          ...event,
+          _analytics: { total_leads, total_shares, total_views }
+        };
+      }) || [];
+
+      setEvents(processedEvents);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-8 py-12">
-        {/* Header */}
-        <div className="mb-16">
-          <div className="flex items-center justify-between mb-8">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold text-foreground">Conference Events</h1>
-              <p className="text-lg text-muted-foreground">
-                Manage conferences, upload sessions, and generate AI-powered podcasts
-              </p>
-            </div>
-            <div className="flex gap-4">
-              <Link to="/events/new">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white">
-                  <Plus className="h-5 w-5 mr-2" />
-                  New Event
-                </Button>
-              </Link>
-              <Button variant="outline" size="lg" onClick={handleSettingsClick}>
-                <Settings className="h-5 w-5 mr-2" />
-                Settings
-              </Button>
-            </div>
-          </div>
-        </div>
+  const getEventUrl = (subdomain: string) => {
+    return `${window.location.origin}/event/${subdomain}`;
+  };
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Active Events</p>
-                  <p className="text-3xl font-bold text-foreground">{events.length}</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-primary/10">
-                  <Calendar className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Total Sessions</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {events.reduce((sum, e) => sum + e.sessions, 0)}
-                  </p>
-                </div>
-                <div className="p-4 rounded-2xl bg-accent/10">
-                  <Mic className="h-6 w-6 text-accent" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Total Views</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {events.reduce((sum, e) => sum + (e.views || 0), 0).toLocaleString()}
-                  </p>
-                </div>
-                <div className="p-4 rounded-2xl bg-blue/10">
-                  <Play className="h-6 w-6 text-blue" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Ready Sessions</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {sessions.filter(s => s.status === 'complete').length}
-                  </p>
-                </div>
-                <div className="p-4 rounded-2xl bg-green-50">
-                  <Headphones className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Featured Event */}
-        {featuredEvent && (
-          <div className="mb-16">
-            <h2 className="text-2xl font-semibold text-foreground mb-8">Featured Event</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
-                <EventCard event={featuredEvent} featured />
-              </div>
-              <div>
-                <Card className="border-0 shadow-sm bg-white">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Event Statistics</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Total Sessions</span>
-                      <span className="font-semibold">{featuredEvent.sessions}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Views</span>
-                      <span className="font-semibold">{featuredEvent.views?.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Status</span>
-                      <Badge variant="secondary">{featuredEvent.status}</Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* All Events */}
-        <div className="mb-16">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-semibold text-foreground">All Events</h2>
-            <Button variant="outline" onClick={handleSettingsClick}>
-              <Settings className="h-4 w-4 mr-2" />
-              Manage All
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {events.slice(1).map((event) => (
-              <EventCard key={event.id} event={event} />
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-48 bg-gray-200 rounded"></div>
             ))}
           </div>
         </div>
-
-        {/* Recent Sessions */}
-        <div className="mb-16">
-          <h2 className="text-2xl font-semibold text-foreground mb-8">Recent Sessions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sessions.map((session) => (
-              <SessionCard key={session.id} session={session} />
-            ))}
-          </div>
-        </div>
-
-        {/* Empty State */}
-        {events.length === 0 && (
-          <div className="text-center py-20">
-            <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-6">
-              <Calendar className="h-10 w-10 text-muted-foreground" />
-            </div>
-            <h3 className="text-2xl font-semibold mb-3">Create Your First Event</h3>
-            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-              Set up a conference event to start uploading sessions and generating AI-powered podcasts
-            </p>
-            <Link to="/events/new">
-              <Button size="lg">
-                <Plus className="h-5 w-5 mr-2" />
-                Create Event
-              </Button>
-            </Link>
-          </div>
-        )}
       </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Events</h1>
+          <p className="text-muted-foreground">Manage your event content diffusion</p>
+        </div>
+        <Button onClick={() => navigate('/events/new')}>
+          <Plus className="w-4 h-4 mr-2" />
+          Create Event
+        </Button>
+      </div>
+
+      {events.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">No events yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Create your first event to start generating viral content
+              </p>
+              <Button onClick={() => navigate('/events/new')}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Event
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {events.map((event) => (
+            <Card key={event.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">{event.name}</CardTitle>
+                    <CardDescription>{event.description}</CardDescription>
+                  </div>
+                  <Badge variant={event.is_active ? "default" : "secondary"}>
+                    {event.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Subdomain:</span>
+                    <code className="bg-muted px-2 py-1 rounded text-xs">
+                      {event.subdomain}
+                    </code>
+                  </div>
+                  
+                  {event.next_event_date && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Next Event:</span>
+                      <span>{new Date(event.next_event_date).toLocaleDateString()}</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {event._analytics?.total_leads || 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Leads</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {event._analytics?.total_shares || 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Shares</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {event._analytics?.total_views || 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Views</div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => navigate(`/events/${event.id}/manage`)}
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Manage
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(getEventUrl(event.subdomain), '_blank')}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      View Site
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/events/${event.id}/analytics`)}
+                    >
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Analytics
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
