@@ -511,10 +511,18 @@ Smart farming represents the future of sustainable agriculture, offering solutio
                       <Label htmlFor="session-id-input">Reprocess Existing Session</Label>
                       <Input
                         id="session-id-input"
-                        placeholder="Enter session ID (e.g., 69322dd3-250c-4852-9003-7412e8e815bf)"
+                        placeholder="69322dd3-250c-4852-9003-7412e8e815bf"
                         value={sessionId}
                         onChange={(e) => setSessionId(e.target.value)}
                       />
+                      <Button 
+                        onClick={() => setSessionId('69322dd3-250c-4852-9003-7412e8e815bf')}
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs"
+                      >
+                        Use MEGATRENDS Session (Has Content)
+                      </Button>
                       <Button 
                         onClick={() => reprocessSession(sessionId)} 
                         disabled={loading || !sessionId.trim()}
