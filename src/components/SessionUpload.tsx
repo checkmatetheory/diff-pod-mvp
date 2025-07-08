@@ -43,6 +43,7 @@ const SessionUpload = () => {
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchEvents();
@@ -164,6 +165,7 @@ const SessionUpload = () => {
       setUploads(prev => [...prev, newUpload]);
       
       try {
+        setUploading(true); // Disable buttons
         // Upload to Supabase Storage
         const fileName = `${user.id}/${Date.now()}-${file.name}`;
         
@@ -230,13 +232,14 @@ const SessionUpload = () => {
           body: { 
             sessionId: session.id, 
             filePath: fileName,
-            fileType: file.type || fileType, // Send actual MIME type for better processing
+            fileMimeType: file.type, // Pass the explicit MIME type
             textContent: textContent
           }
         });
 
         if (processError) {
-          console.error('Processing error:', processError);
+          setUploading(false); // Re-enable on error
+          console.error('Function invocation error:', processError);
           // Don't throw here, still mark as complete for now
         }
 
@@ -254,10 +257,12 @@ const SessionUpload = () => {
 
         // Navigate to session detail after a delay
         setTimeout(() => {
+          setUploading(false); // Re-enable after navigation
           navigate(`/session/${session.id}`);
         }, 1000);
 
       } catch (error: any) {
+        setUploading(false); // Re-enable on error
         console.error('Upload error:', error);
         setUploads(prev => prev.map(upload => 
           upload.id === newUpload.id 
@@ -330,13 +335,17 @@ const SessionUpload = () => {
           : upload
       ));
 
+      // Detect if it's a YouTube URL
+      const isYouTubeUrl = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput);
+      
       // Start processing with edge function
       const { error: processError } = await supabase.functions.invoke('process-session', {
         body: { 
           sessionId: session.id,
-          filePath: null, // No file path for URLs
-          fileType: 'url',
-          textContent: null // Will be extracted from URL
+          filePath: null,
+          fileMimeType: null,
+          textContent: null,
+          youtubeUrl: isYouTubeUrl ? urlInput : null
         }
       });
 
@@ -643,7 +652,7 @@ const SessionUpload = () => {
                 multiple
                 accept="audio/*,video/*,text/*,.txt,.md,.pdf,.doc,.docx"
                 className="hidden"
-                disabled={!canUpload}
+                disabled={!canUpload || uploading}
                 onChange={(e) => {
                   if (e.target.files && canUpload) {
                     processFiles(Array.from(e.target.files));
@@ -665,10 +674,10 @@ const SessionUpload = () => {
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 className="flex-1"
-                disabled={!canUpload}
+                disabled={!canUpload || uploading}
               />
-              <Button type="submit" size="sm" disabled={!urlInput.trim() || !canUpload}>
-                Add Link
+              <Button type="submit" size="sm" disabled={!urlInput.trim() || !canUpload || uploading}>
+                {uploading ? "Processing..." : "Add Link"}
               </Button>
             </form>
           </div>
@@ -685,17 +694,17 @@ const SessionUpload = () => {
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 className="min-h-[120px] resize-none"
-                disabled={!canUpload}
+                disabled={!canUpload || uploading}
               />
               <Button 
                 type="submit" 
                 size="sm" 
-                disabled={!textInput.trim() || !canUpload} 
+                disabled={!textInput.trim() || !canUpload || uploading}
                 variant="default" 
                 className="bg-primary hover:bg-primary/90"
               >
                 <FileText className="h-4 w-4 mr-2" />
-                {!canUpload ? "Select an event first" : "Process Text"}
+                {!canUpload ? "Select an event first" : uploading ? "Processing..." : "Process Text"}
               </Button>
             </form>
           </div>
