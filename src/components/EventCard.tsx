@@ -46,10 +46,16 @@ export const EventCard = ({ event, featured = false }: EventCardProps) => {
     return (
       <Card className="overflow-hidden shadow-glow hover-lift animate-fade-in group">
         <div className="relative h-64 bg-gradient-to-br from-primary/20 to-accent/20">
-          {event.thumbnail && (
+          {event.thumbnail ? (
             <img 
               src={event.thumbnail} 
               alt={event.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <img 
+              src="/diff media hero.png" 
+              alt="Diffused Media"
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
@@ -130,9 +136,11 @@ export const EventCard = ({ event, featured = false }: EventCardProps) => {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-            <Calendar className="h-16 w-16 text-primary/40" />
-          </div>
+          <img 
+            src="/diff media hero.png" 
+            alt="Diffused Media"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
         )}
         <div className="absolute top-3 right-3">
           <Badge className={getStatusColor(event.status)}>

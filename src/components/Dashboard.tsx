@@ -19,7 +19,7 @@ import {
   ArrowUpRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import heroImage from "@/assets/hero-diffused.jpg";
+// Using new diffused media hero image
 import { toast } from "@/hooks/use-toast";
 
 interface SessionData {
@@ -163,10 +163,10 @@ const Dashboard = () => {
                 </Button>
               </div>
             </div>
-            <div className="absolute inset-0 opacity-20">
+            <div className="absolute inset-0 opacity-30">
               <img 
-                src={heroImage} 
-                alt="Dashboard" 
+                src="/diff media hero.png" 
+                alt="Diffused Media" 
                 className="w-full h-full object-cover"
               />
             </div>

@@ -77,12 +77,20 @@ export default function Index() {
 
       {/* Hero Section */}
       <motion.section
-        className="flex flex-col md:flex-row items-center justify-between px-8 py-20 bg-gradient-to-br from-primary via-primaryDark to-accentLight"
+        className="relative flex flex-col md:flex-row items-center justify-between px-8 py-20 bg-gradient-to-br from-primary via-primaryDark to-accentLight overflow-hidden"
         variants={heroVariants}
         initial="hidden"
         animate="visible"
       >
-        <div className="max-w-xl">
+        {/* Background Hero Image */}
+        <div className="absolute inset-0 opacity-10">
+          <img 
+            src="/diff media hero.png" 
+            alt="Diffused Media Background" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="relative z-10 max-w-xl">
           <h1 className="text-5xl md:text-6xl font-extrabold text-card mb-6 leading-tight">
             Turn Conference Content Into <span className="text-accent">Podcasts</span>,<br />Events Into <span className="text-blue">Insights</span>
           </h1>
@@ -104,15 +112,19 @@ export default function Index() {
             </button>
           </div>
         </div>
-        <div className="mt-12 md:mt-0 md:ml-16 flex-shrink-0">
-          {/* Placeholder for hero image or animation */}
+        <div className="relative z-10 mt-12 md:mt-0 md:ml-16 flex-shrink-0">
+          {/* Hero image with diffused media branding */}
           <motion.div
-            className="w-80 h-80 rounded-3xl bg-cardAlt flex items-center justify-center shadow-card"
+            className="w-80 h-80 rounded-3xl overflow-hidden shadow-card"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            <span className="text-[7rem]">🎧</span>
+            <img 
+              src="/diff media hero.png" 
+              alt="Diffused Media - Turn Conference Content Into Podcasts" 
+              className="w-full h-full object-cover"
+            />
           </motion.div>
         </div>
       </motion.section>

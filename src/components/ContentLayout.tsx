@@ -206,10 +206,16 @@ export const ContentLayout = ({ sessions, isLoading }: ContentLayoutProps) => {
       {/* Hero Section */}
       {featuredSession && (
         <div className="relative h-64 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg overflow-hidden">
-          {featuredSession.thumbnail_url && (
+          {featuredSession.thumbnail_url ? (
             <img 
               src={featuredSession.thumbnail_url} 
               alt={featuredSession.session_name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img 
+              src="/diff media hero.png" 
+              alt="Diffused Media"
               className="w-full h-full object-cover"
             />
           )}

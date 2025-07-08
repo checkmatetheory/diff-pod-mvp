@@ -59,7 +59,15 @@ export default function NewPortfolio() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero">
+    <div className="min-h-screen bg-gradient-hero relative">
+      {/* Background Hero Image */}
+      <div className="absolute inset-0 opacity-5">
+        <img 
+          src="/diff media hero.png" 
+          alt="Diffused Media Background" 
+          className="w-full h-full object-cover"
+        />
+      </div>
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="flex items-center gap-6 mb-8">
