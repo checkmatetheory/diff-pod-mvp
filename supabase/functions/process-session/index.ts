@@ -345,10 +345,54 @@ async function processPDFWithVision(pdfBuffer: ArrayBuffer, fileName: string): P
 }
 
 async function convertPDFToImages(pdfBuffer: ArrayBuffer): Promise<string[]> {
-  // For now, convert PDF to base64 and treat as single image
-  // In production, you'd want to use a proper PDF-to-image converter
-  const base64Data = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
-  return [base64Data];
+  console.log('🔄 Converting PDF to images using pdf2pic service...');
+  
+  try {
+    // Convert ArrayBuffer to base64 for transmission
+    const uint8Array = new Uint8Array(pdfBuffer);
+    const base64Data = btoa(String.fromCharCode(...uint8Array));
+    
+    console.log('📤 Sending PDF to processing service...');
+    
+    // Call the Node.js PDF processing service
+    const pdfServiceUrl = Deno.env.get('PDF_SERVICE_URL') || 'http://localhost:3001';
+    
+    const response = await fetch(`${pdfServiceUrl}/process-pdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        pdfBase64: base64Data
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`PDF service failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(`PDF processing failed: ${result.details}`);
+    }
+
+    console.log(`✅ PDF successfully converted to ${result.totalPages} page images`);
+    
+    // Extract base64 images from each page
+    const pageImages = result.pages.map((page: any) => page.base64);
+    
+    return pageImages;
+    
+  } catch (error) {
+    console.error('❌ PDF to image conversion failed:', error);
+    
+    // Fallback to original method if service is unavailable
+    console.log('🔄 Falling back to basic PDF processing...');
+    const uint8Array = new Uint8Array(pdfBuffer);
+    const base64Data = btoa(String.fromCharCode(...uint8Array));
+    return [base64Data];
+  }
 }
 
 async function extractTextFromImageWithVision(base64Image: string): Promise<string> {
