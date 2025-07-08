@@ -52,6 +52,9 @@ export default function Index() {
   useEffect(() => {
     if (user) {
       navigate("/dashboard");
+    } else {
+      // Redirect directly to auth page instead of showing landing page
+      navigate("/auth");
     }
   }, [user, navigate]);
 
