@@ -199,6 +199,20 @@ const SessionDetail = () => {
   const hasError = session.processing_status === 'error';
   const isComplete = session.processing_status === 'complete';
   
+  // Debug logging
+  console.log('🔍 SessionDetail Debug:', {
+    sessionId: session.id,
+    processingStatus: session.processing_status,
+    isProcessing,
+    hasError,
+    isComplete,
+    hasSessionData: !!session.session_data,
+    hasBlogContent: !!session.session_data?.blog_content,
+    hasSocialPosts: !!session.session_data?.social_posts,
+    hasKeyQuotes: !!session.session_data?.key_quotes,
+    sessionDataKeys: session.session_data ? Object.keys(session.session_data) : 'No session_data'
+  });
+  
   const getStatusBadge = () => {
     switch (session.processing_status) {
       case 'processing':
