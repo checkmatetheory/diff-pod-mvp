@@ -12,7 +12,7 @@ const navItems = [
 export function Sidebar() {
   return (
     <aside style={{ width: 256, background: 'var(--color-primary)', color: 'white', display: 'flex', flexDirection: 'column', padding: 'var(--spacing-lg) var(--spacing-md)' }}>
-      <img src="/diffused-pod-logo-new-2.png" alt="Diffused Podcasts Logo" style={{ height: 48, width: 'auto', marginBottom: 48 }} />
+      <div style={{ marginBottom: 48, fontWeight: 700, fontSize: 28, letterSpacing: -1 }}>PodHub</div>
       <nav style={{ flex: 1 }}>
         {navItems.map((item, idx) => (
           <a

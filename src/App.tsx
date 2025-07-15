@@ -25,6 +25,8 @@ import Favorites from "./pages/Favorites";
 import Upload from "./pages/Upload";
 import TestAudio from "./pages/TestAudio";
 import EventManage from "./pages/EventManage";
+import SpeakerMicrosite from "./pages/SpeakerMicrosite";
+import SpeakerApprovalDashboard from "./pages/SpeakerApprovalDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,12 +43,14 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/recap/:id" element={<PublicRecap />} />
             <Route path="/event/:subdomain" element={<PublicEvent />} />
+            <Route path="/event/:eventId/speaker/:speakerId" element={<SpeakerMicrosite />} />
             <Route path="/session/:id" element={<ProtectedRoute><SessionDetail /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
             <Route path="/events/new" element={<ProtectedRoute><NewEvent /></ProtectedRoute>} />
             <Route path="/events/:eventId/manage" element={<ProtectedRoute><EventManage /></ProtectedRoute>} />
+            <Route path="/events/:eventId/speakers/approve" element={<ProtectedRoute><SpeakerApprovalDashboard /></ProtectedRoute>} />
             <Route path="/events/:eventId/analytics" element={<ProtectedRoute><EventAnalytics /></ProtectedRoute>} />
             <Route path="/portfolios" element={<ProtectedRoute><Portfolios /></ProtectedRoute>} />
             <Route path="/portfolio/new" element={<ProtectedRoute><NewPortfolio /></ProtectedRoute>} />

@@ -136,7 +136,7 @@ const Analytics = () => {
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {stats.map((stat) => (
-                  <Card key={stat.title} className="border-0 shadow-sm bg-white">
+                  <Card key={stat.title} className="enhanced-stat-card">
                     <CardContent className="p-8">
                       <div className="flex items-center justify-between">
                         <div>
@@ -273,21 +273,21 @@ const Analytics = () => {
 
               {/* Additional Metrics */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <Card className="border-0 shadow-sm bg-white">
+                <Card className="enhanced-stat-card">
                   <CardContent className="p-8 text-center">
                     <div className="text-3xl font-bold text-primary mb-2">94.2%</div>
                     <p className="text-muted-foreground">Completion Rate</p>
                   </CardContent>
                 </Card>
                 
-                <Card className="border-0 shadow-sm bg-white">
+                <Card className="enhanced-stat-card">
                   <CardContent className="p-8 text-center">
                     <div className="text-3xl font-bold text-accent mb-2">4.8/5</div>
                     <p className="text-muted-foreground">Average Rating</p>
                   </CardContent>
                 </Card>
                 
-                <Card className="border-0 shadow-sm bg-white">
+                <Card className="enhanced-stat-card">
                   <CardContent className="p-8 text-center">
                     <div className="text-3xl font-bold text-green-600 mb-2">42</div>
                     <p className="text-muted-foreground">Total Episodes</p>

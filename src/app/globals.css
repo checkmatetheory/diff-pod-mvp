@@ -1,53 +1,68 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-primary: #2D1C13;
-  --color-primary-dark: #3B241A;
-  --color-accent: #FF7A1A;
-  --color-accent-light: #FFF3E6;
-  --color-blue: #4F8CFF;
-  --color-blue-light: #E6F0FF;
-  --color-card: #FFFFFF;
-  --color-card-dark: #F5E9E0;
-  --color-text: #2D1C13;
-  --color-text-secondary: #6B6B6B;
-  --color-background: #FFF8F3;
-  --font-family: 'Poppins', 'Inter', Arial, sans-serif;
-  --font-heading-weight: 700;
+  /* Updated Diffused branding - Sky Blue theme */
+  --color-primary: #5B9BD5; /* Sky Blue */
+  --color-primary-dark: #4A8BC2; /* Darker Sky Blue */
+  --color-accent: #87CEEB; /* Light Sky Blue accent */
+  --color-accent-light: #F0F8FF; /* Very light blue */
+  --color-blue: #5B9BD5; /* Primary Sky Blue */
+  --color-blue-light: #E6F3FF; /* Light blue background */
+  --color-card: #FFFFFF; /* White cards */
+  --color-card-dark: #F8FAFE; /* Very light blue card alternative */
+  --color-text: #1F2937; /* Dark grey/black text */
+  --color-text-secondary: #6B7280; /* Silver/grey secondary text */
+  --color-background: #FFFFFF; /* White background */
+  --color-silver: #C0C0C0; /* Silver */
+  --color-light-grey: #F3F4F6; /* Light grey */
+  --font-family: 'Inter', Arial, sans-serif;
+  --font-heading-weight: 600;
   --font-body-weight: 400;
   --spacing-xs: 8px;
   --spacing-sm: 16px;
   --spacing-md: 24px;
   --spacing-lg: 32px;
   --spacing-xl: 48px;
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222.2 84% 4.9%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
+  
+  /* shadcn/ui color variables - updated for sky blue theme */
+  --background: 0 0% 100%; /* White */
+  --foreground: 224 11% 20%; /* Dark grey */
+  --card: 0 0% 100%; /* White */
+  --card-foreground: 224 11% 20%; /* Dark grey */
+  --popover: 0 0% 100%; /* White */
+  --popover-foreground: 224 11% 20%; /* Dark grey */
+  --primary: 210 65% 58%; /* Sky Blue */
+  --primary-foreground: 0 0% 100%; /* White */
+  --secondary: 220 14% 96%; /* Light grey */
+  --secondary-foreground: 224 11% 20%; /* Dark grey */
+  --muted: 220 14% 96%; /* Light grey */
+  --muted-foreground: 220 9% 46%; /* Medium grey */
+  --accent: 210 65% 58%; /* Sky Blue */
+  --accent-foreground: 0 0% 100%; /* White */
+  --destructive: 0 84% 60%; /* Red */
+  --destructive-foreground: 0 0% 100%; /* White */
+  --border: 220 13% 85%; /* Stronger border */
+  --input: 220 13% 88%; /* Input border */
+  --ring: 210 65% 58%; /* Sky Blue ring */
   --radius: 0.5rem;
-  --chart-1: 12 76% 61%;
-  --chart-2: 173 58% 39%;
-  --chart-3: 197 37% 24%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
+  --chart-1: 210 65% 58%; /* Sky Blue */
+  --chart-2: 195 65% 58%; /* Light Blue */
+  --chart-3: 225 65% 58%; /* Blue Purple */
+  --chart-4: 180 65% 58%; /* Cyan */
+  --chart-5: 240 65% 58%; /* Purple */
+  
+  /* Sidebar variables */
+  --sidebar-background: 210 65% 58%; /* Sky Blue */
+  --sidebar-foreground: 0 0% 100%; /* White */
+  --sidebar-primary: 210 75% 65%; /* Lighter Sky Blue */
+  --sidebar-primary-foreground: 0 0% 100%; /* White */
+  --sidebar-accent: 210 85% 70%; /* Accent Sky Blue */
+  --sidebar-accent-foreground: 0 0% 100%; /* White */
+  --sidebar-border: 210 55% 50%; /* Darker Sky Blue */
+  --sidebar-ring: 210 65% 58%; /* Sky Blue */
 }
 
 body {
@@ -58,32 +73,49 @@ body {
   padding: 0;
 }
 
+/* Enhanced visual hierarchy utilities */
+.enhanced-card {
+  @apply border border-border/60 bg-card shadow-card hover:shadow-card-hover transition-all duration-200;
+}
+
+.enhanced-button {
+  @apply shadow-button hover:shadow-button-hover transition-all duration-200;
+}
+
+.enhanced-stat-card {
+  @apply bg-gradient-to-br from-white to-slate-50/50 border border-border/40 shadow-card hover:shadow-card-hover transition-all duration-300;
+}
+
+.enhanced-portfolio-card {
+  @apply bg-white border border-border/50 shadow-card hover:shadow-card-hover hover:border-primary/30 transition-all duration-300;
+}
+
 @layer base {
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --background: 224 71% 4%; /* Very dark blue */
+    --foreground: 0 0% 98%; /* Near white */
+    --card: 224 71% 4%; /* Very dark blue */
+    --card-foreground: 0 0% 98%; /* Near white */
+    --popover: 224 71% 4%; /* Very dark blue */
+    --popover-foreground: 0 0% 98%; /* Near white */
+    --primary: 210 65% 58%; /* Sky Blue */
+    --primary-foreground: 224 71% 4%; /* Very dark blue */
+    --secondary: 215 28% 17%; /* Dark grey blue */
+    --secondary-foreground: 0 0% 98%; /* Near white */
+    --muted: 215 28% 17%; /* Dark grey blue */
+    --muted-foreground: 217 11% 65%; /* Light grey */
+    --accent: 215 28% 17%; /* Dark grey blue */
+    --accent-foreground: 0 0% 98%; /* Near white */
+    --destructive: 0 63% 31%; /* Dark red */
+    --destructive-foreground: 0 0% 98%; /* Near white */
+    --border: 215 28% 17%; /* Dark grey blue */
+    --input: 215 28% 17%; /* Dark grey blue */
+    --ring: 216 34% 17%; /* Dark blue grey */
+    --chart-1: 210 65% 58%; /* Sky Blue */
+    --chart-2: 195 65% 58%; /* Light Blue */
+    --chart-3: 225 65% 58%; /* Blue Purple */
+    --chart-4: 180 65% 58%; /* Cyan */
+    --chart-5: 240 65% 58%; /* Purple */
   }
 }
 

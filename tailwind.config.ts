@@ -25,18 +25,21 @@ export default {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
-				background: '#FFF8F3',
+				// Updated Diffused branding colors - Sky Blue theme
+				background: '#FFFFFF',
 				foreground: 'hsl(var(--foreground))',
-				primary: '#2D1C13',
-				primaryDark: '#3B241A',
-				accent: '#FF7A1A',
-				accentLight: '#FFF3E6',
-				blue: '#4F8CFF',
-				blueLight: '#E6F0FF',
-				card: '#FFFFFF',
-				cardAlt: '#FFF8F3',
-				text: '#2D1C13',
-				textSecondary: '#6B6B6B',
+				primary: '#5B9BD5', // Sky Blue - main brand color
+				primaryDark: '#4A8BC2', // Darker sky blue
+				accent: '#87CEEB', // Light sky blue accent
+				accentLight: '#F0F8FF', // Very light blue
+				blue: '#5B9BD5', // Primary sky blue
+				blueLight: '#E6F3FF', // Light blue background
+				card: '#FFFFFF', // White cards
+				cardAlt: '#F8FAFE', // Very light blue card alternative
+				text: '#1F2937', // Dark grey/black text
+				textSecondary: '#6B7280', // Silver/grey secondary text
+				silver: '#C0C0C0', // Silver color
+				lightGrey: '#F3F4F6', // Light grey backgrounds
 				popover: {
 					DEFAULT: 'hsl(var(--popover))',
 					foreground: 'hsl(var(--popover-foreground))'
@@ -58,7 +61,12 @@ export default {
 				sm: '0.5rem'
 			},
 			boxShadow: {
-				card: '0 4px 24px 0 rgba(45,28,19,0.08)',
+				card: '0 2px 8px -2px rgba(91, 155, 213, 0.15), 0 4px 16px -4px rgba(91, 155, 213, 0.10)',
+				'card-hover': '0 4px 16px -2px rgba(91, 155, 213, 0.20), 0 8px 24px -4px rgba(91, 155, 213, 0.15)',
+				button: '0 1px 3px 0 rgba(91, 155, 213, 0.12), 0 1px 2px 0 rgba(91, 155, 213, 0.08)',
+				'button-hover': '0 2px 6px -1px rgba(91, 155, 213, 0.15), 0 4px 12px -2px rgba(91, 155, 213, 0.12)',
+				sidebar: '2px 0 8px -2px rgba(0, 0, 0, 0.10)',
+				dropdown: '0 4px 16px -2px rgba(0, 0, 0, 0.15), 0 8px 24px -4px rgba(0, 0, 0, 0.10)',
 			},
 			keyframes: {
 				'accordion-down': {

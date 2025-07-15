@@ -64,8 +64,8 @@ export default function Index() {
       <header className="w-full flex items-center justify-between px-8 py-6 bg-primary">
         <div className="flex items-center gap-3">
           <img 
-            src="/diffused-pod-logo-new-2.png" 
-            alt="Diffused Podcasts Logo" 
+            src="/diffused logo deep blue no bg (1).png" 
+            alt="Diffused Logo" 
             style={{ height: 48, width: 'auto' }}
           />
         </div>

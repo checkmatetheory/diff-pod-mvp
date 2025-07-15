@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import BrandCustomization from "@/components/ui/BrandCustomization";
 
 const eventSchema = z.object({
   name: z.string().min(1, "Event name is required"),
@@ -31,6 +32,13 @@ type EventFormData = z.infer<typeof eventSchema>;
 export default function NewEvent() {
   const [loading, setLoading] = useState(false);
   const [date, setDate] = useState<Date>();
+  const [brandConfig, setBrandConfig] = useState({
+    primary_color: "#5B9BD5",
+    secondary_color: "#4A8BC2",
+    logo_url: null as string | null,
+    cta_text: "Register for Next Event",
+    cta_url: "",
+  });
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -73,11 +81,7 @@ export default function NewEvent() {
           next_event_date: data.next_event_date,
           next_event_registration_url: data.next_event_registration_url || null,
           user_id: user.id,
-          branding: {
-            primary_color: "#3b82f6",
-            secondary_color: "#1e40af",
-            logo_url: null,
-          },
+          branding_config: brandConfig,
         })
         .select()
         .single();
@@ -218,6 +222,14 @@ export default function NewEvent() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Brand Customization */}
+      <BrandCustomization
+        value={brandConfig}
+        onChange={setBrandConfig}
+        showCTA={true}
+        className="mt-6"
+      />
     </div>
   );
 }

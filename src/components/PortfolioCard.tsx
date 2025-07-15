@@ -55,7 +55,7 @@ export const PortfolioCard = ({ portfolio }: PortfolioCardProps) => {
   };
 
   return (
-    <Card className="border-0 shadow-sm bg-white hover:shadow-md transition-all duration-300 group">
+    <Card className="enhanced-portfolio-card group">
       <CardHeader className="pb-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">

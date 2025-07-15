@@ -115,7 +115,7 @@ const PortfolioAnalytics = () => {
 
           {/* Overview Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="enhanced-stat-card">
               <CardContent className="p-8">
                 <div className="flex items-center justify-between">
                   <div>
@@ -133,7 +133,7 @@ const PortfolioAnalytics = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="enhanced-stat-card">
               <CardContent className="p-8">
                 <div className="flex items-center justify-between">
                   <div>
@@ -151,7 +151,7 @@ const PortfolioAnalytics = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="enhanced-stat-card">
               <CardContent className="p-8">
                 <div className="flex items-center justify-between">
                   <div>
@@ -169,7 +169,7 @@ const PortfolioAnalytics = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="enhanced-stat-card">
               <CardContent className="p-8">
                 <div className="flex items-center justify-between">
                   <div>
@@ -191,7 +191,7 @@ const PortfolioAnalytics = () => {
           </div>
 
           {/* Engagement Overview */}
-          <Card className="border-0 shadow-sm bg-white">
+          <Card className="enhanced-card">
             <CardHeader className="pb-8">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <BarChart3 className="h-6 w-6" />
@@ -227,7 +227,7 @@ const PortfolioAnalytics = () => {
           </Card>
 
           {/* Recent Episodes Performance */}
-          <Card className="border-0 shadow-sm bg-white">
+          <Card className="enhanced-card">
             <CardHeader className="pb-8">
               <CardTitle className="text-xl">Recent Episodes Performance</CardTitle>
               <CardDescription className="text-base">

@@ -173,7 +173,7 @@ const Portfolios = () => {
                 Manage your enterprise podcast portfolios with automated content generation and analytics
               </p>
             </div>
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-white px-8 py-3">
+            <Button size="lg" className="bg-primary hover:bg-primary/90 text-white px-8 py-3 enhanced-button">
               <Plus className="h-5 w-5 mr-2" />
               Create Portfolio
             </Button>
@@ -186,14 +186,14 @@ const Portfolios = () => {
               placeholder="Search portfolios..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 py-3 text-base border-0 bg-white shadow-sm"
+              className="pl-12 py-3 text-base border border-border/60 bg-white shadow-card"
             />
           </div>
         </div>
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <Card className="border-0 shadow-sm bg-white">
+          <Card className="enhanced-stat-card">
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
@@ -207,7 +207,7 @@ const Portfolios = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm bg-white">
+          <Card className="enhanced-stat-card">
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
@@ -221,7 +221,7 @@ const Portfolios = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm bg-white">
+          <Card className="enhanced-stat-card">
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>

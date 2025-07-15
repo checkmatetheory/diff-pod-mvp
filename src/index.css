@@ -4,58 +4,58 @@
 
 @layer base {
   :root {
-    /* Enhanced Design System with Better Contrast */
+    /* Diffused Sky Blue Brand Theme - Enhanced Design System */
     --background: 0 0% 100%;
-    --foreground: 210 15% 15%;
+    --foreground: 224 11% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 210 15% 15%;
+    --card-foreground: 224 11% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 210 15% 15%;
+    --popover-foreground: 224 11% 20%;
     
-    /* Light Blue Primary - Enhanced Contrast */
-    --primary: 199 89% 42%;
+    /* Sky Blue Primary - Main Brand Color */
+    --primary: 210 65% 58%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 199 89% 38%;
-    --primary-light: 199 89% 96%;
-    --primary-subtle: 199 89% 98%;
-    --primary-muted: 199 25% 80%;
+    --primary-hover: 210 65% 52%;
+    --primary-light: 210 65% 96%;
+    --primary-subtle: 210 65% 98%;
+    --primary-muted: 210 25% 85%;
     
-    /* Orange Accent - Enhanced Contrast */
-    --accent: 20 90% 45%;
+    /* Light Sky Blue Accent */
+    --accent: 210 85% 70%;
     --accent-foreground: 0 0% 100%;
-    --accent-hover: 20 90% 40%;
-    --accent-light: 20 90% 96%;
-    --accent-subtle: 20 90% 98%;
-    --accent-muted: 20 25% 80%;
+    --accent-hover: 210 85% 65%;
+    --accent-light: 210 85% 96%;
+    --accent-subtle: 210 85% 98%;
+    --accent-muted: 210 25% 85%;
     
-    /* Improved Neutrals for Better Readability */
-    --secondary: 210 15% 94%;
-    --secondary-foreground: 210 15% 20%;
-    --muted: 210 15% 92%;
-    --muted-foreground: 210 12% 45%;
-    --destructive: 0 75% 50%;
+    /* Improved Neutrals - Silver and Light Grey */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 224 11% 20%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Enhanced Borders for Better Definition */
-    --border: 210 15% 85%;
-    --input: 210 15% 92%;
-    --ring: 199 89% 42%;
+    /* Enhanced Borders for Sky Blue Theme */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 210 65% 58%;
     --radius: 0.5rem;
     
-    /* Improved Sidebar Contrast */
-    --sidebar-background: 210 15% 97%;
-    --sidebar-foreground: 210 15% 15%;
-    --sidebar-primary: 199 89% 42%;
+    /* Sky Blue Sidebar */
+    --sidebar-background: 210 65% 58%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 210 75% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 20 90% 45%;
+    --sidebar-accent: 210 85% 70%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 210 15% 85%;
-    --sidebar-ring: 199 89% 42%;
+    --sidebar-border: 210 55% 50%;
+    --sidebar-ring: 210 65% 58%;
     
-    /* Enhanced Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(199 89% 42%), hsl(199 89% 48%));
-    --gradient-accent: linear-gradient(135deg, hsl(20 90% 45%), hsl(20 90% 50%));
-    --gradient-hero: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 15% 98%));
+    /* Sky Blue Enhanced Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(210 65% 58%), hsl(210 65% 65%));
+    --gradient-accent: linear-gradient(135deg, hsl(210 85% 70%), hsl(210 85% 75%));
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 14% 98%));
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 99%));
     
     /* Enhanced Shadows */
@@ -63,45 +63,45 @@
     --shadow-md: 0 4px 8px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 12px 20px -4px rgb(0 0 0 / 0.1);
     
-    /* Chart Colors with Better Contrast */
-    --chart-1: 199 89% 42%;
-    --chart-2: 20 90% 45%;
-    --chart-3: 142 71% 40%;
-    --chart-4: 270 95% 55%;
-    --chart-5: 340 75% 50%;
+    /* Sky Blue Chart Colors */
+    --chart-1: 210 65% 58%;
+    --chart-2: 195 65% 58%;
+    --chart-3: 225 65% 58%;
+    --chart-4: 180 65% 58%;
+    --chart-5: 240 65% 58%;
   }
 
   .dark {
-    --background: 210 15% 7%;
+    --background: 224 71% 4%;
     --foreground: 0 0% 95%;
-    --card: 210 15% 9%;
+    --card: 224 71% 4%;
     --card-foreground: 0 0% 95%;
-    --popover: 210 15% 9%;
+    --popover: 224 71% 4%;
     --popover-foreground: 0 0% 95%;
-    --primary: 199 89% 48%;
+    --primary: 210 65% 58%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 199 89% 55%;
-    --primary-light: 199 89% 15%;
-    --primary-subtle: 199 89% 10%;
-    --primary-muted: 199 20% 20%;
-    --secondary: 210 15% 12%;
+    --primary-hover: 210 65% 65%;
+    --primary-light: 210 65% 15%;
+    --primary-subtle: 210 65% 10%;
+    --primary-muted: 210 20% 20%;
+    --secondary: 215 28% 17%;
     --secondary-foreground: 0 0% 95%;
-    --muted: 210 15% 12%;
-    --muted-foreground: 210 10% 65%;
-    --accent: 20 90% 48%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 217 11% 65%;
+    --accent: 210 85% 70%;
     --accent-foreground: 0 0% 100%;
-    --accent-hover: 20 90% 55%;
-    --accent-light: 20 90% 15%;
-    --accent-subtle: 20 90% 10%;
-    --accent-muted: 20 20% 20%;
-    --destructive: 0 75% 50%;
+    --accent-hover: 210 85% 75%;
+    --accent-light: 210 85% 15%;
+    --accent-subtle: 210 85% 10%;
+    --accent-muted: 210 20% 20%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 15% 15%;
-    --input: 210 15% 15%;
-    --ring: 199 89% 48%;
-    --sidebar-background: 210 15% 5%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 210 65% 58%;
+    --sidebar-background: 224 71% 4%;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-border: 210 15% 15%;
+    --sidebar-border: 215 28% 17%;
   }
 }
 

@@ -2,31 +2,51 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:8088',
+  'https://diff-pod-mvp.vercel.app',
+  'https://diff-pod-4hadk414b-diffused.vercel.app',
+];
+
 serve(async (req) => {
+  // Log all incoming request headers for debugging
+  console.log('Incoming Request Headers:', Object.fromEntries(req.headers.entries()));
+
+  const origin = req.headers.get('Origin');
+  const isAllowedOrigin = origin && ALLOWED_ORIGINS.includes(origin);
+
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': isAllowedOrigin ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    console.log('Function invoked. Checking environment variables...');
+    if (!openaiApiKey) {
+      console.error('🔴 CRITICAL: OPENAI_API_KEY environment variable is not set.');
+      throw new Error('OpenAI API key not configured');
+    }
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('🔴 CRITICAL: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variable is not set.');
+      throw new Error('Supabase environment not configured');
+    }
+    console.log('✅ Environment variables loaded.');
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { sessionId, filePath, fileMimeType, textContent, youtubeUrl } = await req.json();
 
     console.log('==== SMART PIPELINE PROCESSING START ====');
     console.log({ sessionId, filePath, fileMimeType, hasTextContent: !!textContent, youtubeUrl });
-
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
 
     // Update session status to processing
     await supabase
@@ -54,15 +74,16 @@ serve(async (req) => {
     } else if (filePath) {
       console.log('📄 Processing uploaded file...', { filePath, fileMimeType });
       
-      // Download file from Supabase storage
+      console.log('➡️ Attempting to download file from Supabase Storage:', filePath);
       const { data: fileData, error: downloadError } = await supabase.storage
         .from('session-uploads')
         .download(filePath);
       
       if (downloadError) {
-        console.error('File download error:', downloadError);
+        console.error('🔴 File download error:', downloadError);
         throw new Error(`Failed to download file: ${downloadError.message}`);
       }
+      console.log('✅ File downloaded successfully.');
 
       const fileBuffer = await fileData.arrayBuffer();
       console.log('File downloaded, size:', fileBuffer.byteLength);
@@ -137,6 +158,7 @@ serve(async (req) => {
     };
 
     // Update session with processed data
+    console.log('➡️ Preparing to update session in database with final data.');
     const { error: updateError } = await supabase
       .from('user_sessions')
       .update({
@@ -149,11 +171,11 @@ serve(async (req) => {
       .eq('id', sessionId);
 
     if (updateError) {
-      console.error('Database update error:', updateError);
+      console.error('🔴 Final database update error:', updateError);
       throw new Error(`Failed to update session: ${updateError.message}`);
     }
 
-    console.log('✅ Session processing complete');
+    console.log('✅ Session processing complete. Database updated.');
 
     return new Response(
       JSON.stringify({ 
@@ -172,18 +194,22 @@ serve(async (req) => {
   } catch (error) {
     console.error('❌ Session processing error:', error);
     
-    // Update session status to error
+    // Update session status to error and exit
+    const errorPayload = {
+      processing_error: error.message,
+      error_timestamp: new Date().toISOString(),
+      error_details: error.stack // Include stack trace for more details
+    };
+    
+    // Use a separate Supabase client instance for this critical error update
+    const internalSupabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const body = await req.clone().json().catch(() => ({}));
     if (body.sessionId) {
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      await supabase
+      await internalSupabase
         .from('user_sessions')
         .update({ 
           processing_status: 'error',
-          session_data: {
-            processing_error: error.message,
-            error_timestamp: new Date().toISOString()
-          }
+          session_data: errorPayload
         })
         .eq('id', body.sessionId);
     }
@@ -248,8 +274,9 @@ async function processYouTubeLink(youtubeUrl: string): Promise<string> {
 
 function extractYouTubeVideoId(url: string): string | null {
   const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/
   ];
   
   for (const pattern of patterns) {
@@ -324,14 +351,11 @@ async function processPDFWithVision(pdfBuffer: ArrayBuffer, fileName: string): P
   console.log('📄 Processing PDF with OpenAI Vision API:', fileName);
   
   try {
-    // Convert PDF to images using PDF-lib or similar
     const images = await convertPDFToImages(pdfBuffer);
-    
     let extractedText = '';
     
-    // Process each page image with OpenAI Vision
     for (let i = 0; i < images.length; i++) {
-      console.log(`Processing page ${i + 1}/${images.length}`);
+      console.log(`Processing page ${i + 1} of ${images.length}`);
       const pageText = await extractTextFromImageWithVision(images[i]);
       extractedText += pageText + '\n\n';
     }
@@ -339,8 +363,9 @@ async function processPDFWithVision(pdfBuffer: ArrayBuffer, fileName: string): P
     return extractedText.trim();
     
   } catch (error) {
-    console.error('PDF Vision processing failed:', error);
-    throw new Error(`PDF processing failed: ${error.message}`);
+    console.error('🔴 PDF Vision processing task failed:', error.message);
+    // Re-throw the error to be caught by the main handler
+    throw new Error(`PDF processing via Vision failed: ${error.message}`);
   }
 }
 
@@ -396,50 +421,58 @@ async function convertPDFToImages(pdfBuffer: ArrayBuffer): Promise<string[]> {
 }
 
 async function extractTextFromImageWithVision(base64Image: string): Promise<string> {
+  console.log('➡️ Sending to OpenAI Vision API for OCR...');
   try {
+    const requestBody = {
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert OCR system. Extract all text content from the provided document accurately. Return only the extracted text, maintaining the original structure and formatting as much as possible.'
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Please extract all text from this document. Return only the text content, no additional commentary.'
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:application/pdf;base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 4000
+    };
+    
+    console.log('📦 OpenAI Vision Request Body (omitting image data for logs).');
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert OCR system. Extract all text content from the provided image accurately. Return only the extracted text, maintaining the original structure and formatting as much as possible.'
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Please extract all text from this image. Return only the text content, no additional commentary.'
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/jpeg;base64,${base64Image}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 4000
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
-      throw new Error(`Vision API failed: ${response.status}`);
+      const errorBody = await response.text();
+      console.error('🔴 Vision API failed:', { status: response.status, body: errorBody });
+      throw new Error(`Vision API failed: ${response.status} - ${errorBody}`);
     }
-
+    
+    console.log('✅ Vision API response received successfully.');
     const result = await response.json();
     return result.choices[0].message.content.trim();
     
   } catch (error) {
-    console.error('Vision OCR failed:', error);
-    throw new Error(`Text extraction from image failed: ${error.message}`);
+    console.error('🔴 Vision OCR task failed catastrophically:', error);
+    throw new Error(`Text extraction from PDF failed: ${error.message}`);
   }
 }
 

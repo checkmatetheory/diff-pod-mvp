@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import BrandCustomization from "@/components/ui/BrandCustomization";
 
 interface Event {
   id: string;
@@ -37,6 +38,13 @@ interface Event {
   next_event_date: string;
   is_active: boolean;
   created_at: string;
+  branding_config: {
+    primary_color: string;
+    secondary_color: string;
+    logo_url: string | null;
+    cta_text?: string;
+    cta_url?: string;
+  };
 }
 
 interface Session {
@@ -59,6 +67,7 @@ const EventManage = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [savingBranding, setSavingBranding] = useState(false);
   const [stats, setStats] = useState({
     totalSessions: 0,
     completedSessions: 0,
@@ -198,6 +207,36 @@ const EventManage = () => {
       });
     } finally {
       setDeletingSessionId(null);
+    }
+  };
+
+  const handleBrandingUpdate = async (newBrandConfig: any) => {
+    if (!event) return;
+    
+    setSavingBranding(true);
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ branding_config: newBrandConfig })
+        .eq('id', event.id);
+
+      if (error) throw error;
+
+      setEvent(prev => prev ? { ...prev, branding_config: newBrandConfig } : null);
+      
+      toast({
+        title: "Branding updated",
+        description: "Your event branding has been saved successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating branding:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update branding. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingBranding(false);
     }
   };
 
@@ -527,64 +566,80 @@ const EventManage = () => {
                 </TabsContent>
 
                 <TabsContent value="settings" className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Settings className="h-5 w-5" />
-                        Event Settings
-                      </CardTitle>
-                      <CardDescription>
-                        Manage your event configuration and branding
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium">Event Name</label>
-                            <p className="text-sm text-muted-foreground">{event.name}</p>
+                  <div className="space-y-6">
+                    {/* Basic Event Info */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Settings className="h-5 w-5" />
+                          Event Information
+                        </CardTitle>
+                        <CardDescription>
+                          Basic configuration and details for your event
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-sm font-medium">Event Name</label>
+                              <p className="text-sm text-muted-foreground">{event.name}</p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">Subdomain</label>
+                              <p className="text-sm text-muted-foreground">/{event.subdomain}</p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">Status</label>
+                              <p className="text-sm text-muted-foreground">
+                                {event.is_active ? "Active" : "Inactive"}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">Created</label>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(event.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
+                          
                           <div>
-                            <label className="text-sm font-medium">Subdomain</label>
-                            <p className="text-sm text-muted-foreground">/{event.subdomain}</p>
+                            <label className="text-sm font-medium">Description</label>
+                            <p className="text-sm text-muted-foreground">{event.description}</p>
                           </div>
-                          <div>
-                            <label className="text-sm font-medium">Status</label>
-                            <p className="text-sm text-muted-foreground">
-                              {event.is_active ? "Active" : "Inactive"}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Created</label>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(event.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="text-sm font-medium">Description</label>
-                          <p className="text-sm text-muted-foreground">{event.description}</p>
-                        </div>
 
-                        <div>
-                          <label className="text-sm font-medium">Public URL</label>
-                          <div className="flex items-center gap-2">
-                            <code className="text-sm bg-muted px-2 py-1 rounded">
-                              {getEventUrl(event.subdomain)}
-                            </code>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(getEventUrl(event.subdomain), '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
+                          <div>
+                            <label className="text-sm font-medium">Public URL</label>
+                            <div className="flex items-center gap-2">
+                              <code className="text-sm bg-muted px-2 py-1 rounded">
+                                {getEventUrl(event.subdomain)}
+                              </code>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(getEventUrl(event.subdomain), '_blank')}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+
+                    {/* Brand Customization */}
+                    <BrandCustomization
+                      value={event.branding_config || {
+                        primary_color: "#5B9BD5",
+                        secondary_color: "#4A8BC2",
+                        logo_url: null,
+                        cta_text: "Register for Next Event",
+                        cta_url: event.next_event_registration_url || "",
+                      }}
+                      onChange={handleBrandingUpdate}
+                      showCTA={true}
+                    />
+                  </div>
                 </TabsContent>
               </Tabs>
             </div>

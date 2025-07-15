@@ -178,7 +178,7 @@ const Dashboard = () => {
           <h2 className="text-2xl font-semibold text-foreground mb-8">Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat) => (
-              <Card key={stat.title} className="border-0 shadow-sm bg-white">
+              <Card key={stat.title} className="enhanced-stat-card">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -218,7 +218,7 @@ const Dashboard = () => {
           <h2 className="text-2xl font-semibold text-foreground mb-8">Recent Sessions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {sessions.map((session) => (
-              <Card key={session.id} className="border-0 shadow-sm bg-white">
+              <Card key={session.id} className="enhanced-card">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
@@ -258,7 +258,7 @@ const Dashboard = () => {
         <div>
           <h2 className="text-2xl font-semibold text-foreground mb-8">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/portfolios')}>
+            <Card className="enhanced-card cursor-pointer" onClick={() => navigate('/portfolios')}>
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <Building2 className="h-8 w-8 text-primary" />
@@ -270,7 +270,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/analytics')}>
+            <Card className="enhanced-card cursor-pointer" onClick={() => navigate('/analytics')}>
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
                   <BarChart3 className="h-8 w-8 text-accent" />
@@ -282,7 +282,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer">
+            <Card className="enhanced-card cursor-pointer">
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
                   <TrendingUp className="h-8 w-8 text-green-600" />
