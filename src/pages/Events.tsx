@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import CreateEventModal from "@/components/ui/CreateEventModal";
 
 interface Event {
   id: string;
@@ -37,6 +38,7 @@ interface Event {
 export default function Events() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const navigate = useNavigate();
 
   // Clean mock data focused on essentials
@@ -112,6 +114,7 @@ export default function Events() {
 
   if (loading) {
     return (
+      <>
       <SidebarProvider>
         <div className="min-h-screen flex w-full relative overflow-hidden">
           {/* Sky Background */}
@@ -143,10 +146,23 @@ export default function Events() {
           </SidebarInset>
         </div>
       </SidebarProvider>
+
+      {/* Create Event Modal */}
+      <CreateEventModal 
+        open={createModalOpen} 
+        onOpenChange={setCreateModalOpen}
+        onEventCreated={() => {
+          // Refresh events list or add optimistic update
+          setLoading(true);
+          setTimeout(() => setLoading(false), 1000);
+        }}
+      />
+      </>
     );
   }
 
   return (
+    <>
     <SidebarProvider>
       <div className="min-h-screen flex w-full relative overflow-hidden">
         {/* Sky Background with Gradient */}
@@ -174,7 +190,7 @@ export default function Events() {
                 </div>
                 <Button 
                   size="lg" 
-                  onClick={() => navigate('/events/new')}
+                  onClick={() => setCreateModalOpen(true)}
                   className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm shadow-xl border border-blue-500/20 hover:shadow-2xl transition-all duration-300"
                 >
                   <Plus className="w-5 h-5 mr-2" />
@@ -247,7 +263,7 @@ export default function Events() {
                           Create speaker microsites that turn into measurable revenue
                         </p>
                         <Button 
-                          onClick={() => navigate('/events/new')} 
+                          onClick={() => setCreateModalOpen(true)} 
                           size="lg"
                           className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm shadow-xl border border-blue-500/20"
                         >
@@ -362,5 +378,17 @@ export default function Events() {
         </SidebarInset>
       </div>
     </SidebarProvider>
+
+    {/* Create Event Modal */}
+    <CreateEventModal 
+      open={createModalOpen} 
+      onOpenChange={setCreateModalOpen}
+      onEventCreated={() => {
+        // Refresh events list or add optimistic update
+        setLoading(true);
+        setTimeout(() => setLoading(false), 1000);
+      }}
+    />
+    </>
   );
 }
