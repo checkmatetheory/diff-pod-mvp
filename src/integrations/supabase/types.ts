@@ -90,6 +90,83 @@ export type Database = {
           },
         ]
       }
+      content_favorites: {
+        Row: {
+          content_item_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content_item_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content_item_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_favorites_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_items: {
+        Row: {
+          content_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration: number | null
+          event_name: string
+          id: string
+          speaker_name: string
+          tags: string[] | null
+          thumbnail_url: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          content_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration?: number | null
+          event_name: string
+          id?: string
+          speaker_name: string
+          tags?: string[] | null
+          thumbnail_url: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          content_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration?: number | null
+          event_name?: string
+          id?: string
+          speaker_name?: string
+          tags?: string[] | null
+          thumbnail_url?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       custom_voices: {
         Row: {
           created_at: string

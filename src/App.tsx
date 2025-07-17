@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -47,24 +46,22 @@ const App = () => (
             <Route path="/event/:subdomain/speaker/:slug" element={<SpeakerMicrosite />} />
             <Route path="/event/:eventId/speaker/:speakerId" element={<SpeakerMicrosite />} />
             
-            {/* Protected routes with main app layout */}
-            <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="session/:id" element={<SessionDetail />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="events" element={<Events />} />
-              <Route path="events/new" element={<NewEvent />} />
-              <Route path="events/:eventId/manage" element={<EventManage />} />
-              <Route path="events/:eventId/speakers/approve" element={<SpeakerApprovalDashboard />} />
-              <Route path="events/:eventId/analytics" element={<EventAnalytics />} />
-              <Route path="speakers" element={<AllSpeakers />} />
-              <Route path="browse" element={<Browse />} />
-              <Route path="favorites" element={<Favorites />} />
-              <Route path="upload" element={<Upload />} />
-              <Route path="test-audio" element={<TestAudio />} />
-              <Route path="conference/:id" element={<Conferences />} />
-            </Route>
+            {/* Protected routes - all using consistent layout */}
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+            <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+            <Route path="/browse" element={<ProtectedRoute><Browse /></ProtectedRoute>} />
+            <Route path="/speakers" element={<ProtectedRoute><AllSpeakers /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+            <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+            <Route path="/session/:id" element={<ProtectedRoute><SessionDetail /></ProtectedRoute>} />
+            <Route path="/events/new" element={<ProtectedRoute><NewEvent /></ProtectedRoute>} />
+            <Route path="/events/:eventId/manage" element={<ProtectedRoute><EventManage /></ProtectedRoute>} />
+            <Route path="/events/:eventId/speakers/approve" element={<ProtectedRoute><SpeakerApprovalDashboard /></ProtectedRoute>} />
+            <Route path="/events/:eventId/analytics" element={<ProtectedRoute><EventAnalytics /></ProtectedRoute>} />
+            <Route path="/test-audio" element={<ProtectedRoute><TestAudio /></ProtectedRoute>} />
+            <Route path="/conference/:id" element={<ProtectedRoute><Conferences /></ProtectedRoute>} />
             
             {/* 404 route */}
             <Route path="*" element={<NotFound />} />
