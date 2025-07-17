@@ -1,172 +1,237 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Grid, List } from "lucide-react";
-import { SessionCard } from "@/components/SessionCard";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { Search, Filter, Play, ArrowRight } from "lucide-react";
 
-interface Session {
+interface VisualContent {
   id: string;
-  session_name: string;
-  description: string | null;
-  speaker_names: string[] | null;
-  duration_seconds: number | null;
-  created_at: string;
-  processing_status: string | null;
-  thumbnail_url: string | null;
-  category: string | null;
+  type: 'photo' | 'reel';
+  url: string;
+  thumbnail: string;
+  title: string;
+  speaker: string;
+  event: string;
 }
 
-export default function Browse() {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    if (user) {
-      fetchSessions();
-    }
-  }, [user]);
-
-  const fetchSessions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      setSessions(data || []);
-    } catch (error) {
-      console.error('Error fetching sessions:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load sessions',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Transform sessions to match SessionCard interface
-  const transformedSessions = sessions.map(session => ({
-    id: session.id,
-    title: session.session_name,
-    description: session.description,
-    speakers: session.speaker_names || [],
-    duration: session.duration_seconds ? `${Math.floor(session.duration_seconds / 60)}:${String(session.duration_seconds % 60).padStart(2, '0')}` : '0:00',
-    uploadDate: session.created_at,
-    status: (session.processing_status === 'complete' ? 'complete' : 
-             session.processing_status === 'processing' ? 'processing' : 
-             session.processing_status === 'generating' ? 'generating' : 'complete') as 'complete' | 'generating' | 'processing' | 'failed',
-    thumbnail: session.thumbnail_url,
-    category: session.category,
-  }));
-
-  const categories = ["All", "Conference", "Earnings Call", "Board Meeting", "Investor Update"];
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading sessions...</p>
-        </div>
-      </div>
-    );
+// Demo content matching the mockup
+const demoContent: VisualContent[] = [
+  {
+    id: '1',
+    type: 'reel',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'AI Innovation Discussion',
+    speaker: 'Dr. Alex Chen',
+    event: 'Tech Summit 2024'
+  },
+  {
+    id: '2',
+    type: 'reel',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'Future of Work Panel',
+    speaker: 'Sarah Johnson',
+    event: 'Innovation Conference'
+  },
+  {
+    id: '3',
+    type: 'photo',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'Leadership Workshop',
+    speaker: 'Mike Rodriguez',
+    event: 'Business Summit'
+  },
+  {
+    id: '4',
+    type: 'reel',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'Startup Pitch Session',
+    speaker: 'Emma Davis',
+    event: 'Entrepreneur Expo'
+  },
+  {
+    id: '5',
+    type: 'photo',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'Panel Discussion',
+    speaker: 'Dr. James Wilson',
+    event: 'Innovation Summit'
+  },
+  {
+    id: '6',
+    type: 'photo',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'Keynote Presentation',
+    speaker: 'Lisa Chang',
+    event: 'Tech Conference'
+  },
+  {
+    id: '7',
+    type: 'reel',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'Product Demo',
+    speaker: 'David Park',
+    event: 'Product Summit'
+  },
+  {
+    id: '8',
+    type: 'photo',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'Networking Session',
+    speaker: 'Maria Garcia',
+    event: 'Business Forum'
+  },
+  {
+    id: '9',
+    type: 'reel',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'Investment Strategy',
+    speaker: 'Robert Kim',
+    event: 'Finance Summit'
+  },
+  {
+    id: '10',
+    type: 'photo',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'Team Building',
+    speaker: 'Jennifer Lopez',
+    event: 'Leadership Retreat'
+  },
+  {
+    id: '11',
+    type: 'reel',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'Marketing Insights',
+    speaker: 'Kevin Zhang',
+    event: 'Digital Marketing Expo'
+  },
+  {
+    id: '12',
+    type: 'photo',
+    url: '',
+    thumbnail: '/api/placeholder/400/600',
+    title: 'Innovation Workshop',
+    speaker: 'Amanda Taylor',
+    event: 'Creative Conference'
   }
+];
+
+export default function Browse() {
+  const [activeTab, setActiveTab] = useState<'photos' | 'reels'>('photos');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredContent = demoContent.filter(item => {
+    const matchesTab = activeTab === 'photos' ? item.type === 'photo' : item.type === 'reel';
+    const matchesSearch = !searchTerm || 
+      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.speaker.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.event.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-8 py-12">
         {/* Header */}
-        <div className="mb-16">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-2">Browse All Sessions</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-foreground mb-2">Browse All Content</h1>
             <p className="text-lg text-muted-foreground">
-              Discover and explore your complete library of conference content
+              Easily access all your content across various speaker moments and effortlessly<br />
+              share key highlights using the search feature.
             </p>
           </div>
-
-          {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-6 mb-8">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                placeholder="Search sessions, speakers, or topics..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 py-3 text-base border-0 bg-white shadow-sm"
-              />
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </Button>
-              <div className="flex border rounded-lg overflow-hidden">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="rounded-none"
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="rounded-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-3">
-            {categories.map((category) => (
-              <Badge
-                key={category}
-                variant="secondary"
-                className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors px-4 py-2"
-              >
-                {category}
-              </Badge>
-            ))}
-          </div>
+          <Button variant="default" className="bg-blue-500 hover:bg-blue-600 text-white">
+            View Gallery
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
         </div>
 
-        {/* Sessions Grid */}
-        <div className={viewMode === 'grid' 
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" 
-          : "space-y-6"
-        }>
-          {transformedSessions.map((session) => (
-            <SessionCard key={session.id} session={session} />
+        {/* Content Type Tabs */}
+        <div className="flex gap-4 mb-8">
+          <Button
+            variant={activeTab === 'photos' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('photos')}
+            className={activeTab === 'photos' 
+              ? 'bg-blue-500 hover:bg-blue-600 text-white px-8 py-2 rounded-full' 
+              : 'bg-blue-100 text-blue-600 hover:bg-blue-200 px-8 py-2 rounded-full border-blue-200'
+            }
+          >
+            Photos
+          </Button>
+          <Button
+            variant={activeTab === 'reels' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('reels')}
+            className={activeTab === 'reels' 
+              ? 'bg-blue-500 hover:bg-blue-600 text-white px-8 py-2 rounded-full' 
+              : 'bg-blue-100 text-blue-600 hover:bg-blue-200 px-8 py-2 rounded-full border-blue-200'
+            }
+          >
+            Reels
+          </Button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative max-w-md mb-12">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            placeholder="Search by speaker, event, or keyword..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-12 py-3 text-base border-gray-200 bg-white shadow-sm rounded-full"
+          />
+        </div>
+
+        {/* Visual Content Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+          {filteredContent.map((item) => (
+            <div key={item.id} className="group cursor-pointer">
+              <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                {/* Placeholder image with gradient background */}
+                <div className="w-full h-full bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100 flex items-center justify-center">
+                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-white/40 rounded-full"></div>
+                  </div>
+                </div>
+                
+                {/* Play button overlay for reels */}
+                {item.type === 'reel' && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-16 h-16 bg-black/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                      <Play className="h-8 w-8 text-white ml-1" fill="white" />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Diffused watermark */}
+                <div className="absolute bottom-4 left-4">
+                  <span className="text-white text-sm font-medium bg-black/20 px-2 py-1 rounded backdrop-blur-sm">
+                    diffused
+                  </span>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
 
         {/* Empty State */}
-        {transformedSessions.length === 0 && (
+        {filteredContent.length === 0 && (
           <div className="text-center py-20">
             <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-6">
               <Search className="h-10 w-10 text-muted-foreground" />
             </div>
-            <h3 className="text-2xl font-semibold mb-3">No sessions found</h3>
+            <h3 className="text-2xl font-semibold mb-3">No {activeTab} found</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Try adjusting your search terms or filters to find the content you're looking for
+              Try adjusting your search terms to find the content you're looking for
             </p>
           </div>
         )}
