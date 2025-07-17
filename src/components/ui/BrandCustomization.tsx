@@ -125,6 +125,7 @@ export default function BrandCustomization({
           <Palette className="h-5 w-5" />
           Brand Customization
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={() => setPreviewMode(!previewMode)}
@@ -148,6 +149,7 @@ export default function BrandCustomization({
                 {colorPalettes.map((palette) => (
                   <Button
                     key={palette.name}
+                    type="button"
                     variant="outline"
                     onClick={() => handleColorPaletteSelect(palette)}
                     className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-accent"
@@ -222,6 +224,7 @@ export default function BrandCustomization({
                     />
                     <div className="flex justify-center gap-2">
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
@@ -231,6 +234,7 @@ export default function BrandCustomization({
                         Replace
                       </Button>
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         onClick={removeLogo}
@@ -250,6 +254,7 @@ export default function BrandCustomization({
                       </p>
                     </div>
                     <Button
+                      type="button"
                       variant="outline"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}

@@ -38,7 +38,7 @@ interface Event {
   next_event_date: string;
   is_active: boolean;
   created_at: string;
-  branding_config: {
+  branding: {
     primary_color: string;
     secondary_color: string;
     logo_url: string | null;
@@ -68,12 +68,15 @@ const EventManage = () => {
   const [loading, setLoading] = useState(true);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [savingBranding, setSavingBranding] = useState(false);
+  const [activeTab, setActiveTab] = useState("sessions");
   const [stats, setStats] = useState({
     totalSessions: 0,
     completedSessions: 0,
     totalDuration: 0,
     avgDuration: 0
   });
+
+  const activeSpeakersCount = 0; // Placeholder - will be calculated from actual speakers
 
   useEffect(() => {
     if (eventId) {
@@ -210,6 +213,14 @@ const EventManage = () => {
     }
   };
 
+  const handleViewSession = (sessionId: string) => {
+    navigate(`/session/${sessionId}`);
+  };
+
+  const handleEditSession = (sessionId: string) => {
+    navigate(`/session/${sessionId}?edit=true`);
+  };
+
   const handleBrandingUpdate = async (newBrandConfig: any) => {
     if (!event) return;
     
@@ -217,12 +228,12 @@ const EventManage = () => {
     try {
       const { error } = await supabase
         .from('events')
-        .update({ branding_config: newBrandConfig })
+        .update({ branding: newBrandConfig })
         .eq('id', event.id);
 
       if (error) throw error;
 
-      setEvent(prev => prev ? { ...prev, branding_config: newBrandConfig } : null);
+      setEvent(prev => prev ? { ...prev, branding: newBrandConfig } : null);
       
       toast({
         title: "Branding updated",
@@ -295,60 +306,52 @@ const EventManage = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full relative overflow-hidden">
+        {/* Subtle Sky Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-blue-50/20 to-sky-50/30" />
+        
+        {/* Minimal Cloud Elements */}
+        <div className="absolute top-20 right-1/4 w-20 h-10 bg-white/10 rounded-full blur-lg" />
+        <div className="absolute bottom-1/3 left-1/6 w-28 h-14 bg-white/8 rounded-full blur-xl" />
+        
         <AppSidebar />
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 relative z-10">
           <Header />
-          <main className="flex-1">
-            <div className="container mx-auto px-6 py-8">
-              {/* Header */}
-              <div className="flex items-center gap-4 mb-6">
-                <Button 
-                  variant="ghost" 
-                  onClick={() => navigate('/events')}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Events
-                </Button>
-              </div>
-
-              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
-                <div>
-                  <h1 className="text-3xl font-bold">{event.name}</h1>
-                  <p className="text-muted-foreground mt-2">{event.description}</p>
-                  <div className="flex items-center gap-4 mt-2">
-                    <Badge variant={event.is_active ? "default" : "secondary"}>
-                      {event.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      /{event.subdomain}
-                    </span>
-                    {event.next_event_date && (
-                      <span className="text-sm text-muted-foreground">
-                        Next: {new Date(event.next_event_date).toLocaleDateString()}
-                      </span>
-                    )}
+          <main className="flex-1 px-8 py-12">
+            <div className="max-w-7xl mx-auto space-y-8">
+              
+              {/* Header Section */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => navigate('/events')}
+                    className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Events
+                  </Button>
+                  <div className="backdrop-blur-sm bg-white/40 p-4 rounded-xl border border-white/30 shadow-lg">
+                    <h1 className="text-3xl font-bold text-gray-800">{event?.name}</h1>
+                    <p className="text-gray-600">{event?.description}</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                
+                <div className="flex gap-3">
                   <Button 
-                    onClick={() => navigate(`/upload?event=${event.id}`)}
-                    className="bg-orange-600 hover:bg-orange-700"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Upload Content
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => window.open(getEventUrl(event.subdomain), '_blank')}
+                    variant="outline" 
+                    size="sm"
+                    className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70"
+                    onClick={() => window.open(`/event/${event?.subdomain}`, '_blank')}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    View Public Site
+                    View Live
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(`/events/${event.id}/analytics`)}
+                  <Button 
+                    size="sm"
+                    className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm shadow-lg border border-blue-500/20"
+                    onClick={() => navigate(`/events/${eventId}/analytics`)}
                   >
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Analytics
@@ -356,292 +359,259 @@ const EventManage = () => {
                 </div>
               </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-                    <Mic className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stats.totalSessions}</div>
-                    <p className="text-xs text-muted-foreground">
-                      Content pieces uploaded
-                    </p>
+              {/* Event Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-700 mb-1 font-medium">Total Sessions</p>
+                        <p className="text-2xl font-bold text-gray-800">{sessions.length}</p>
+                      </div>
+                      <div className="p-3 bg-blue-100/80 backdrop-blur-sm rounded-xl">
+                        <Mic className="h-6 w-6 text-blue-600" />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Processed</CardTitle>
-                    <Play className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stats.completedSessions}</div>
-                    <p className="text-xs text-muted-foreground">
-                      Ready for sharing
-                    </p>
+                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-700 mb-1 font-medium">Active Speakers</p>
+                        <p className="text-2xl font-bold text-gray-800">{activeSpeakersCount}</p>
+                      </div>
+                      <div className="p-3 bg-purple-100/80 backdrop-blur-sm rounded-xl">
+                        <Users className="h-6 w-6 text-purple-600" />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Duration</CardTitle>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{formatDuration(stats.totalDuration)}</div>
-                    <p className="text-xs text-muted-foreground">
-                      Audio content generated
-                    </p>
+                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-green-700 mb-1 font-medium">Revenue Generated</p>
+                        <p className="text-2xl font-bold text-green-800">$24,500</p>
+                      </div>
+                      <div className="p-3 bg-green-100/80 backdrop-blur-sm rounded-xl">
+                        <Share2 className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{formatDuration(Math.round(stats.avgDuration))}</div>
-                    <p className="text-xs text-muted-foreground">
-                      Per session recap
-                    </p>
+                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-700 mb-1 font-medium">Event Status</p>
+                        <Badge className={`${event?.is_active ? 'bg-green-100/80 text-green-800' : 'bg-gray-100/80 text-gray-700'} backdrop-blur-sm border ${event?.is_active ? 'border-green-200/50' : 'border-gray-200/50'}`}>
+                          {event?.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                      <div className="p-3 bg-orange-100/80 backdrop-blur-sm rounded-xl">
+                        <Calendar className="h-6 w-6 text-orange-600" />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Content Management */}
-              <Tabs defaultValue="sessions" className="w-full">
-                <TabsList>
-                  <TabsTrigger value="sessions">Content ({sessions.length})</TabsTrigger>
-                  <TabsTrigger value="settings">Event Settings</TabsTrigger>
-                </TabsList>
+              {/* Main Content Tabs */}
+              <Card className="border-0 backdrop-blur-md bg-white/50 shadow-xl border border-white/40">
+                <CardContent className="p-8">
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                    <TabsList className="backdrop-blur-sm bg-white/60 border border-white/40 p-1">
+                      <TabsTrigger value="sessions" className="data-[state=active]:bg-white/80 data-[state=active]:backdrop-blur-sm">
+                        Sessions
+                      </TabsTrigger>
+                      <TabsTrigger value="speakers" className="data-[state=active]:bg-white/80 data-[state=active]:backdrop-blur-sm">
+                        Speakers
+                      </TabsTrigger>
+                      <TabsTrigger value="branding" className="data-[state=active]:bg-white/80 data-[state=active]:backdrop-blur-sm">
+                        Branding
+                      </TabsTrigger>
+                      <TabsTrigger value="settings" className="data-[state=active]:bg-white/80 data-[state=active]:backdrop-blur-sm">
+                        Settings
+                      </TabsTrigger>
+                    </TabsList>
 
-                <TabsContent value="sessions" className="mt-6">
-                  {sessions.length === 0 ? (
-                    <Card>
-                      <CardContent className="flex flex-col items-center justify-center py-12">
-                        <Upload className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No content yet</h3>
-                        <p className="text-muted-foreground text-center mb-4">
-                          Upload your first piece of content to start creating viral recaps for {event.name}
-                        </p>
+                    {/* Sessions Tab */}
+                    <TabsContent value="sessions" className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div className="backdrop-blur-sm bg-white/40 p-4 rounded-xl border border-white/30">
+                          <h3 className="text-xl font-semibold text-gray-800">Session Management</h3>
+                          <p className="text-gray-600">Upload and manage your conference sessions</p>
+                        </div>
                         <Button 
-                          onClick={() => navigate(`/upload?event=${event.id}`)}
-                          className="bg-orange-600 hover:bg-orange-700"
+                          onClick={() => navigate('/upload')}
+                          className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm shadow-lg border border-blue-500/20"
                         >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Upload First Content
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Session
                         </Button>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="space-y-4">
-                      {sessions.map((session) => (
-                        <Card key={session.id} className="hover:shadow-md transition-shadow">
-                          <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <h3 className="font-semibold text-lg">{session.session_name}</h3>
-                                  <Badge className={getStatusColor(session.processing_status)}>
-                                    {getStatusText(session.processing_status)}
-                                  </Badge>
-                                </div>
-                                
-                                <div className="flex items-center gap-6 text-sm text-muted-foreground mb-3">
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4" />
-                                    {new Date(session.created_at).toLocaleDateString()}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="h-4 w-4" />
-                                    {formatDuration(session.audio_duration)}
-                                  </span>
-                                  {session.session_data?.source_url && (
-                                    <span className="flex items-center gap-1">
-                                      <ExternalLink className="h-4 w-4" />
-                                      YouTube
-                                    </span>
-                                  )}
-                                </div>
+                      </div>
 
-                                {session.generated_summary && (
-                                  <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                                    {session.generated_summary}
-                                  </p>
-                                )}
-                              </div>
-
-                              <div className="flex items-center gap-2 ml-4">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => navigate(`/session/${session.id}`)}
-                                >
-                                  <Play className="h-4 w-4 mr-2" />
-                                  View Details
-                                </Button>
-                                {session.processing_status === 'complete' && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      // Copy share URL to clipboard
-                                      const shareUrl = `${getEventUrl(event.subdomain)}`;
-                                      navigator.clipboard.writeText(shareUrl);
-                                      toast({
-                                        title: "Link copied!",
-                                        description: "Event link copied to clipboard for sharing.",
-                                      });
-                                    }}
-                                  >
-                                    <Share2 className="h-4 w-4 mr-2" />
-                                    Share
-                                  </Button>
-                                )}
-                                
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm">
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem 
-                                          className="text-red-600 focus:text-red-600 cursor-pointer"
-                                          onSelect={(e) => e.preventDefault()}
-                                        >
-                                          <Trash2 className="h-4 w-4 mr-2" />
-                                          Delete
+                      {/* Sessions List */}
+                      <div className="space-y-4">
+                        {sessions.length === 0 ? (
+                          <div className="text-center py-12">
+                            <Mic className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <h4 className="text-lg font-medium text-gray-700 mb-2">No Sessions Yet</h4>
+                            <p className="text-gray-500 mb-4">
+                              Upload your first session to get started with speaker attribution tracking.
+                            </p>
+                            <Button 
+                              variant="outline" 
+                              className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70"
+                              onClick={() => navigate('/upload')}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload First Session
+                            </Button>
+                          </div>
+                        ) : (
+                          sessions.map((session) => (
+                            <Card key={session.id} className="border-0 backdrop-blur-md bg-white/40 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                              <CardContent className="p-6">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-blue-100/80 backdrop-blur-sm rounded-xl">
+                                      <Play className="h-5 w-5 text-blue-600" />
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold text-lg text-gray-800">{session.session_name}</h4>
+                                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                                        <span className="flex items-center gap-1">
+                                          <Clock className="h-4 w-4" />
+                                          {formatDuration(session.audio_duration)}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                          <Calendar className="h-4 w-4" />
+                                          {new Date(session.created_at).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={getStatusColor(session.processing_status)}>
+                                      {getStatusText(session.processing_status)}
+                                    </Badge>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70">
+                                          <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent className="backdrop-blur-md bg-white/90 border border-white/50">
+                                        <DropdownMenuItem onClick={() => handleViewSession(session.id)}>
+                                          View Details
                                         </DropdownMenuItem>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Delete Content</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Are you sure you want to delete "{session.session_name}"? This action cannot be undone and will permanently remove:
-                                            <ul className="list-disc list-inside mt-2 space-y-1">
-                                              <li>The session recording and transcript</li>
-                                              <li>Generated AI summary and insights</li>
-                                              <li>Audio podcast file</li>
-                                              <li>All analytics data for this content</li>
-                                            </ul>
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() => handleDeleteSession(session.id)}
-                                            disabled={deletingSessionId === session.id}
-                                            className="bg-red-600 hover:bg-red-700 text-white"
-                                          >
-                                            {deletingSessionId === session.id ? (
-                                              <>
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                                                Deleting...
-                                              </>
-                                            ) : (
-                                              <>
-                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                Delete Permanently
-                                              </>
-                                            )}
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
+                                        <DropdownMenuItem onClick={() => handleEditSession(session.id)}>
+                                          Edit Session
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={() => handleDeleteSession(session.id)}
+                                          className="text-red-600"
+                                        >
+                                          Delete Session
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))
+                        )}
+                      </div>
+                    </TabsContent>
 
-                <TabsContent value="settings" className="mt-6">
-                  <div className="space-y-6">
-                    {/* Basic Event Info */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Settings className="h-5 w-5" />
-                          Event Information
-                        </CardTitle>
-                        <CardDescription>
-                          Basic configuration and details for your event
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
+                    {/* Speakers Tab Content */}
+                    <TabsContent value="speakers" className="space-y-6">
+                      <div className="backdrop-blur-sm bg-white/50 rounded-xl p-6 border border-white/40 shadow-lg">
+                        <div className="flex items-center justify-between mb-6">
+                          <h3 className="text-lg font-semibold text-gray-800">Speaker Management</h3>
+                          <Button 
+                            size="sm"
+                            className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm"
+                            onClick={() => navigate('/upload')}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Speaker Content
+                          </Button>
+                        </div>
+                        
+                        <div className="text-center py-12">
+                          <Mic className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <h4 className="text-lg font-medium text-gray-700 mb-2">No Speakers Yet</h4>
+                          <p className="text-gray-500 mb-4">
+                            Upload speaker content to create attribution microsites and track ROI.
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70"
+                            onClick={() => navigate('/upload')}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload First Speaker
+                          </Button>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    {/* Branding Tab Content */}
+                    <TabsContent value="branding" className="space-y-6">
+                      <div className="backdrop-blur-sm bg-white/50 rounded-xl p-6 border border-white/40 shadow-lg">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-6">Event Branding</h3>
+                        <BrandCustomization
+                          value={event?.branding || {
+                            primary_color: "#5B9BD5",
+                            secondary_color: "#4A8BC2", 
+                            logo_url: null
+                          }}
+                          onChange={handleBrandingUpdate}
+                          showCTA={true}
+                          className="backdrop-blur-sm bg-white/30"
+                        />
+                      </div>
+                    </TabsContent>
+
+                    {/* Settings Tab Content */}
+                    <TabsContent value="settings" className="space-y-6">
+                      <div className="backdrop-blur-sm bg-white/50 rounded-xl p-6 border border-white/40 shadow-lg">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-6">Event Settings</h3>
                         <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-sm font-medium">Event Name</label>
-                              <p className="text-sm text-muted-foreground">{event.name}</p>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium">Subdomain</label>
-                              <p className="text-sm text-muted-foreground">/{event.subdomain}</p>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium">Status</label>
-                              <p className="text-sm text-muted-foreground">
-                                {event.is_active ? "Active" : "Inactive"}
-                              </p>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium">Created</label>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(event.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
+                          <div className="p-4 bg-white/30 rounded-lg border border-white/20">
+                            <h4 className="font-medium text-gray-700 mb-2">Event Status</h4>
+                            <Badge variant={event?.is_active ? "default" : "secondary"}>
+                              {event?.is_active ? "Active" : "Inactive"}
+                            </Badge>
                           </div>
-                          
-                          <div>
-                            <label className="text-sm font-medium">Description</label>
-                            <p className="text-sm text-muted-foreground">{event.description}</p>
+                          <div className="p-4 bg-white/30 rounded-lg border border-white/20">
+                            <h4 className="font-medium text-gray-700 mb-2">Public URL</h4>
+                            <p className="text-sm text-gray-600">
+                              http://localhost:8082/event/{event?.subdomain}
+                            </p>
                           </div>
-
-                          <div>
-                            <label className="text-sm font-medium">Public URL</label>
-                            <div className="flex items-center gap-2">
-                              <code className="text-sm bg-muted px-2 py-1 rounded">
-                                {getEventUrl(event.subdomain)}
-                              </code>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => window.open(getEventUrl(event.subdomain), '_blank')}
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                            </div>
+                          <div className="p-4 bg-white/30 rounded-lg border border-white/20">
+                            <h4 className="font-medium text-gray-700 mb-2">Event ID</h4>
+                            <p className="text-sm text-gray-600 font-mono">
+                              {event?.id}
+                            </p>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </TabsContent>
+                    
+                  </Tabs>
+                </CardContent>
+              </Card>
 
-                    {/* Brand Customization */}
-                    <BrandCustomization
-                      value={event.branding_config || {
-                        primary_color: "#5B9BD5",
-                        secondary_color: "#4A8BC2",
-                        logo_url: null,
-                        cta_text: "Register for Next Event",
-                        cta_url: event.next_event_registration_url || "",
-                      }}
-                      onChange={handleBrandingUpdate}
-                      showCTA={true}
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
             </div>
           </main>
         </SidebarInset>

@@ -119,6 +119,12 @@ class AttributionTracker {
   // Track attribution event
   async track(data: Omit<AttributionData, 'session_id'>): Promise<void> {
     try {
+      // Validation: microsite_id is required by database schema
+      if (!data.microsite_id) {
+        console.warn('Attribution tracking skipped: microsite_id is required');
+        return;
+      }
+
       const attributionData: AttributionData = {
         ...data,
         session_id: this.sessionId,

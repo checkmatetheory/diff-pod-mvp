@@ -14,7 +14,8 @@ import {
   Video,
   Archive,
   Search,
-  Plus
+  Plus,
+  Settings
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -37,15 +38,14 @@ const mainNavItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
   { title: "Analytics", url: "/analytics", icon: TrendingUp },
   { title: "Events", url: "/events", icon: Calendar },
-  { title: "Portfolios", url: "/portfolios", icon: Archive },
+  { title: "All Speakers", url: "/speakers", icon: Users },
   { title: "Browse", url: "/browse", icon: Search },
   { title: "Favorites", url: "/favorites", icon: Star },
-  { title: "Settings", url: "/settings", icon: Users },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
-const eventPortfolioItems = [
+const eventItems = [
   { title: "Add New Event", url: "/events/new", icon: Plus, color: "hsl(var(--accent))" },
-  { title: "New Portfolio", url: "/portfolio/new", icon: Plus, color: "hsl(var(--primary))" },
 ];
 
 const contentTypeItems = [
@@ -135,7 +135,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Event Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {eventPortfolioItems.map((item) => (
+              {eventItems.map((item) => (
                 <NavItem key={item.title} item={item} showColor={true} />
               ))}
             </SidebarMenu>
@@ -158,7 +158,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-6 border-t border-sidebar-border/50">
         {!isCollapsed && (
           <div className="text-xs text-sidebar-foreground/60 text-center">
-            <p className="font-medium">Organize your portfolio</p>
+            <p className="font-medium">Create new content</p>
             <p>conference content</p>
           </div>
         )}

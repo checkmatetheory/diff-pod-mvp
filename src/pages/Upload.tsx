@@ -1,29 +1,30 @@
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "@/components/Header";
-import SessionUpload from "@/components/SessionUpload";
+import SpeakerContentUpload from "@/components/SpeakerContentUpload";
 
 export default function Upload() {
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full">
-        <AppSidebar />
-        <SidebarInset className="flex-1 overflow-hidden">
-          <Header />
-          <main className="flex-1 overflow-y-auto p-8">
-            <div className="max-w-4xl mx-auto">
-              <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2">Upload Session</h1>
-                <p className="text-muted-foreground">
-                  Upload video/audio files, text documents, or paste links to generate AI-powered podcast recaps
-                </p>
-              </div>
-              
-              <SessionUpload />
-            </div>
-          </main>
-        </SidebarInset>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-sky-50/30">
+      {/* Subtle cloud elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-white/30 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-40 right-20 w-48 h-48 bg-blue-100/40 rounded-full blur-3xl"></div>
       </div>
-    </SidebarProvider>
+
+      <SidebarProvider>
+        <div className="flex h-screen w-full">
+          <AppSidebar />
+          <SidebarInset className="flex-1 overflow-hidden">
+            <Header />
+            <main className="flex-1 overflow-y-auto p-8 relative">
+              <div className="max-w-5xl mx-auto">
+                <SpeakerContentUpload />
+              </div>
+            </main>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    </div>
   );
 } 

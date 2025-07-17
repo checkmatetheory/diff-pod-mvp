@@ -17,11 +17,10 @@ import Events from "./pages/Events";
 import NewEvent from "./pages/NewEvent";
 import EventAnalytics from "./pages/EventAnalytics";
 import PublicEvent from "./pages/PublicEvent";
-import Portfolios from "./pages/Portfolios";
-import PortfolioAnalytics from "./pages/PortfolioAnalytics";
-import NewPortfolio from "./pages/NewPortfolio";
+
 import Browse from "./pages/Browse";
 import Favorites from "./pages/Favorites";
+import AllSpeakers from "./pages/AllSpeakers";
 import Upload from "./pages/Upload";
 import TestAudio from "./pages/TestAudio";
 import EventManage from "./pages/EventManage";
@@ -41,8 +40,10 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/recap/:id" element={<PublicRecap />} />
             <Route path="/event/:subdomain" element={<PublicEvent />} />
+            <Route path="/event/:subdomain/speaker/:slug" element={<SpeakerMicrosite />} />
             <Route path="/event/:eventId/speaker/:speakerId" element={<SpeakerMicrosite />} />
             <Route path="/session/:id" element={<ProtectedRoute><SessionDetail /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
@@ -52,16 +53,13 @@ const App = () => (
             <Route path="/events/:eventId/manage" element={<ProtectedRoute><EventManage /></ProtectedRoute>} />
             <Route path="/events/:eventId/speakers/approve" element={<ProtectedRoute><SpeakerApprovalDashboard /></ProtectedRoute>} />
             <Route path="/events/:eventId/analytics" element={<ProtectedRoute><EventAnalytics /></ProtectedRoute>} />
-            <Route path="/portfolios" element={<ProtectedRoute><Portfolios /></ProtectedRoute>} />
-            <Route path="/portfolio/new" element={<ProtectedRoute><NewPortfolio /></ProtectedRoute>} />
-            <Route path="/portfolio/:portfolioId/analytics" element={<ProtectedRoute><PortfolioAnalytics /></ProtectedRoute>} />
+
+            <Route path="/speakers" element={<ProtectedRoute><AllSpeakers /></ProtectedRoute>} />
             <Route path="/browse" element={<ProtectedRoute><Browse /></ProtectedRoute>} />
             <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
             <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
-            <Route path="/test-audio" element={<TestAudio />} />
-            <Route path="/category/conference" element={<ProtectedRoute><Conferences /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/test-audio" element={<ProtectedRoute><TestAudio /></ProtectedRoute>} />
+            <Route path="/conference/:id" element={<ProtectedRoute><Conferences /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

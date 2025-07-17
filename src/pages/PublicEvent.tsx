@@ -61,7 +61,7 @@ interface EventData {
   description: string;
   next_event_date: string | null;
   next_event_registration_url: string | null;
-  branding_config: {
+  branding: {
     primary_color: string;
     secondary_color: string;
     logo_url: string | null;
@@ -93,12 +93,12 @@ interface SpeakerMicrosite {
     job_title: string;
     slug: string;
   };
-  content: {
+  speaker_content: {
     generated_summary: string;
     key_takeaways: string[];
     key_quotes: string[];
     highlight_reel_url: string | null;
-  };
+  } | null;
 }
 
 /**
@@ -173,7 +173,7 @@ export default function PublicEvent(): JSX.Element {
    * Extract brand colors with fallbacks to our signature sky blue theme
    */
   const brandColors = useMemo(() => {
-    if (!event?.branding_config) {
+    if (!event?.branding) {
       return {
         primary: '#5B9BD5',
         secondary: '#4A8BC2',
@@ -182,11 +182,11 @@ export default function PublicEvent(): JSX.Element {
     }
     
     return {
-      primary: event.branding_config.primary_color || '#5B9BD5',
-      secondary: event.branding_config.secondary_color || '#4A8BC2',
-      logo: event.branding_config.logo_url
+      primary: event.branding.primary_color || '#5B9BD5',
+      secondary: event.branding.secondary_color || '#4A8BC2',
+      logo: event.branding.logo_url
     };
-  }, [event?.branding_config]);
+  }, [event?.branding]);
 
   /**
    * Generate CTA configuration with smart defaults
@@ -197,8 +197,8 @@ export default function PublicEvent(): JSX.Element {
       : 'Stay Updated';
     
     return {
-      text: event?.branding_config?.cta_text || defaultText,
-      url: event?.branding_config?.cta_url || event?.next_event_registration_url || '#'
+      text: event?.branding?.cta_text || defaultText,
+      url: event?.branding?.cta_url || event?.next_event_registration_url || '#'
     };
   }, [event]);
 
@@ -231,28 +231,26 @@ export default function PublicEvent(): JSX.Element {
    */
   const initializeEventData = useCallback(async (): Promise<void> => {
     try {
-      // Load event and speakers in parallel for better performance
-      const [eventResult, speakersResult] = await Promise.allSettled([
-        fetchEventData(),
-        fetchEventSpeakers()
-      ]);
-
-      // Handle event loading result
-      if (eventResult.status === 'rejected') {
-        console.error('Failed to load event:', eventResult.reason);
-        setErrors(prev => ({ ...prev, event: 'Failed to load event data' }));
+      // Load event first, then speakers once we have the event ID
+      const eventResult = await fetchEventData();
+      
+      let speakersResult: PromiseSettledResult<void> = { status: 'fulfilled', value: undefined };
+      if (eventResult && eventResult.id) {
+        speakersResult = await Promise.allSettled([
+          fetchEventSpeakers(eventResult.id)
+        ]).then(results => results[0]);
       }
 
-      // Handle speakers loading result  
-      if (speakersResult.status === 'rejected') {
-        console.error('Failed to load speakers:', speakersResult.reason);
-        setErrors(prev => ({ ...prev, speakers: 'Failed to load speaker data' }));
-      }
+              // Handle speakers loading result  
+        if (speakersResult.status === 'rejected') {
+          console.error('Failed to load speakers:', speakersResult.reason);
+          setErrors(prev => ({ ...prev, speakers: 'Failed to load speaker data' }));
+        }
 
-      // Load metrics after we have event ID
-      if (eventResult.status === 'fulfilled' && eventResult.value) {
-        await fetchEventMetrics(eventResult.value.id);
-      }
+        // Load metrics after we have event ID
+        if (eventResult && eventResult.id) {
+          await fetchEventMetrics(eventResult.id);
+        }
 
     } catch (error) {
       console.error('Error initializing event data:', error);
@@ -314,8 +312,9 @@ export default function PublicEvent(): JSX.Element {
    * Fetch live speaker microsites for the event
    * Only includes approved and published microsites
    */
-  const fetchEventSpeakers = useCallback(async (): Promise<void> => {
-    if (!event?.id) return;
+  const fetchEventSpeakers = useCallback(async (eventId?: string): Promise<void> => {
+    const useEventId = eventId || event?.id;
+    if (!useEventId) return;
 
     setLoading(prev => ({ ...prev, speakers: true }));
     setErrors(prev => ({ ...prev, speakers: null }));
@@ -341,14 +340,14 @@ export default function PublicEvent(): JSX.Element {
             job_title,
             slug
           ),
-          content:speaker_content (
+          speaker_content (
             generated_summary,
             key_takeaways,
             key_quotes,
             highlight_reel_url
           )
         `)
-        .eq('event_id', event.id)
+        .eq('event_id', useEventId)
         .eq('is_live', true)
         .eq('approval_status', 'approved')
         .order('published_at', { ascending: false });
@@ -357,7 +356,7 @@ export default function PublicEvent(): JSX.Element {
 
       // Filter out any invalid entries and sort by engagement
       const validSpeakers = (speakersData || [])
-        .filter(speaker => speaker.speaker && speaker.content)
+        .filter(speaker => speaker.speaker)
         .sort((a, b) => (b.total_views + b.total_shares) - (a.total_views + a.total_shares));
 
       setSpeakers(validSpeakers);
@@ -371,7 +370,7 @@ export default function PublicEvent(): JSX.Element {
     } finally {
       setLoading(prev => ({ ...prev, speakers: false }));
     }
-  }, [event?.id]);
+  }, []);
 
   /**
    * Fetch event analytics and engagement metrics
@@ -566,13 +565,13 @@ export default function PublicEvent(): JSX.Element {
 
     let platformUrl = '';
     
-    switch (platform) {
+      switch (platform) {
       case 'linkedin':
         platformUrl = `https://linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
-        break;
+          break;
       case 'twitter':
         platformUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-        break;
+          break;
       case 'copy':
         await navigator.clipboard.writeText(shareUrl);
         toast.success('Link copied to clipboard!');
@@ -626,15 +625,15 @@ export default function PublicEvent(): JSX.Element {
           </div>
           
           {/* Speaker grid skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map(i => (
               <div key={i} className="h-64 bg-muted rounded"></div>
-            ))}
+              ))}
+          </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
 
   /**
    * Render error state with recovery options
@@ -656,9 +655,9 @@ export default function PublicEvent(): JSX.Element {
             </Button>
           </Link>
         </div>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   // ===== MAIN RENDER =====
   // Show loading state
@@ -698,12 +697,12 @@ export default function PublicEvent(): JSX.Element {
             ) : (
               <div className="flex items-center gap-3">
                 <img 
-                  src="/diffused-logo.svg" 
+                  src="/diffused logo white no bg.png" 
                   alt="Diffused" 
                   className="h-12 w-auto"
                 />
                 <span className="text-sm text-muted-foreground">presents</span>
-              </div>
+            </div>
             )}
           </div>
 
@@ -741,19 +740,19 @@ export default function PublicEvent(): JSX.Element {
                 {Math.round(metrics.engagement_rate)}%
               </div>
               <div className="text-sm text-muted-foreground">Engagement</div>
-            </div>
-          </div>
+        </div>
+      </div>
 
           {/* CTA Section */}
           <div className="space-y-4">
-            {!emailSubmitted && (
+        {!emailSubmitted && (
               <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                <Input
-                  type="email"
+                  <Input
+                    type="email"
                   placeholder="Enter your email for full access"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
                   className="flex-1"
                   disabled={loading.emailSubmission}
                 />
@@ -764,8 +763,8 @@ export default function PublicEvent(): JSX.Element {
                   className="text-white px-8"
                 >
                   {loading.emailSubmission ? 'Getting Access...' : 'Get Access'}
-                </Button>
-              </form>
+                  </Button>
+                </form>
             )}
 
             {emailSubmitted && (
@@ -806,25 +805,25 @@ export default function PublicEvent(): JSX.Element {
               <Linkedin className="h-4 w-4 mr-2" />
               Share
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
+                  <Button
+                    variant="outline"
+                    size="sm"
               onClick={() => handleShare('twitter')}
               className="enhanced-button"
-            >
+                  >
               <Twitter className="h-4 w-4 mr-2" />
               Tweet
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
               onClick={() => handleShare('copy')}
               className="enhanced-button"
-            >
+                  >
               <Copy className="h-4 w-4 mr-2" />
               Copy Link
-            </Button>
-          </div>
+                  </Button>
+                </div>
         </div>
       </section>
 
@@ -835,8 +834,8 @@ export default function PublicEvent(): JSX.Element {
             <h2 className="text-4xl font-bold text-foreground mb-4">Featured Speakers</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Dive deep into insights from industry leaders. Each speaker has their own dedicated microsite with exclusive content.
-            </p>
-          </div>
+                </p>
+              </div>
 
           {/* Speaker Grid */}
           {loading.speakers ? (
@@ -850,7 +849,7 @@ export default function PublicEvent(): JSX.Element {
           ) : errors.speakers ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">{errors.speakers}</p>
-              <Button onClick={() => fetchEventSpeakers()} variant="outline">
+              <Button onClick={() => fetchEventSpeakers(event?.id)} variant="outline">
                 Try Again
               </Button>
             </div>
@@ -884,30 +883,30 @@ export default function PublicEvent(): JSX.Element {
                               </span>
                             </>
                           )}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
                   
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-                      {speaker.content.generated_summary}
+                      {speaker.speaker_content?.generated_summary || speaker.speaker.bio || 'Content coming soon...'}
                     </p>
 
                     {/* Key takeaways preview */}
-                    {speaker.content.key_takeaways && speaker.content.key_takeaways.length > 0 && (
+                    {speaker.speaker_content?.key_takeaways && speaker.speaker_content.key_takeaways.length > 0 && (
                       <div className="space-y-2">
                         <h4 className="text-sm font-medium">Key Takeaways:</h4>
                         <ul className="text-xs text-muted-foreground space-y-1">
-                          {speaker.content.key_takeaways.slice(0, 2).map((takeaway, index) => (
+                          {speaker.speaker_content.key_takeaways.slice(0, 2).map((takeaway, index) => (
                             <li key={index} className="flex items-start gap-2">
                               <Star className="h-3 w-3 mt-0.5 flex-shrink-0" style={{ color: brandColors.primary }} />
                               <span className="line-clamp-2">{takeaway}</span>
                             </li>
                           ))}
                         </ul>
-                      </div>
-                    )}
+                  </div>
+                )}
 
                     {/* Engagement metrics */}
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -919,17 +918,17 @@ export default function PublicEvent(): JSX.Element {
                         <Share2 className="h-3 w-3" />
                         <span>{speaker.total_shares} shares</span>
                       </div>
-                    </div>
+                </div>
 
                     {/* CTA to speaker microsite */}
-                    <Link to={`/event/${event.subdomain}/speaker/${speaker.speaker.id}`}>
-                      <Button 
+                    <Link to={`/event/${event.subdomain}/speaker/${speaker.speaker.slug}`}>
+                  <Button
                         className="w-full mt-4"
                         style={{ backgroundColor: brandColors.primary }}
-                      >
+                  >
                         <Play className="h-4 w-4 mr-2" />
                         View Full Content
-                      </Button>
+                  </Button>
                     </Link>
                   </CardContent>
                 </Card>
@@ -960,16 +959,16 @@ export default function PublicEvent(): JSX.Element {
                 Don't miss the next {event.name} - featuring even more industry insights and networking opportunities.
               </p>
               {ctaConfig.url && ctaConfig.url !== '#' && (
-                <Button
+                  <Button
                   onClick={handleCTAClick}
                   size="lg"
                   style={{ backgroundColor: brandColors.primary }}
                   className="text-white"
                 >
                   {ctaConfig.text}
-                </Button>
+                  </Button>
               )}
-            </div>
+                </div>
           </div>
         </section>
       )}
@@ -981,7 +980,7 @@ export default function PublicEvent(): JSX.Element {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Powered by</span>
               <img 
-                src="/diffused-logo.svg" 
+                src="/diffused logo white no bg.png" 
                 alt="Diffused" 
                 className="h-5 w-auto"
               />
@@ -996,7 +995,7 @@ export default function PublicEvent(): JSX.Element {
               <a href="/terms" className="hover:text-foreground transition-colors">Terms</a>
             </div>
           </div>
-        </div>
+      </div>
       </footer>
     </div>
   );
