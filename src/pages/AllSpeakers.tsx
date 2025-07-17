@@ -32,6 +32,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import Header from "@/components/Header";
 import { toast } from "sonner";
 import SpeakerProfileModal from "@/components/ui/SpeakerProfileModal";
+import CreateEventModal from "@/components/ui/CreateEventModal";
 
 interface Speaker {
   id: string;
@@ -70,6 +71,7 @@ export default function AllSpeakers() {
   const [selectedSpeaker, setSelectedSpeaker] = useState<Speaker | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSpeakerId, setEditingSpeakerId] = useState<string | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -243,7 +245,7 @@ export default function AllSpeakers() {
     return (
       <SidebarProvider>
         <div className="flex h-screen w-full">
-          <AppSidebar />
+          <AppSidebar onCreateEvent={() => setCreateModalOpen(true)} />
           <SidebarInset className="flex-1">
             <Header />
             <main className="flex-1 p-8">
@@ -259,9 +261,10 @@ export default function AllSpeakers() {
   }
 
   return (
+    <>
     <SidebarProvider>
       <div className="flex h-screen w-full">
-        <AppSidebar />
+        <AppSidebar onCreateEvent={() => setCreateModalOpen(true)} />
         <SidebarInset className="flex-1">
           <Header />
           <main className="flex-1 overflow-auto">
@@ -513,5 +516,14 @@ export default function AllSpeakers() {
         onUpdate={handleSpeakerUpdate}
       />
     </SidebarProvider>
+
+    <CreateEventModal 
+      open={createModalOpen} 
+      onOpenChange={setCreateModalOpen}
+      onEventCreated={() => {
+        setCreateModalOpen(false);
+      }}
+    />
+    </>
   );
 } 

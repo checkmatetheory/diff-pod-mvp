@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import CreateEventModal from "@/components/ui/CreateEventModal";
 
 interface FavoriteContent {
   id: string;
@@ -226,10 +227,13 @@ function FavoritesContent() {
 }
 
 export default function Favorites() {
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
   return (
+    <>
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <AppSidebar onCreateEvent={() => setCreateModalOpen(true)} />
         <SidebarInset className="flex-1">
           <Header />
           <main className="flex-1">
@@ -238,5 +242,14 @@ export default function Favorites() {
         </SidebarInset>
       </div>
     </SidebarProvider>
+
+    <CreateEventModal 
+      open={createModalOpen} 
+      onOpenChange={setCreateModalOpen}
+      onEventCreated={() => {
+        setCreateModalOpen(false);
+      }}
+    />
+    </>
   );
 }

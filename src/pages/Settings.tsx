@@ -20,9 +20,11 @@ import { useToast } from "@/hooks/use-toast";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "@/components/Header";
+import CreateEventModal from "@/components/ui/CreateEventModal";
 
 const Settings = () => {
   const { toast } = useToast();
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [settings, setSettings] = useState({
     companyName: "Acme Corp",
     companyLogo: "",
@@ -51,6 +53,7 @@ const Settings = () => {
   };
 
   return (
+    <>
     <SidebarProvider>
       <div className="min-h-screen flex w-full relative overflow-hidden">
         {/* Subtle Sky Background */}
@@ -60,7 +63,7 @@ const Settings = () => {
         <div className="absolute top-20 right-1/4 w-20 h-10 bg-white/10 rounded-full blur-lg" />
         <div className="absolute bottom-1/3 left-1/6 w-28 h-14 bg-white/8 rounded-full blur-xl" />
         
-        <AppSidebar />
+        <AppSidebar onCreateEvent={() => setCreateModalOpen(true)} />
         <SidebarInset className="flex-1 relative z-10">
           <Header />
           <main className="flex-1 px-8 py-12">
@@ -297,6 +300,15 @@ const Settings = () => {
         </SidebarInset>
       </div>
     </SidebarProvider>
+
+    <CreateEventModal 
+      open={createModalOpen} 
+      onOpenChange={setCreateModalOpen}
+      onEventCreated={() => {
+        setCreateModalOpen(false);
+      }}
+    />
+    </>
   );
 };
 
