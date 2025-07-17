@@ -747,7 +747,7 @@ const SpeakerContentUpload = () => {
               <Alert className="border-amber-200 bg-amber-50">
                 <AlertCircle className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-amber-800">
-                  No active events found. <Button variant="link" className="p-0 h-auto text-amber-800" onClick={() => navigate('/events/new')}>Create an event first</Button> to start building your speaker network.
+                  No active events found. <Button variant="link" className="p-0 h-auto text-amber-800" onClick={() => navigate('/events')}>Create an event first</Button> to start building your speaker network.
                 </AlertDescription>
               </Alert>
             ) : (

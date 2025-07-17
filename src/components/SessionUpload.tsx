@@ -525,7 +525,7 @@ const SessionUpload = () => {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                No active events found. <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/events/new')}>Create an event first</Button> to start adding content.
+                No active events found. <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/events')}>Create an event first</Button> to start adding content.
               </AlertDescription>
             </Alert>
           ) : (

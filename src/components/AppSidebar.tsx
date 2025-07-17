@@ -44,17 +44,17 @@ const mainNavItems = [
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
-const eventItems = [
-  { title: "Add New Event", url: "/events/new", icon: Plus, color: "hsl(var(--accent))" },
-];
-
 const contentTypeItems = [
   { title: "Video + Audio", url: "/content/video_audio", icon: Video },
   { title: "Audio Only", url: "/content/audio_only", icon: Headphones },
   { title: "Transcripts", url: "/content/transcript", icon: FileText },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onCreateEvent?: () => void;
+}
+
+export function AppSidebar({ onCreateEvent }: AppSidebarProps = {}) {
   const { state } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
@@ -135,9 +135,24 @@ export function AppSidebar() {
           <SidebarGroupLabel>Event Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {eventItems.map((item) => (
-                <NavItem key={item.title} item={item} showColor={true} />
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={false}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onCreateEvent?.();
+                  }}
+                >
+                  <button className="flex items-center gap-3 w-full">
+                    <Plus 
+                      className="h-4 w-4 flex-shrink-0" 
+                      style={{ color: "hsl(var(--accent))" }}
+                    />
+                    {!isCollapsed && <span className="truncate">Add New Event</span>}
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

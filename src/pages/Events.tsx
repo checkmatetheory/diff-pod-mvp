@@ -125,7 +125,7 @@ export default function Events() {
           <div className="absolute top-32 left-1/4 w-24 h-16 bg-white/20 rounded-full blur-lg" />
           <div className="absolute bottom-40 right-1/3 w-40 h-24 bg-white/25 rounded-full blur-xl" />
           
-          <AppSidebar />
+          <AppSidebar onCreateEvent={() => setCreateModalOpen(true)} />
           <SidebarInset className="flex-1 relative z-10">
             <Header />
             <main className="flex-1 p-8">
@@ -174,9 +174,9 @@ export default function Events() {
         <div className="absolute bottom-40 right-1/3 w-40 h-24 bg-white/25 rounded-full blur-xl animate-pulse delay-1000" />
         <div className="absolute top-1/2 left-10 w-20 h-12 bg-white/15 rounded-full blur-lg animate-pulse delay-500" />
         
-        <AppSidebar />
-        <SidebarInset className="flex-1 relative z-10">
-          <Header />
+                  <AppSidebar onCreateEvent={() => setCreateModalOpen(true)} />
+          <SidebarInset className="flex-1 relative z-10">
+            <Header />
           <main className="flex-1 p-8">
             <div className="max-w-6xl mx-auto space-y-8">
               

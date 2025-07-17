@@ -213,7 +213,7 @@ const Dashboard = () => {
                 <Button 
                   size="lg" 
                   className="bg-white/95 text-green-600 hover:bg-white backdrop-blur-sm font-semibold shadow-lg" 
-                  onClick={() => navigate('/events/new')}
+                  onClick={() => navigate('/events')}
                 >
                   <Plus className="h-5 w-5 mr-2" />
                   Create New Event
@@ -455,7 +455,7 @@ const Dashboard = () => {
             <h2 className="text-2xl font-semibold text-gray-800">Revenue Optimization</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 cursor-pointer hover:shadow-xl hover:bg-white/60 transition-all duration-300" onClick={() => navigate('/events/new')}>
+            <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 cursor-pointer hover:shadow-xl hover:bg-white/60 transition-all duration-300" onClick={() => navigate('/events')}>
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-green-100/80 backdrop-blur-sm flex items-center justify-center mx-auto mb-4">
                   <Plus className="h-8 w-8 text-green-600" />

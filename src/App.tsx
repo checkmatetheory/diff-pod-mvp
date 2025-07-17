@@ -14,7 +14,7 @@ import PublicRecap from "./pages/PublicRecap";
 import Analytics from "./pages/Analytics";
 import Conferences from "./pages/Conferences";
 import Events from "./pages/Events";
-import NewEvent from "./pages/NewEvent";
+
 import EventAnalytics from "./pages/EventAnalytics";
 import PublicEvent from "./pages/PublicEvent";
 
@@ -56,7 +56,7 @@ const App = () => (
             <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
             <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
             <Route path="/session/:id" element={<ProtectedRoute><SessionDetail /></ProtectedRoute>} />
-            <Route path="/events/new" element={<ProtectedRoute><NewEvent /></ProtectedRoute>} />
+
             <Route path="/events/:eventId/manage" element={<ProtectedRoute><EventManage /></ProtectedRoute>} />
             <Route path="/events/:eventId/speakers/approve" element={<ProtectedRoute><SpeakerApprovalDashboard /></ProtectedRoute>} />
             <Route path="/events/:eventId/analytics" element={<ProtectedRoute><EventAnalytics /></ProtectedRoute>} />
