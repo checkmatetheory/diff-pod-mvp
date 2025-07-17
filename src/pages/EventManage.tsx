@@ -18,7 +18,8 @@ import {
   Share2,
   Upload,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  User
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -58,6 +59,26 @@ interface Session {
   session_data: any;
 }
 
+interface SpeakerMicrosite {
+  id: string;
+  microsite_url: string;
+  approval_status: 'pending' | 'approved' | 'rejected' | 'needs_revision';
+  is_live: boolean;
+  total_views: number;
+  total_shares: number;
+  created_at: string;
+  speaker: {
+    id: string;
+    full_name: string;
+    email: string;
+    company: string;
+    job_title: string;
+    bio: string;
+    headshot_url: string | null;
+    slug: string;
+  };
+}
+
 const EventManage = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
@@ -65,6 +86,7 @@ const EventManage = () => {
   const { user } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [speakers, setSpeakers] = useState<SpeakerMicrosite[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [savingBranding, setSavingBranding] = useState(false);
@@ -76,7 +98,7 @@ const EventManage = () => {
     avgDuration: 0
   });
 
-  const activeSpeakersCount = 0; // Placeholder - will be calculated from actual speakers
+  const activeSpeakersCount = speakers.length;
 
   useEffect(() => {
     if (eventId) {
@@ -109,6 +131,28 @@ const EventManage = () => {
 
       if (sessionsError) throw sessionsError;
       setSessions(sessionsData || []);
+
+      // Fetch speakers for this event
+      const { data: speakersData, error: speakersError } = await (supabase as any)
+        .from('speaker_microsites')
+        .select(`
+          *,
+          speaker:speakers (
+            id,
+            full_name,
+            email,
+            company,
+            job_title,
+            bio,
+            headshot_url,
+            slug
+          )
+        `)
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false });
+
+      if (speakersError) throw speakersError;
+      setSpeakers(speakersData || []);
 
       // Calculate stats
       const totalSessions = sessionsData?.length || 0;
@@ -321,8 +365,8 @@ const EventManage = () => {
             <div className="max-w-7xl mx-auto space-y-8">
               
               {/* Header Section */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -332,30 +376,31 @@ const EventManage = () => {
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Events
                   </Button>
-                  <div className="backdrop-blur-sm bg-white/40 p-4 rounded-xl border border-white/30 shadow-lg">
-                    <h1 className="text-3xl font-bold text-gray-800">{event?.name}</h1>
-                    <p className="text-gray-600">{event?.description}</p>
+                  
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70"
+                      onClick={() => window.open(`/event/${event?.subdomain}`, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      View Live
+                    </Button>
+                    <Button 
+                      size="sm"
+                      className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm shadow-lg border border-blue-500/20"
+                      onClick={() => navigate(`/events/${eventId}/analytics`)}
+                    >
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Analytics
+                    </Button>
                   </div>
                 </div>
                 
-                <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70"
-                    onClick={() => window.open(`/event/${event?.subdomain}`, '_blank')}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View Live
-                  </Button>
-                  <Button 
-                    size="sm"
-                    className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm shadow-lg border border-blue-500/20"
-                    onClick={() => navigate(`/events/${eventId}/analytics`)}
-                  >
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Analytics
-                  </Button>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-800">{event?.name}</h1>
+                  <p className="text-gray-600 mt-2">{event?.description}</p>
                 </div>
               </div>
 
@@ -533,34 +578,108 @@ const EventManage = () => {
 
                     {/* Speakers Tab Content */}
                     <TabsContent value="speakers" className="space-y-6">
-                      <div className="backdrop-blur-sm bg-white/50 rounded-xl p-6 border border-white/40 shadow-lg">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-lg font-semibold text-gray-800">Speaker Management</h3>
-                          <Button 
-                            size="sm"
-                            className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm"
-                            onClick={() => navigate('/upload')}
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Speaker Content
-                          </Button>
+                      <div className="flex items-center justify-between">
+                        <div className="backdrop-blur-sm bg-white/40 p-4 rounded-xl border border-white/30">
+                          <h3 className="text-xl font-semibold text-gray-800">Speaker Management</h3>
+                          <p className="text-gray-600">Manage speaker microsites and track attribution</p>
                         </div>
-                        
-                        <div className="text-center py-12">
-                          <Mic className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <h4 className="text-lg font-medium text-gray-700 mb-2">No Speakers Yet</h4>
-                          <p className="text-gray-500 mb-4">
-                            Upload speaker content to create attribution microsites and track ROI.
-                          </p>
-                          <Button 
-                            variant="outline" 
-                            className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70"
-                            onClick={() => navigate('/upload')}
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Upload First Speaker
-                          </Button>
-                        </div>
+                        <Button 
+                          onClick={() => navigate('/upload')}
+                          className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm shadow-lg border border-blue-500/20"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Add Speaker Content
+                        </Button>
+                      </div>
+
+                      {/* Speakers List */}
+                      <div className="space-y-4">
+                        {speakers.length === 0 ? (
+                          <div className="text-center py-12">
+                            <Mic className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <h4 className="text-lg font-medium text-gray-700 mb-2">No Speakers Yet</h4>
+                            <p className="text-gray-500 mb-4">
+                              Upload speaker content to create attribution microsites and track ROI.
+                            </p>
+                            <Button 
+                              variant="outline" 
+                              className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70"
+                              onClick={() => navigate('/upload')}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload First Speaker
+                            </Button>
+                          </div>
+                        ) : (
+                          speakers.map((speakerMicrosite) => (
+                            <Card key={speakerMicrosite.id} className="border-0 backdrop-blur-md bg-white/40 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                              <CardContent className="p-6">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-4">
+                                    <div className="relative">
+                                      {speakerMicrosite.speaker.headshot_url ? (
+                                        <img 
+                                          src={speakerMicrosite.speaker.headshot_url} 
+                                          alt={speakerMicrosite.speaker.full_name}
+                                          className="w-12 h-12 rounded-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-12 h-12 rounded-full bg-blue-100/80 backdrop-blur-sm flex items-center justify-center">
+                                          <User className="h-6 w-6 text-blue-600" />
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold text-lg text-gray-800">{speakerMicrosite.speaker.full_name}</h4>
+                                      <p className="text-sm text-gray-600">{speakerMicrosite.speaker.job_title} at {speakerMicrosite.speaker.company}</p>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <Badge className={
+                                          speakerMicrosite.approval_status === 'approved' ? 'bg-green-100/80 text-green-800 border-green-200/50' :
+                                          speakerMicrosite.approval_status === 'pending' ? 'bg-yellow-100/80 text-yellow-800 border-yellow-200/50' :
+                                          'bg-red-100/80 text-red-800 border-red-200/50'
+                                        }>
+                                          {speakerMicrosite.approval_status}
+                                        </Badge>
+                                        {speakerMicrosite.is_live && (
+                                          <Badge className="bg-blue-100/80 text-blue-800 border-blue-200/50">
+                                            Live
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2">
+                                    <div className="text-right text-sm text-gray-600">
+                                      <p>{speakerMicrosite.total_views} views</p>
+                                      <p>{speakerMicrosite.total_shares} shares</p>
+                                    </div>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70">
+                                          <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent className="backdrop-blur-md bg-white/90 border border-white/50">
+                                        <DropdownMenuItem onClick={() => window.open(speakerMicrosite.microsite_url, '_blank')}>
+                                          View Microsite
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => navigate(`/speaker/${speakerMicrosite.speaker.slug}`)}>
+                                          View Profile
+                                        </DropdownMenuItem>
+                                        {speakerMicrosite.approval_status === 'pending' && (
+                                          <DropdownMenuItem onClick={() => navigate(`/events/${eventId}/speakers/approval`)}>
+                                            Review & Approve
+                                          </DropdownMenuItem>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))
+                        )}
                       </div>
                     </TabsContent>
 

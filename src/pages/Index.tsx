@@ -5,9 +5,9 @@ import { useNavigate } from "react-router-dom";
 
 const features = [
   {
-    icon: "🎙️",
-    title: "Podcast Episodes",
-    description: "Turn ideas into episodes with beautiful, modern cards and smooth animations.",
+    icon: "🎥",
+    title: "Speaker Content",
+    description: "Turn speaker videos and photos into beautiful microsites with smooth animations.",
     color: "bg-blueLight text-blue",
   },
   {
@@ -95,10 +95,10 @@ export default function Index() {
         </div>
         <div className="relative z-10 max-w-xl">
           <h1 className="text-5xl md:text-6xl font-extrabold text-card mb-6 leading-tight">
-            Turn Conference Content Into <span className="text-accent">Podcasts</span>,<br />Events Into <span className="text-blue">Insights</span>
+            Turn Conference Content Into <span className="text-accent">Speaker Microsites</span>,<br />Events Into <span className="text-blue">Insights</span>
           </h1>
           <p className="text-xl text-cardAlt mb-8">
-            Transform your conference recordings into engaging AI-powered podcasts. Minimal, beautiful, and fast.
+            Transform your speaker content into beautiful microsites with photos and videos. Minimal, beautiful, and fast.
           </p>
           <div className="flex gap-4">
             <button 
@@ -125,7 +125,7 @@ export default function Index() {
           >
             <img 
               src="/diff media hero.png" 
-              alt="Diffused Media - Turn Conference Content Into Podcasts" 
+              alt="Diffused Media - Turn Conference Content Into Speaker Microsites" 
               className="w-full h-full object-cover"
             />
           </motion.div>
@@ -153,9 +153,9 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Sample Podcast Card */}
-      <section id="episodes" className="px-8 py-20 bg-cardAlt">
-        <h2 className="text-4xl font-bold text-primary mb-12 text-center">Featured Episode</h2>
+      {/* Sample Speaker Microsite */}
+      <section id="speakers" className="px-8 py-20 bg-cardAlt">
+        <h2 className="text-4xl font-bold text-primary mb-12 text-center">Featured Speaker</h2>
         <motion.div
           className="max-w-2xl mx-auto rounded-3xl bg-card shadow-card flex flex-col md:flex-row items-center p-8 gap-8"
           variants={podcastCardVariants}
@@ -163,16 +163,16 @@ export default function Index() {
           animate="visible"
         >
           <div className="w-40 h-40 rounded-2xl bg-blueLight flex items-center justify-center">
-            <span className="text-6xl">🎤</span>
+            <span className="text-6xl">🎥</span>
           </div>
           <div className="flex-1">
-            <div className="text-xl font-bold text-primary mb-2">The Curious Mind Podcast</div>
-            <div className="text-md text-textSecondary mb-4">with Kristin Watson</div>
+            <div className="text-xl font-bold text-primary mb-2">Sarah Chen's Microsite</div>
+            <div className="text-md text-textSecondary mb-4">Tech Conference Speaker</div>
             <div className="flex gap-4 items-center mb-4">
-              <span className="bg-accentLight text-accent rounded-full px-4 py-1 text-sm font-semibold">150K Listens</span>
-              <span className="bg-blueLight text-blue rounded-full px-4 py-1 text-sm font-semibold">45 mins</span>
+              <span className="bg-accentLight text-accent rounded-full px-4 py-1 text-sm font-semibold">2.5K Views</span>
+              <span className="bg-blueLight text-blue rounded-full px-4 py-1 text-sm font-semibold">5 Videos</span>
             </div>
-            <button className="bg-accent text-white rounded-full px-8 py-3 font-bold text-lg shadow-card hover:opacity-90 transition">Listen Now</button>
+            <button className="bg-accent text-white rounded-full px-8 py-3 font-bold text-lg shadow-card hover:opacity-90 transition">View Microsite</button>
           </div>
         </motion.div>
       </section>

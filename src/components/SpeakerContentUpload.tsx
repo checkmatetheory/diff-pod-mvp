@@ -271,6 +271,24 @@ const SpeakerContentUpload = () => {
     setNewSpeaker(prev => ({ ...prev, headshot_url: "" }));
   };
 
+  // Sanitize filename for storage upload
+  const sanitizeFilename = (filename: string): string => {
+    // Get file extension
+    const lastDotIndex = filename.lastIndexOf('.');
+    const name = lastDotIndex > 0 ? filename.substring(0, lastDotIndex) : filename;
+    const extension = lastDotIndex > 0 ? filename.substring(lastDotIndex) : '';
+    
+    // Remove or replace problematic characters
+    const sanitizedName = name
+      .replace(/[^\w\s-]/g, '') // Remove special chars except word chars, spaces, and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .toLowerCase() // Convert to lowercase
+      .trim('-'); // Remove leading/trailing hyphens
+    
+    return `${sanitizedName}${extension}`;
+  };
+
   const processFiles = async (files: File[]) => {
     if (!user || !selectedEventId || !selectedSpeakerId) {
       toast({
@@ -303,8 +321,9 @@ const SpeakerContentUpload = () => {
       try {
         setUploading(true);
         
-        // Upload to Supabase Storage
-        const fileName = `${user.id}/${Date.now()}-${file.name}`;
+        // Upload to Supabase Storage with sanitized filename
+        const sanitizedFilename = sanitizeFilename(file.name);
+        const fileName = `${user.id}/${Date.now()}-${sanitizedFilename}`;
         
         setUploads(prev => prev.map(upload => 
           upload.id === newUpload.id ? { ...upload, progress: 50 } : upload
@@ -445,13 +464,13 @@ const SpeakerContentUpload = () => {
       }
 
       toast({
-        title: "Speaker microsite created! 🎉",
-        description: `${selectedSpeaker.full_name}'s attribution microsite is now live.`,
+        title: "Speaker content uploaded! 🎉",
+        description: `${selectedSpeaker.full_name}'s content is now live on their microsite.`,
       });
 
       setTimeout(() => {
         setUploading(false);
-        navigate(`/events/${selectedEventId}/manage?tab=speakers`);
+        navigate(`/session/${sessionId}`);
       }, 1500);
 
     } catch (error: any) {

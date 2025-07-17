@@ -7,85 +7,214 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
-      audio_assets: {
+      affiliate_payouts: {
         Row: {
-          asset_type: string
-          audio_url: string
+          commission_rate: number
           created_at: string
-          duration_seconds: number | null
+          event_id: string
           id: string
-          name: string
-          user_id: string
-        }
-        Insert: {
-          asset_type: string
-          audio_url: string
-          created_at?: string
-          duration_seconds?: number | null
-          id?: string
-          name: string
-          user_id: string
-        }
-        Update: {
-          asset_type?: string
-          audio_url?: string
-          created_at?: string
-          duration_seconds?: number | null
-          id?: string
-          name?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      conference_portfolios: {
-        Row: {
-          brand_logo_url: string | null
-          created_at: string
-          default_intro_audio_id: string | null
-          default_outro_audio_id: string | null
-          description: string | null
-          id: string
-          name: string
+          payment_details: Json | null
+          payment_method: string | null
+          payout_amount: number
+          payout_status: string | null
+          processed_at: string | null
+          referral_code_id: string | null
+          speaker_id: string
+          total_conversion_value: number
+          total_conversions: number
           updated_at: string
-          user_id: string
         }
         Insert: {
-          brand_logo_url?: string | null
+          commission_rate: number
           created_at?: string
-          default_intro_audio_id?: string | null
-          default_outro_audio_id?: string | null
-          description?: string | null
+          event_id: string
           id?: string
-          name: string
+          payment_details?: Json | null
+          payment_method?: string | null
+          payout_amount: number
+          payout_status?: string | null
+          processed_at?: string | null
+          referral_code_id?: string | null
+          speaker_id: string
+          total_conversion_value: number
+          total_conversions: number
           updated_at?: string
-          user_id: string
         }
         Update: {
-          brand_logo_url?: string | null
+          commission_rate?: number
           created_at?: string
-          default_intro_audio_id?: string | null
-          default_outro_audio_id?: string | null
-          description?: string | null
+          event_id?: string
           id?: string
-          name?: string
+          payment_details?: Json | null
+          payment_method?: string | null
+          payout_amount?: number
+          payout_status?: string | null
+          processed_at?: string | null
+          referral_code_id?: string | null
+          speaker_id?: string
+          total_conversion_value?: number
+          total_conversions?: number
           updated_at?: string
-          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "conference_portfolios_default_intro_audio_id_fkey"
-            columns: ["default_intro_audio_id"]
+            foreignKeyName: "affiliate_payouts_event_id_fkey"
+            columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "audio_assets"
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "conference_portfolios_default_outro_audio_id_fkey"
-            columns: ["default_outro_audio_id"]
+            foreignKeyName: "affiliate_payouts_referral_code_id_fkey"
+            columns: ["referral_code_id"]
             isOneToOne: false
-            referencedRelation: "audio_assets"
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_payouts_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attribution_tracking: {
+        Row: {
+          city: string | null
+          conversion_type: string | null
+          conversion_value: number | null
+          country_code: string | null
+          created_at: string
+          event_id: string
+          event_type: string
+          id: string
+          microsite_id: string
+          referral_code: string | null
+          referrer_url: string | null
+          session_id: string | null
+          tracked_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          visitor_ip: string | null
+        }
+        Insert: {
+          city?: string | null
+          conversion_type?: string | null
+          conversion_value?: number | null
+          country_code?: string | null
+          created_at?: string
+          event_id: string
+          event_type: string
+          id?: string
+          microsite_id: string
+          referral_code?: string | null
+          referrer_url?: string | null
+          session_id?: string | null
+          tracked_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_ip?: string | null
+        }
+        Update: {
+          city?: string | null
+          conversion_type?: string | null
+          conversion_value?: number | null
+          country_code?: string | null
+          created_at?: string
+          event_id?: string
+          event_type?: string
+          id?: string
+          microsite_id?: string
+          referral_code?: string | null
+          referrer_url?: string | null
+          session_id?: string | null
+          tracked_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_ip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attribution_tracking_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attribution_tracking_microsite_id_fkey"
+            columns: ["microsite_id"]
+            isOneToOne: false
+            referencedRelation: "speaker_microsites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content: {
+        Row: {
+          content_data: Json
+          content_type: string
+          created_at: string
+          event_id: string | null
+          id: string
+          is_public: boolean | null
+          session_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          content_data: Json
+          content_type: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          is_public?: boolean | null
+          session_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content_data?: Json
+          content_type?: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          is_public?: boolean | null
+          session_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -167,92 +296,108 @@ export type Database = {
         }
         Relationships: []
       }
-      custom_voices: {
+      conversion_celebrations: {
         Row: {
+          attribution_data: Json | null
+          celebrated_at: string
+          conversion_type: string
+          conversion_value: number | null
           created_at: string
-          description: string | null
+          event_id: string
           id: string
-          is_trained: boolean | null
-          name: string
-          training_audio_url: string | null
-          updated_at: string
-          user_id: string
-          voice_id: string | null
-          voice_type: string | null
+          microsite_id: string | null
+          notification_sent: boolean | null
+          referral_code: string | null
+          speaker_id: string | null
         }
         Insert: {
+          attribution_data?: Json | null
+          celebrated_at?: string
+          conversion_type: string
+          conversion_value?: number | null
           created_at?: string
-          description?: string | null
+          event_id: string
           id?: string
-          is_trained?: boolean | null
-          name: string
-          training_audio_url?: string | null
-          updated_at?: string
-          user_id: string
-          voice_id?: string | null
-          voice_type?: string | null
+          microsite_id?: string | null
+          notification_sent?: boolean | null
+          referral_code?: string | null
+          speaker_id?: string | null
         }
         Update: {
+          attribution_data?: Json | null
+          celebrated_at?: string
+          conversion_type?: string
+          conversion_value?: number | null
           created_at?: string
-          description?: string | null
+          event_id?: string
           id?: string
-          is_trained?: boolean | null
-          name?: string
-          training_audio_url?: string | null
-          updated_at?: string
-          user_id?: string
-          voice_id?: string | null
-          voice_type?: string | null
-        }
-        Relationships: []
-      }
-      episode_analytics: {
-        Row: {
-          created_at: string
-          downloads: number | null
-          engagement_rate: number | null
-          id: string
-          listening_time_seconds: number | null
-          portfolio_id: string | null
-          session_id: string | null
-          sponsor_revenue: number | null
-          updated_at: string
-          views: number | null
-        }
-        Insert: {
-          created_at?: string
-          downloads?: number | null
-          engagement_rate?: number | null
-          id?: string
-          listening_time_seconds?: number | null
-          portfolio_id?: string | null
-          session_id?: string | null
-          sponsor_revenue?: number | null
-          updated_at?: string
-          views?: number | null
-        }
-        Update: {
-          created_at?: string
-          downloads?: number | null
-          engagement_rate?: number | null
-          id?: string
-          listening_time_seconds?: number | null
-          portfolio_id?: string | null
-          session_id?: string | null
-          sponsor_revenue?: number | null
-          updated_at?: string
-          views?: number | null
+          microsite_id?: string | null
+          notification_sent?: boolean | null
+          referral_code?: string | null
+          speaker_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "episode_analytics_portfolio_id_fkey"
-            columns: ["portfolio_id"]
+            foreignKeyName: "conversion_celebrations_event_id_fkey"
+            columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "conference_portfolios"
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "episode_analytics_session_id_fkey"
+            foreignKeyName: "conversion_celebrations_microsite_id_fkey"
+            columns: ["microsite_id"]
+            isOneToOne: false
+            referencedRelation: "speaker_microsites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversion_celebrations_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diffusion_analytics: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          id: string
+          metadata: Json | null
+          metric_type: string
+          metric_value: number | null
+          session_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          metric_value?: number | null
+          session_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          metric_value?: number | null
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diffusion_analytics_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diffusion_analytics_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "user_sessions"
@@ -260,174 +405,164 @@ export type Database = {
           },
         ]
       }
-      event_series: {
+      event_attendees: {
         Row: {
-          category: Database["public"]["Enums"]["event_category"]
+          attendee_badge_url: string | null
+          attendee_email: string | null
+          attendee_name: string
+          created_at: string
+          event_id: string | null
+          id: string
+          is_verified: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          attendee_badge_url?: string | null
+          attendee_email?: string | null
+          attendee_name: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          is_verified?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          attendee_badge_url?: string | null
+          attendee_email?: string | null
+          attendee_name?: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          is_verified?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          branding: Json | null
           created_at: string
           description: string | null
-          frequency: string | null
           id: string
+          is_active: boolean | null
           name: string
-          portfolio_company_id: string | null
+          next_event_date: string | null
+          next_event_registration_url: string | null
+          subdomain: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          category: Database["public"]["Enums"]["event_category"]
+          branding?: Json | null
           created_at?: string
           description?: string | null
-          frequency?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
-          portfolio_company_id?: string | null
+          next_event_date?: string | null
+          next_event_registration_url?: string | null
+          subdomain: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          category?: Database["public"]["Enums"]["event_category"]
+          branding?: Json | null
           created_at?: string
           description?: string | null
-          frequency?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
-          portfolio_company_id?: string | null
+          next_event_date?: string | null
+          next_event_registration_url?: string | null
+          subdomain?: string
           updated_at?: string
           user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_series_portfolio_company_id_fkey"
-            columns: ["portfolio_company_id"]
-            isOneToOne: false
-            referencedRelation: "portfolio_companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      podcast_hosts: {
-        Row: {
-          created_at: string
-          host_role: string | null
-          id: string
-          session_id: string | null
-          speaking_percentage: number | null
-          voice_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          host_role?: string | null
-          id?: string
-          session_id?: string | null
-          speaking_percentage?: number | null
-          voice_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          host_role?: string | null
-          id?: string
-          session_id?: string | null
-          speaking_percentage?: number | null
-          voice_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "podcast_hosts_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "user_sessions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "podcast_hosts_voice_id_fkey"
-            columns: ["voice_id"]
-            isOneToOne: false
-            referencedRelation: "custom_voices"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      portfolio_analytics: {
-        Row: {
-          avg_engagement_rate: number | null
-          created_at: string
-          id: string
-          last_updated: string
-          portfolio_id: string | null
-          total_downloads: number | null
-          total_episodes: number | null
-          total_sponsor_revenue: number | null
-          total_views: number | null
-        }
-        Insert: {
-          avg_engagement_rate?: number | null
-          created_at?: string
-          id?: string
-          last_updated?: string
-          portfolio_id?: string | null
-          total_downloads?: number | null
-          total_episodes?: number | null
-          total_sponsor_revenue?: number | null
-          total_views?: number | null
-        }
-        Update: {
-          avg_engagement_rate?: number | null
-          created_at?: string
-          id?: string
-          last_updated?: string
-          portfolio_id?: string | null
-          total_downloads?: number | null
-          total_episodes?: number | null
-          total_sponsor_revenue?: number | null
-          total_views?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "portfolio_analytics_portfolio_id_fkey"
-            columns: ["portfolio_id"]
-            isOneToOne: false
-            referencedRelation: "conference_portfolios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      portfolio_companies: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          industry: string | null
-          logo_url: string | null
-          name: string
-          sector: string | null
-          updated_at: string
-          user_id: string
-          website_url: string | null
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          industry?: string | null
-          logo_url?: string | null
-          name: string
-          sector?: string | null
-          updated_at?: string
-          user_id: string
-          website_url?: string | null
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          industry?: string | null
-          logo_url?: string | null
-          name?: string
-          sector?: string | null
-          updated_at?: string
-          user_id?: string
-          website_url?: string | null
         }
         Relationships: []
+      }
+      leads: {
+        Row: {
+          attended_status: string | null
+          created_at: string
+          email: string
+          event_id: string | null
+          id: string
+          metadata: Json | null
+          source: string | null
+        }
+        Insert: {
+          attended_status?: string | null
+          created_at?: string
+          email: string
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+          source?: string | null
+        }
+        Update: {
+          attended_status?: string | null
+          created_at?: string
+          email?: string
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      microsite_approval_history: {
+        Row: {
+          change_reason: string | null
+          changed_at: string
+          changed_by: string
+          id: string
+          microsite_id: string
+          new_status: string
+          previous_status: string | null
+        }
+        Insert: {
+          change_reason?: string | null
+          changed_at?: string
+          changed_by: string
+          id?: string
+          microsite_id: string
+          new_status: string
+          previous_status?: string | null
+        }
+        Update: {
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string
+          id?: string
+          microsite_id?: string
+          new_status?: string
+          previous_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "microsite_approval_history_microsite_id_fkey"
+            columns: ["microsite_id"]
+            isOneToOne: false
+            referencedRelation: "speaker_microsites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -456,362 +591,522 @@ export type Database = {
         }
         Relationships: []
       }
-      sponsor_placements: {
+      referral_code_usage: {
         Row: {
-          created_at: string
-          duration_seconds: number | null
+          attribution_tracking_id: string | null
+          conversion_type: string | null
+          conversion_value: number | null
+          event_id: string
           id: string
-          placement_type: string
-          session_id: string | null
-          sponsor_id: string | null
-          timestamp_seconds: number | null
+          referral_code_id: string
+          referrer_url: string | null
+          used_at: string
+          user_agent: string | null
+          visitor_ip: string | null
         }
         Insert: {
-          created_at?: string
-          duration_seconds?: number | null
+          attribution_tracking_id?: string | null
+          conversion_type?: string | null
+          conversion_value?: number | null
+          event_id: string
           id?: string
-          placement_type: string
-          session_id?: string | null
-          sponsor_id?: string | null
-          timestamp_seconds?: number | null
+          referral_code_id: string
+          referrer_url?: string | null
+          used_at?: string
+          user_agent?: string | null
+          visitor_ip?: string | null
         }
         Update: {
-          created_at?: string
-          duration_seconds?: number | null
+          attribution_tracking_id?: string | null
+          conversion_type?: string | null
+          conversion_value?: number | null
+          event_id?: string
           id?: string
-          placement_type?: string
-          session_id?: string | null
-          sponsor_id?: string | null
-          timestamp_seconds?: number | null
+          referral_code_id?: string
+          referrer_url?: string | null
+          used_at?: string
+          user_agent?: string | null
+          visitor_ip?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "sponsor_placements_session_id_fkey"
+            foreignKeyName: "referral_code_usage_attribution_tracking_id_fkey"
+            columns: ["attribution_tracking_id"]
+            isOneToOne: false
+            referencedRelation: "attribution_tracking"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_code_usage_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_code_usage_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_codes: {
+        Row: {
+          code: string
+          code_type: string
+          created_at: string
+          event_id: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          microsite_id: string | null
+          speaker_id: string | null
+          updated_at: string
+          usage_count: number | null
+        }
+        Insert: {
+          code: string
+          code_type: string
+          created_at?: string
+          event_id: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          microsite_id?: string | null
+          speaker_id?: string | null
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Update: {
+          code?: string
+          code_type?: string
+          created_at?: string
+          event_id?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          microsite_id?: string | null
+          speaker_id?: string | null
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_codes_microsite_id_fkey"
+            columns: ["microsite_id"]
+            isOneToOne: false
+            referencedRelation: "speaker_microsites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_codes_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shares: {
+        Row: {
+          attribution_text: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          platform: string
+          session_id: string | null
+          share_url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attribution_text?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          platform: string
+          session_id?: string | null
+          share_url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attribution_text?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          platform?: string
+          session_id?: string | null
+          share_url?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shares_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shares_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      speaker_attribution_stats: {
+        Row: {
+          conversion_rate: number | null
+          created_at: string
+          event_id: string
+          first_conversion_at: string | null
+          id: string
+          last_conversion_at: string | null
+          speaker_id: string
+          total_clicks: number | null
+          total_conversions: number | null
+          total_shares: number | null
+          total_value: number | null
+          total_views: number | null
+          updated_at: string
+        }
+        Insert: {
+          conversion_rate?: number | null
+          created_at?: string
+          event_id: string
+          first_conversion_at?: string | null
+          id?: string
+          last_conversion_at?: string | null
+          speaker_id: string
+          total_clicks?: number | null
+          total_conversions?: number | null
+          total_shares?: number | null
+          total_value?: number | null
+          total_views?: number | null
+          updated_at?: string
+        }
+        Update: {
+          conversion_rate?: number | null
+          created_at?: string
+          event_id?: string
+          first_conversion_at?: string | null
+          id?: string
+          last_conversion_at?: string | null
+          speaker_id?: string
+          total_clicks?: number | null
+          total_conversions?: number | null
+          total_shares?: number | null
+          total_value?: number | null
+          total_views?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_attribution_stats_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_attribution_stats_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      speaker_content: {
+        Row: {
+          ai_model_used: string | null
+          ai_processing_completed_at: string | null
+          ai_processing_started_at: string | null
+          created_at: string
+          generated_summary: string | null
+          highlight_reel_url: string | null
+          id: string
+          key_quotes: Json | null
+          key_takeaways: Json | null
+          microsite_id: string
+          processing_duration_seconds: number | null
+          processing_error_message: string | null
+          processing_status: string | null
+          prompt_version: string | null
+          social_captions: Json | null
+          updated_at: string
+          video_clips: Json | null
+        }
+        Insert: {
+          ai_model_used?: string | null
+          ai_processing_completed_at?: string | null
+          ai_processing_started_at?: string | null
+          created_at?: string
+          generated_summary?: string | null
+          highlight_reel_url?: string | null
+          id?: string
+          key_quotes?: Json | null
+          key_takeaways?: Json | null
+          microsite_id: string
+          processing_duration_seconds?: number | null
+          processing_error_message?: string | null
+          processing_status?: string | null
+          prompt_version?: string | null
+          social_captions?: Json | null
+          updated_at?: string
+          video_clips?: Json | null
+        }
+        Update: {
+          ai_model_used?: string | null
+          ai_processing_completed_at?: string | null
+          ai_processing_started_at?: string | null
+          created_at?: string
+          generated_summary?: string | null
+          highlight_reel_url?: string | null
+          id?: string
+          key_quotes?: Json | null
+          key_takeaways?: Json | null
+          microsite_id?: string
+          processing_duration_seconds?: number | null
+          processing_error_message?: string | null
+          processing_status?: string | null
+          prompt_version?: string | null
+          social_captions?: Json | null
+          updated_at?: string
+          video_clips?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_content_microsite_id_fkey"
+            columns: ["microsite_id"]
+            isOneToOne: false
+            referencedRelation: "speaker_microsites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      speaker_microsites: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          brand_colors: Json | null
+          created_at: string
+          created_by: string
+          custom_cta_text: string | null
+          custom_cta_url: string | null
+          custom_logo_url: string | null
+          event_id: string
+          id: string
+          is_live: boolean | null
+          microsite_url: string
+          published_at: string | null
+          rejection_reason: string | null
+          session_id: string | null
+          speaker_id: string
+          speaker_notification_email: string | null
+          speaker_notified_at: string | null
+          total_conversions: number | null
+          total_earnings: number | null
+          total_shares: number | null
+          total_views: number | null
+          updated_at: string
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          brand_colors?: Json | null
+          created_at?: string
+          created_by: string
+          custom_cta_text?: string | null
+          custom_cta_url?: string | null
+          custom_logo_url?: string | null
+          event_id: string
+          id?: string
+          is_live?: boolean | null
+          microsite_url: string
+          published_at?: string | null
+          rejection_reason?: string | null
+          session_id?: string | null
+          speaker_id: string
+          speaker_notification_email?: string | null
+          speaker_notified_at?: string | null
+          total_conversions?: number | null
+          total_earnings?: number | null
+          total_shares?: number | null
+          total_views?: number | null
+          updated_at?: string
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          brand_colors?: Json | null
+          created_at?: string
+          created_by?: string
+          custom_cta_text?: string | null
+          custom_cta_url?: string | null
+          custom_logo_url?: string | null
+          event_id?: string
+          id?: string
+          is_live?: boolean | null
+          microsite_url?: string
+          published_at?: string | null
+          rejection_reason?: string | null
+          session_id?: string | null
+          speaker_id?: string
+          speaker_notification_email?: string | null
+          speaker_notified_at?: string | null
+          total_conversions?: number | null
+          total_earnings?: number | null
+          total_shares?: number | null
+          total_views?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_microsites_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_microsites_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "user_sessions"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sponsor_placements_sponsor_id_fkey"
-            columns: ["sponsor_id"]
+            foreignKeyName: "speaker_microsites_speaker_id_fkey"
+            columns: ["speaker_id"]
             isOneToOne: false
-            referencedRelation: "sponsors"
+            referencedRelation: "speakers"
             referencedColumns: ["id"]
           },
         ]
       }
-      sponsors: {
+      speakers: {
         Row: {
-          ad_audio_url: string | null
-          ad_script: string | null
-          contact_email: string | null
+          bio: string | null
+          company: string | null
           created_at: string
+          created_by: string
+          email: string | null
+          full_name: string
+          headshot_url: string | null
           id: string
-          logo_url: string | null
-          name: string
+          job_title: string | null
+          linkedin_data: Json | null
+          linkedin_scraped_at: string | null
+          linkedin_url: string | null
+          slug: string
           updated_at: string
-          user_id: string
-          website_url: string | null
         }
         Insert: {
-          ad_audio_url?: string | null
-          ad_script?: string | null
-          contact_email?: string | null
+          bio?: string | null
+          company?: string | null
           created_at?: string
+          created_by: string
+          email?: string | null
+          full_name: string
+          headshot_url?: string | null
           id?: string
-          logo_url?: string | null
-          name: string
+          job_title?: string | null
+          linkedin_data?: Json | null
+          linkedin_scraped_at?: string | null
+          linkedin_url?: string | null
+          slug: string
           updated_at?: string
-          user_id: string
-          website_url?: string | null
         }
         Update: {
-          ad_audio_url?: string | null
-          ad_script?: string | null
-          contact_email?: string | null
+          bio?: string | null
+          company?: string | null
           created_at?: string
+          created_by?: string
+          email?: string | null
+          full_name?: string
+          headshot_url?: string | null
           id?: string
-          logo_url?: string | null
-          name?: string
+          job_title?: string | null
+          linkedin_data?: Json | null
+          linkedin_scraped_at?: string | null
+          linkedin_url?: string | null
+          slug?: string
           updated_at?: string
-          user_id?: string
-          website_url?: string | null
         }
         Relationships: []
-      }
-      subscriptions: {
-        Row: {
-          billing_cycle_end: string | null
-          billing_cycle_start: string | null
-          created_at: string
-          id: string
-          sessions_limit: number
-          sessions_used: number
-          status: string
-          tier: Database["public"]["Enums"]["subscription_tier"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          billing_cycle_end?: string | null
-          billing_cycle_start?: string | null
-          created_at?: string
-          id?: string
-          sessions_limit?: number
-          sessions_used?: number
-          status?: string
-          tier?: Database["public"]["Enums"]["subscription_tier"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          billing_cycle_end?: string | null
-          billing_cycle_start?: string | null
-          created_at?: string
-          id?: string
-          sessions_limit?: number
-          sessions_used?: number
-          status?: string
-          tier?: Database["public"]["Enums"]["subscription_tier"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_favorites: {
-        Row: {
-          created_at: string
-          id: string
-          session_id: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          session_id?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          session_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_favorites_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "user_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       user_sessions: {
         Row: {
           audio_duration: number | null
-          category: Database["public"]["Enums"]["event_category"] | null
-          content_type: Database["public"]["Enums"]["content_type"] | null
-          created_at: string
-          description: string | null
-          duration_seconds: number | null
-          event_series_id: string | null
+          content_type: string | null
+          created_at: string | null
+          event_id: string | null
           generated_summary: string | null
           generated_title: string | null
-          host_count: number | null
           id: string
-          intro_audio_id: string | null
-          outro_audio_id: string | null
           podcast_url: string | null
-          portfolio_company_id: string | null
-          portfolio_id: string | null
-          processed_at: string
           processing_status: string | null
           session_data: Json | null
-          session_name: string
-          speaker_names: string[] | null
-          sponsor_revenue: number | null
-          tags: string[] | null
-          thumbnail_url: string | null
+          session_name: string | null
           transcript_summary: string | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
           audio_duration?: number | null
-          category?: Database["public"]["Enums"]["event_category"] | null
-          content_type?: Database["public"]["Enums"]["content_type"] | null
-          created_at?: string
-          description?: string | null
-          duration_seconds?: number | null
-          event_series_id?: string | null
+          content_type?: string | null
+          created_at?: string | null
+          event_id?: string | null
           generated_summary?: string | null
           generated_title?: string | null
-          host_count?: number | null
           id?: string
-          intro_audio_id?: string | null
-          outro_audio_id?: string | null
           podcast_url?: string | null
-          portfolio_company_id?: string | null
-          portfolio_id?: string | null
-          processed_at?: string
           processing_status?: string | null
           session_data?: Json | null
-          session_name: string
-          speaker_names?: string[] | null
-          sponsor_revenue?: number | null
-          tags?: string[] | null
-          thumbnail_url?: string | null
+          session_name?: string | null
           transcript_summary?: string | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           audio_duration?: number | null
-          category?: Database["public"]["Enums"]["event_category"] | null
-          content_type?: Database["public"]["Enums"]["content_type"] | null
-          created_at?: string
-          description?: string | null
-          duration_seconds?: number | null
-          event_series_id?: string | null
+          content_type?: string | null
+          created_at?: string | null
+          event_id?: string | null
           generated_summary?: string | null
           generated_title?: string | null
-          host_count?: number | null
           id?: string
-          intro_audio_id?: string | null
-          outro_audio_id?: string | null
           podcast_url?: string | null
-          portfolio_company_id?: string | null
-          portfolio_id?: string | null
-          processed_at?: string
           processing_status?: string | null
           session_data?: Json | null
-          session_name?: string
-          speaker_names?: string[] | null
-          sponsor_revenue?: number | null
-          tags?: string[] | null
-          thumbnail_url?: string | null
+          session_name?: string | null
           transcript_summary?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "user_sessions_event_series_id_fkey"
-            columns: ["event_series_id"]
+            foreignKeyName: "user_sessions_event_id_fkey"
+            columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_series"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_sessions_intro_audio_id_fkey"
-            columns: ["intro_audio_id"]
-            isOneToOne: false
-            referencedRelation: "audio_assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_sessions_outro_audio_id_fkey"
-            columns: ["outro_audio_id"]
-            isOneToOne: false
-            referencedRelation: "audio_assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_sessions_portfolio_company_id_fkey"
-            columns: ["portfolio_company_id"]
-            isOneToOne: false
-            referencedRelation: "portfolio_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_sessions_portfolio_id_fkey"
-            columns: ["portfolio_id"]
-            isOneToOne: false
-            referencedRelation: "conference_portfolios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      viewing_progress: {
-        Row: {
-          completed: boolean | null
-          id: string
-          last_viewed_at: string
-          progress_seconds: number
-          session_id: string | null
-          total_seconds: number | null
-          user_id: string
-        }
-        Insert: {
-          completed?: boolean | null
-          id?: string
-          last_viewed_at?: string
-          progress_seconds?: number
-          session_id?: string | null
-          total_seconds?: number | null
-          user_id: string
-        }
-        Update: {
-          completed?: boolean | null
-          id?: string
-          last_viewed_at?: string
-          progress_seconds?: number
-          session_id?: string | null
-          total_seconds?: number | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "viewing_progress_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "user_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      website_monitors: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean | null
-          last_check: string | null
-          monitoring_frequency: string | null
-          portfolio_id: string | null
-          selector_config: Json | null
-          updated_at: string
-          user_id: string
-          website_url: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean | null
-          last_check?: string | null
-          monitoring_frequency?: string | null
-          portfolio_id?: string | null
-          selector_config?: Json | null
-          updated_at?: string
-          user_id: string
-          website_url: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean | null
-          last_check?: string | null
-          monitoring_frequency?: string | null
-          portfolio_id?: string | null
-          selector_config?: Json | null
-          updated_at?: string
-          user_id?: string
-          website_url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "website_monitors_portfolio_id_fkey"
-            columns: ["portfolio_id"]
-            isOneToOne: false
-            referencedRelation: "conference_portfolios"
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
         ]
@@ -821,20 +1116,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_microsite_url: {
+        Args: { event_subdomain: string; speaker_slug: string }
+        Returns: string
+      }
+      generate_referral_code: {
+        Args: { p_speaker_id: string; p_event_id: string; p_code_type?: string }
+        Returns: string
+      }
+      generate_speaker_slug: {
+        Args: { speaker_name: string }
+        Returns: string
+      }
     }
     Enums: {
-      content_type: "video_audio" | "audio_only" | "transcript" | "live_session"
-      event_category:
-        | "conference"
-        | "earnings_call"
-        | "board_meeting"
-        | "investor_update"
-        | "due_diligence"
-        | "portfolio_review"
-        | "market_update"
-        | "team_meeting"
-      subscription_tier: "free" | "starter" | "pro" | "enterprise"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -842,21 +1138,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -874,14 +1174,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -897,14 +1199,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -920,14 +1224,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -935,33 +1241,22 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
   public: {
-    Enums: {
-      content_type: ["video_audio", "audio_only", "transcript", "live_session"],
-      event_category: [
-        "conference",
-        "earnings_call",
-        "board_meeting",
-        "investor_update",
-        "due_diligence",
-        "portfolio_review",
-        "market_update",
-        "team_meeting",
-      ],
-      subscription_tier: ["free", "starter", "pro", "enterprise"],
-    },
+    Enums: {},
   },
 } as const

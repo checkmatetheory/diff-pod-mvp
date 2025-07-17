@@ -589,7 +589,7 @@ const SessionUpload = () => {
             Upload Session Content
           </CardTitle>
           <CardDescription>
-            Upload PDFs, video/audio files, text documents, or paste links. PDFs will be transcribed into podcast scripts using AI.
+            Upload PDFs, video/audio files, text documents, or paste links. Content will be processed and added to speaker microsites.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -626,7 +626,7 @@ const SessionUpload = () => {
                 <div className="flex flex-wrap justify-center gap-2 mt-2">
                   <Badge variant="outline" className="gap-1 border-green-500/20 text-green-600 bg-green-50">
                     <FileText className="h-3 w-3" />
-                    PDF → Podcast
+                    PDF → Content
                   </Badge>
                   <Badge variant="outline" className="gap-1 border-primary/20 text-primary bg-primary/5">
                     <FileVideo className="h-3 w-3" />
@@ -690,7 +690,7 @@ const SessionUpload = () => {
             </div>
             <form onSubmit={handleTextSubmit} className="space-y-3">
               <Textarea
-                placeholder={canUpload ? "Paste blog post, article, or any text content you want to convert to a podcast..." : "Select an event first to enable text input"}
+                placeholder={canUpload ? "Paste blog post, article, or any text content to add to speaker microsites..." : "Select an event first to enable text input"}
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 className="min-h-[120px] resize-none"

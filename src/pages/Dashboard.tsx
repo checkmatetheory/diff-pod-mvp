@@ -1,18 +1,17 @@
-import { useState } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "@/components/Header";
 import Dashboard from "@/components/Dashboard";
-import CreateEventModal from "@/components/ui/CreateEventModal";
+import { useCreateEventModal } from "@/contexts/CreateEventModalContext";
 
 export default function DashboardPage() {
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const { openModal } = useCreateEventModal();
 
   return (
     <>
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar onCreateEvent={() => setCreateModalOpen(true)} />
+        <AppSidebar onCreateEvent={openModal} />
         <SidebarInset className="flex-1">
           <Header />
           <main className="flex-1 p-6">
@@ -22,14 +21,7 @@ export default function DashboardPage() {
       </div>
     </SidebarProvider>
 
-    <CreateEventModal 
-      open={createModalOpen} 
-      onOpenChange={setCreateModalOpen}
-      onEventCreated={() => {
-        // Could navigate to events page or show success message
-        setCreateModalOpen(false);
-      }}
-    />
+
     </>
   );
 } 

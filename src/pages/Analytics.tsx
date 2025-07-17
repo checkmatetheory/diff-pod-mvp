@@ -9,10 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
 import { TrendingUp, TrendingDown, DollarSign, Users, Eye, Share2, Download, ExternalLink, Star, Target, Zap, Award } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import CreateEventModal from "@/components/ui/CreateEventModal";
+import { useCreateEventModal } from "@/contexts/CreateEventModalContext";
 
 const Analytics = () => {
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const { openModal } = useCreateEventModal();
 
   // CSV export utility functions
   const convertToCSV = (data: any[], headers: string[]) => {
@@ -293,7 +293,7 @@ const Analytics = () => {
     <>
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar onCreateEvent={() => setCreateModalOpen(true)} />
+        <AppSidebar onCreateEvent={openModal} />
         <SidebarInset className="flex-1">
           <Header />
           <main className="flex-1 px-8 py-12">
@@ -582,13 +582,7 @@ const Analytics = () => {
       </div>
     </SidebarProvider>
 
-    <CreateEventModal 
-      open={createModalOpen} 
-      onOpenChange={setCreateModalOpen}
-      onEventCreated={() => {
-        setCreateModalOpen(false);
-      }}
-    />
+
     </>
   );
 };

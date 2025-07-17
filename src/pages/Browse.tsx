@@ -8,7 +8,7 @@ import { Search, Play, ArrowRight, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import CreateEventModal from "@/components/ui/CreateEventModal";
+import { useCreateEventModal } from "@/contexts/CreateEventModalContext";
 
 interface ContentItem {
   id: string;
@@ -292,13 +292,13 @@ function BrowseContent() {
 }
 
 export default function Browse() {
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const { openModal } = useCreateEventModal();
 
   return (
     <>
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar onCreateEvent={() => setCreateModalOpen(true)} />
+        <AppSidebar onCreateEvent={openModal} />
         <SidebarInset className="flex-1">
           <Header />
           <main className="flex-1 p-6">
@@ -308,13 +308,7 @@ export default function Browse() {
       </div>
     </SidebarProvider>
 
-    <CreateEventModal 
-      open={createModalOpen} 
-      onOpenChange={setCreateModalOpen}
-      onEventCreated={() => {
-        setCreateModalOpen(false);
-      }}
-    />
+
     </>
   );
 }

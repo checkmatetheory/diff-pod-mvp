@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, Palette, Eye, X, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getContrastingTextColor } from "@/lib/utils";
 
 interface BrandConfig {
   primary_color: string;
@@ -20,6 +21,7 @@ interface BrandCustomizationProps {
   value: BrandConfig;
   onChange: (config: BrandConfig) => void;
   showCTA?: boolean;
+  hidePreview?: boolean;
   className?: string;
 }
 
@@ -39,11 +41,15 @@ export default function BrandCustomization({
   value,
   onChange,
   showCTA = false,
+  hidePreview = false,
   className = ""
 }: BrandCustomizationProps) {
   const [uploading, setUploading] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Force edit mode when preview is hidden
+  const isInPreviewMode = hidePreview ? false : previewMode;
 
   const handleColorPaletteSelect = (palette: typeof colorPalettes[0]) => {
     onChange({
@@ -124,231 +130,238 @@ export default function BrandCustomization({
         <CardTitle className="flex items-center gap-2">
           <Palette className="h-5 w-5" />
           Brand Customization
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setPreviewMode(!previewMode)}
-            className="ml-auto"
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            {previewMode ? 'Edit' : 'Preview'}
-          </Button>
+          {!hidePreview && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewMode(!previewMode)}
+              className="ml-auto"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              {isInPreviewMode ? 'Edit' : 'Preview'}
+            </Button>
+          )}
         </CardTitle>
         <CardDescription>
           Customize your event's branding with colors and logo. This will be applied to all speaker microsites.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {!previewMode ? (
-          <>
-            {/* Color Palettes */}
-            <div className="space-y-3">
-              <Label>Color Palette</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {colorPalettes.map((palette) => (
-                  <Button
-                    key={palette.name}
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleColorPaletteSelect(palette)}
-                    className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-accent"
-                  >
-                    <div className="flex gap-1">
-                      <div
-                        className="w-4 h-4 rounded-full border border-border"
-                        style={{ backgroundColor: palette.primary }}
+      <CardContent className="h-[400px] overflow-hidden">
+        <div className="h-full overflow-y-auto pr-4 space-y-6">
+          {!isInPreviewMode ? (
+            <>
+              {/* Logo Upload */}
+              <div className="space-y-3">
+                <Label>Event Logo</Label>
+                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                  {value.logo_url ? (
+                    <div className="space-y-3">
+                      <img
+                        src={value.logo_url}
+                        alt="Event logo"
+                        className="max-h-20 mx-auto object-contain"
                       />
-                      <div
-                        className="w-4 h-4 rounded-full border border-border"
-                        style={{ backgroundColor: palette.secondary }}
-                      />
+                      <div className="flex justify-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Replace
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={removeLogo}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Remove
+                        </Button>
+                      </div>
                     </div>
-                    <span className="text-xs">{palette.name}</span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Custom Colors */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="primary-color">Primary Color</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="primary-color"
-                    type="color"
-                    value={value.primary_color}
-                    onChange={(e) => handleCustomColorChange('primary', e.target.value)}
-                    className="w-12 h-10 p-1 border"
-                  />
-                  <Input
-                    value={value.primary_color}
-                    onChange={(e) => handleCustomColorChange('primary', e.target.value)}
-                    placeholder="#3b82f6"
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="secondary-color">Secondary Color</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="secondary-color"
-                    type="color"
-                    value={value.secondary_color}
-                    onChange={(e) => handleCustomColorChange('secondary', e.target.value)}
-                    className="w-12 h-10 p-1 border"
-                  />
-                  <Input
-                    value={value.secondary_color}
-                    onChange={(e) => handleCustomColorChange('secondary', e.target.value)}
-                    placeholder="#1e40af"
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Logo Upload */}
-            <div className="space-y-3">
-              <Label>Event Logo</Label>
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                {value.logo_url ? (
-                  <div className="space-y-3">
-                    <img
-                      src={value.logo_url}
-                      alt="Event logo"
-                      className="max-h-20 mx-auto object-contain"
-                    />
-                    <div className="flex justify-center gap-2">
+                  ) : (
+                    <div className="space-y-3">
+                      <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
+                      <div>
+                        <h4 className="font-medium">Upload your event logo</h4>
+                        <p className="text-sm text-muted-foreground">
+                          PNG, JPG, SVG up to 5MB. Recommended: 200x50px
+                        </p>
+                      </div>
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
                       >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Replace
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={removeLogo}
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        Remove
+                        {uploading ? 'Uploading...' : 'Choose File'}
                       </Button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
-                    <div>
-                      <h4 className="font-medium">Upload your event logo</h4>
-                      <p className="text-sm text-muted-foreground">
-                        PNG, JPG, SVG up to 5MB. Recommended: 200x50px
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                    >
-                      {uploading ? 'Uploading...' : 'Choose File'}
-                    </Button>
-                  </div>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="hidden"
-                />
-              </div>
-            </div>
-
-            {/* CTA Configuration */}
-            {showCTA && (
-              <div className="space-y-4">
-                <Label>Call-to-Action Button</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cta-text">Button Text</Label>
-                    <Input
-                      id="cta-text"
-                      value={value.cta_text || ''}
-                      onChange={(e) => handleCTAChange('cta_text', e.target.value)}
-                      placeholder="Register for Next Event"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cta-url">Button URL</Label>
-                    <Input
-                      id="cta-url"
-                      type="url"
-                      value={value.cta_url || ''}
-                      onChange={(e) => handleCTAChange('cta_url', e.target.value)}
-                      placeholder="https://your-event.com/register"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          /* Preview Mode */
-          <div className="space-y-6">
-            <div className="text-center space-y-4">
-              <h3 className="text-lg font-semibold">Brand Preview</h3>
-              
-              {/* Logo Preview */}
-              {value.logo_url && (
-                <div className="flex justify-center">
-                  <img
-                    src={value.logo_url}
-                    alt="Event logo preview"
-                    className="max-h-16 object-contain"
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
                   />
                 </div>
-              )}
-
-              {/* Color Preview */}
-              <div className="bg-gradient-to-r p-6 rounded-lg text-white" 
-                   style={{ 
-                     background: `linear-gradient(135deg, ${value.primary_color}, ${value.secondary_color})` 
-                   }}>
-                <h4 className="text-xl font-bold mb-2">Speaker Microsite Header</h4>
-                <p className="opacity-90">This is how your branding will appear on speaker microsites</p>
               </div>
 
-              {/* Button Preview */}
-              {showCTA && value.cta_text && (
-                <Button
-                  className="text-white border-0"
-                  style={{ backgroundColor: value.primary_color }}
-                >
-                  {value.cta_text}
-                </Button>
-              )}
+              {/* Color Palettes */}
+              <div className="space-y-3">
+                <Label>Color Palette</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {colorPalettes.map((palette) => (
+                    <Button
+                      key={palette.name}
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleColorPaletteSelect(palette)}
+                      className="h-auto p-3 flex flex-col items-center gap-2 hover:bg-accent"
+                    >
+                      <div className="flex gap-1">
+                        <div
+                          className="w-4 h-4 rounded-full border border-border"
+                          style={{ backgroundColor: palette.primary }}
+                        />
+                        <div
+                          className="w-4 h-4 rounded-full border border-border"
+                          style={{ backgroundColor: palette.secondary }}
+                        />
+                      </div>
+                      <span className="text-xs">{palette.name}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
 
-              {/* Color Values */}
-              <div className="flex justify-center gap-4 text-sm">
-                <Badge variant="outline">
-                  Primary: {value.primary_color}
-                </Badge>
-                <Badge variant="outline">
-                  Secondary: {value.secondary_color}
-                </Badge>
+              {/* Custom Colors */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="primary-color">Primary Color</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="primary-color"
+                      type="color"
+                      value={value.primary_color}
+                      onChange={(e) => handleCustomColorChange('primary', e.target.value)}
+                      className="w-12 h-10 p-1 border"
+                    />
+                    <Input
+                      value={value.primary_color}
+                      onChange={(e) => handleCustomColorChange('primary', e.target.value)}
+                      placeholder="#3b82f6"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="secondary-color">Secondary Color</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="secondary-color"
+                      type="color"
+                      value={value.secondary_color}
+                      onChange={(e) => handleCustomColorChange('secondary', e.target.value)}
+                      className="w-12 h-10 p-1 border"
+                    />
+                    <Input
+                      value={value.secondary_color}
+                      onChange={(e) => handleCustomColorChange('secondary', e.target.value)}
+                      placeholder="#1e40af"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA Configuration */}
+              {showCTA && (
+                <div className="space-y-4">
+                  <Label>Call-to-Action Button</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cta-text">Button Text</Label>
+                      <Input
+                        id="cta-text"
+                        value={value.cta_text || ''}
+                        onChange={(e) => handleCTAChange('cta_text', e.target.value)}
+                        placeholder="Register for Next Event"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cta-url">Button URL</Label>
+                      <Input
+                        id="cta-url"
+                        type="url"
+                        value={value.cta_url || ''}
+                        onChange={(e) => handleCTAChange('cta_url', e.target.value)}
+                        placeholder="https://your-event.com/register"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Preview Mode */
+            <div className="space-y-6">
+              <div className="text-center space-y-4">
+                <h3 className="text-lg font-semibold">Brand Preview</h3>
+                
+                {/* Logo Preview */}
+                {value.logo_url && (
+                  <div className="flex justify-center">
+                    <img
+                      src={value.logo_url}
+                      alt="Event logo preview"
+                      className="max-h-16 object-contain"
+                    />
+                  </div>
+                )}
+
+                {/* Color Preview */}
+                <div className="bg-gradient-to-r p-6 rounded-lg text-white" 
+                     style={{ 
+                       background: `linear-gradient(135deg, ${value.primary_color}, ${value.secondary_color})` 
+                     }}>
+                  <h4 className="text-xl font-bold mb-2">Speaker Microsite Header</h4>
+                  <p className="opacity-90">This is how your branding will appear on speaker microsites</p>
+                </div>
+
+                {/* Button Preview */}
+                {showCTA && value.cta_text && (
+                  <Button
+                    style={{ 
+                      backgroundColor: value.primary_color,
+                      color: getContrastingTextColor(value.primary_color)
+                    }}
+                    className="border-0"
+                  >
+                    {value.cta_text}
+                  </Button>
+                )}
+
+                {/* Color Values */}
+                <div className="flex justify-center gap-4 text-sm">
+                  <Badge variant="outline">
+                    Primary: {value.primary_color}
+                  </Badge>
+                  <Badge variant="outline">
+                    Secondary: {value.secondary_color}
+                  </Badge>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </CardContent>
     </Card>
   );

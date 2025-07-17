@@ -70,8 +70,8 @@ export default function Auth() {
             </CardTitle>
             <CardDescription className="text-base mt-2">
               {isLogin 
-                ? 'Sign in to your AI-powered podcast platform'
-                : 'Join the AI-powered podcast platform'
+                ? 'Sign in to your speaker content platform'
+                : 'Join the speaker content platform'
               }
             </CardDescription>
           </CardHeader>

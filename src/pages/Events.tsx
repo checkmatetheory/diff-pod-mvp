@@ -16,14 +16,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import CreateEventModal from "@/components/ui/CreateEventModal";
+import { useCreateEventModal } from "@/contexts/CreateEventModalContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface Event {
   id: string;
   subdomain: string;
   name: string;
   description: string;
-  next_event_date: string;
+  next_event_date: string | null;
   is_active: boolean;
   status: 'planning' | 'live' | 'completed';
   revenue_attributed: number;
@@ -33,72 +36,105 @@ interface Event {
   pending_approvals: number;
   top_performing_speaker: string;
   conversion_rate: number;
+  created_at: string;
+  branding_config?: any;
 }
 
 export default function Events() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const { openModal, isOpen } = useCreateEventModal();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Clean mock data focused on essentials
-  const mockEvents: Event[] = [
-    {
-      id: '1',
-      subdomain: 'fintech-summit-2024',
-      name: 'FinTech Innovation Summit 2024',
-      description: 'Premier financial technology conference',
-      next_event_date: '2025-03-15',
-      is_active: true,
-      status: 'live',
-      revenue_attributed: 247000,
-      tickets_sold: 892,
-      qualified_leads: 5600,
-      speaker_count: 24,
-      pending_approvals: 3,
-      top_performing_speaker: 'Sarah Chen',
-      conversion_rate: 8.2,
-    },
-    {
-      id: '2',
-      subdomain: 'ai-conference-2024',
-      name: 'AI & Machine Learning Conference',
-      description: 'Leading AI experts sharing insights',
-      next_event_date: '2025-05-20',
-      is_active: true,
-      status: 'live',
-      revenue_attributed: 189000,
-      tickets_sold: 645,
-      qualified_leads: 4200,
-      speaker_count: 18,
-      pending_approvals: 1,
-      top_performing_speaker: 'Dr. Marcus Rodriguez',
-      conversion_rate: 6.8,
-    },
-    {
-      id: '3',
-      subdomain: 'tech-summit-2025',
-      name: 'Tech Summit 2025',
-      description: 'Pre-event speaker network setup',
-      next_event_date: '2025-09-10',
-      is_active: false,
-      status: 'planning',
+  useEffect(() => {
+    if (user) {
+      fetchEvents();
+    }
+  }, [user]);
+
+  // Refresh events when modal closes
+  useEffect(() => {
+    if (!isOpen && user) {
+      fetchEvents();
+    }
+  }, [isOpen, user]);
+
+  const fetchEvents = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Fetch events created by the user (using type assertion since types are outdated)
+      const { data: eventsData, error } = await (supabase as any)
+        .from('events')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false }); // Newest first
+
+      if (error) throw error;
+
+      // Transform the data to match our interface
+      const transformedEvents: Event[] = await Promise.all(
+        (eventsData || []).map(async (event: any) => {
+          // Get sessions count for this event
+          const { data: sessions, error: sessionsError } = await (supabase as any)
+            .from('user_sessions')
+            .select('id, processing_status')
+            .eq('event_id', event.id);
+
+          // Get speaker microsites count for this event (using type assertion)
+          const { data: speakers, error: speakersError } = await (supabase as any)
+            .from('speaker_microsites')
+            .select('id, approval_status')
+            .eq('event_id', event.id);
+
+          const sessionCount = sessions?.length || 0;
+          const speakerCount = speakers?.length || 0;
+          const pendingApprovals = speakers?.filter((s: any) => s.approval_status === 'pending').length || 0;
+
+          // Determine status based on event data
+          let status: 'planning' | 'live' | 'completed' = 'planning';
+          if (event.is_active && event.next_event_date) {
+            const eventDate = new Date(event.next_event_date);
+            const now = new Date();
+            if (eventDate > now) {
+              status = 'live';
+            } else {
+              status = 'completed';
+            }
+          }
+
+          return {
+            id: event.id,
+            subdomain: event.subdomain,
+            name: event.name,
+            description: event.description || '',
+            next_event_date: event.next_event_date,
+            is_active: event.is_active,
+            status,
+            created_at: event.created_at,
+            branding_config: event.branding_config,
+            // Mock data for now - these would come from attribution tracking
       revenue_attributed: 0,
       tickets_sold: 0,
       qualified_leads: 0,
-      speaker_count: 8,
-      pending_approvals: 5,
+            speaker_count: speakerCount,
+            pending_approvals: pendingApprovals,
       top_performing_speaker: 'TBD',
       conversion_rate: 0,
-    }
-  ];
+          };
+        })
+      );
 
-  useEffect(() => {
-    setTimeout(() => {
-      setEvents(mockEvents);
+      setEvents(transformedEvents);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      toast.error('Failed to load events. Please try again.');
+    } finally {
       setLoading(false);
-    }, 800);
-  }, []);
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -125,7 +161,7 @@ export default function Events() {
           <div className="absolute top-32 left-1/4 w-24 h-16 bg-white/20 rounded-full blur-lg" />
           <div className="absolute bottom-40 right-1/3 w-40 h-24 bg-white/25 rounded-full blur-xl" />
           
-          <AppSidebar onCreateEvent={() => setCreateModalOpen(true)} />
+          <AppSidebar onCreateEvent={openModal} />
           <SidebarInset className="flex-1 relative z-10">
             <Header />
             <main className="flex-1 p-8">
@@ -146,17 +182,6 @@ export default function Events() {
           </SidebarInset>
         </div>
       </SidebarProvider>
-
-      {/* Create Event Modal */}
-      <CreateEventModal 
-        open={createModalOpen} 
-        onOpenChange={setCreateModalOpen}
-        onEventCreated={() => {
-          // Refresh events list or add optimistic update
-          setLoading(true);
-          setTimeout(() => setLoading(false), 1000);
-        }}
-      />
       </>
     );
   }
@@ -174,15 +199,15 @@ export default function Events() {
         <div className="absolute bottom-40 right-1/3 w-40 h-24 bg-white/25 rounded-full blur-xl animate-pulse delay-1000" />
         <div className="absolute top-1/2 left-10 w-20 h-12 bg-white/15 rounded-full blur-lg animate-pulse delay-500" />
         
-                  <AppSidebar onCreateEvent={() => setCreateModalOpen(true)} />
-          <SidebarInset className="flex-1 relative z-10">
-            <Header />
+        <AppSidebar onCreateEvent={openModal} />
+        <SidebarInset className="flex-1 relative z-10">
+          <Header />
           <main className="flex-1 p-8">
             <div className="max-w-6xl mx-auto space-y-8">
               
-              {/* Clean Header with Glass Effect */}
+              {/* Clean Header */}
               <div className="flex justify-between items-center">
-                <div className="backdrop-blur-sm bg-white/30 p-6 rounded-2xl border border-white/40 shadow-xl">
+                <div>
                   <h1 className="text-3xl font-bold mb-2 text-gray-800">Events</h1>
                   <p className="text-gray-600">
                     Turn speakers into your most effective sales channel
@@ -190,7 +215,7 @@ export default function Events() {
                 </div>
                 <Button 
                   size="lg" 
-                  onClick={() => setCreateModalOpen(true)}
+                  onClick={openModal}
                   className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm shadow-xl border border-blue-500/20 hover:shadow-2xl transition-all duration-300"
                 >
                   <Plus className="w-5 h-5 mr-2" />
@@ -263,7 +288,7 @@ export default function Events() {
                           Create speaker microsites that turn into measurable revenue
                         </p>
                         <Button 
-                          onClick={() => setCreateModalOpen(true)} 
+                          onClick={openModal} 
                           size="lg"
                           className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm shadow-xl border border-blue-500/20"
                         >
@@ -288,10 +313,13 @@ export default function Events() {
                                 className={
                                   event.status === 'live' 
                                     ? 'bg-green-100/80 text-green-800 backdrop-blur-sm border border-green-200/50' 
+                                    : event.status === 'planning'
+                                    ? 'bg-blue-100/80 text-blue-700 backdrop-blur-sm border border-blue-200/50'
                                     : 'bg-gray-100/80 text-gray-700 backdrop-blur-sm border border-gray-200/50'
                                 }
                               >
                                 {event.status === 'live' && <Play className="w-3 h-3 mr-1" />}
+                                {event.status === 'planning' && <Clock className="w-3 h-3 mr-1" />}
                                 {event.status}
                               </Badge>
                               {event.pending_approvals > 0 && (
@@ -359,13 +387,16 @@ export default function Events() {
                               {event.speaker_count} speakers
                             </span>
                             <span className="flex items-center gap-1">
-                              <Award className="w-4 h-4" />
+                              <Award className="w-4 w-4" />
                               Top: {event.top_performing_speaker}
                             </span>
                           </div>
                           <span className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
-                            {new Date(event.next_event_date).toLocaleDateString()}
+                            {event.next_event_date 
+                              ? new Date(event.next_event_date).toLocaleDateString()
+                              : 'Date TBD'
+                            }
                           </span>
                         </div>
                       </CardContent>
@@ -378,17 +409,6 @@ export default function Events() {
         </SidebarInset>
       </div>
     </SidebarProvider>
-
-    {/* Create Event Modal */}
-    <CreateEventModal 
-      open={createModalOpen} 
-      onOpenChange={setCreateModalOpen}
-      onEventCreated={() => {
-        // Refresh events list or add optimistic update
-        setLoading(true);
-        setTimeout(() => setLoading(false), 1000);
-      }}
-    />
     </>
   );
 }

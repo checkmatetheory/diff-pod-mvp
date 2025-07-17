@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import {
   Share2, 
   Copy, 
   FileText, 
-  Headphones, 
+  Video, 
   Loader2, 
   RefreshCw, 
   Trash2, 
@@ -38,30 +39,36 @@ const SessionDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [speaker, setSpeaker] = useState<any>(null);
 
-  const fetchSession = async () => {
-    setLoading(true);
+
+  const fetchSpeaker = async (speakerId: string) => {
+    if (!speakerId) {
+      setSpeaker(null);
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
-        .from("user_sessions")
-        .select("*")
-        .eq("id", id)
+        .from("speakers")
+        .select("id, full_name, email, company, job_title, bio, headshot_url, slug")
+        .eq("id", speakerId)
         .single();
       
       if (error) {
-        console.error('Error fetching session:', error);
+        console.error('Error fetching speaker:', error);
+        setSpeaker(null);
         return;
       }
       
-      setSession(data);
+      setSpeaker(data);
     } catch (error) {
-      console.error('Error fetching session:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching speaker:', error);
+      setSpeaker(null);
     }
   };
 
@@ -95,10 +102,40 @@ const SessionDetail = () => {
   };
 
   useEffect(() => {
-    fetchSession();
+    const fetchData = async () => {
+      if (!id) return;
+      
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("user_sessions")
+          .select("*")
+          .eq("id", id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching session:', error);
+          return;
+        }
+        
+        setSession(data);
+      } catch (error) {
+        console.error('Error fetching session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [id]);
 
-  // Auto-refresh when processing - with better performance
+
+  // Fetch speaker data when session loads
+  useEffect(() => {
+    if (session?.session_data?.speaker_id) {
+      fetchSpeaker(session.session_data.speaker_id);
+    }
+  }, [session]);  // Auto-refresh when processing - with better performance
   useEffect(() => {
     if (session?.processing_status === 'processing' || session?.processing_status === 'uploaded') {
       const interval = setInterval(async () => {
@@ -136,7 +173,7 @@ const SessionDetail = () => {
 
       return () => clearInterval(interval);
     }
-  }, [session?.processing_status, id, refreshing, session]);
+  }, [session?.processing_status, id, refreshing, session, toast]);
 
   // Stop auto-refresh when processing is complete
   useEffect(() => {
@@ -366,7 +403,7 @@ const SessionDetail = () => {
                                   <ul className="list-disc list-inside mt-2 space-y-1">
                                     <li>The session recording and transcript</li>
                                     <li>Generated AI summary and insights</li>
-                                    <li>Audio podcast file</li>
+                                    <li>Video and media files</li>
                                     <li>All analytics data for this content</li>
                                   </ul>
                                 </AlertDialogDescription>
@@ -437,7 +474,7 @@ const SessionDetail = () => {
                   <Tabs defaultValue="summary" className="w-full">
                     <TabsList className="grid w-full grid-cols-6">
                       <TabsTrigger value="summary">Summary</TabsTrigger>
-                      <TabsTrigger value="podcast">Podcast</TabsTrigger>
+                      <TabsTrigger value="videos">Videos</TabsTrigger>
                       <TabsTrigger value="blog">Blog</TabsTrigger>
                       <TabsTrigger value="social">Social</TabsTrigger>
                       <TabsTrigger value="quotes">Quotes</TabsTrigger>
@@ -513,15 +550,15 @@ const SessionDetail = () => {
                       </Card>
                     </TabsContent>
 
-                    <TabsContent value="podcast" className="mt-6">
+                    <TabsContent value="videos" className="mt-6">
                       <Card className="shadow-card">
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
-                            <Headphones className="h-5 w-5" />
-                            AI-Generated Podcast
+                            <Video className="h-5 w-5" />
+                            Video Content
                           </CardTitle>
                           <CardDescription>
-                            Listen to the AI-generated podcast recap
+                            Access your uploaded video content and media
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
@@ -529,14 +566,14 @@ const SessionDetail = () => {
                             <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
                               <div className="text-center space-y-3">
                                 <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-                                <p>AI is generating your podcast audio...</p>
-                                <p className="text-sm">Creating professional narration with ElevenLabs</p>
+                                <p>Editing your short from videos...</p>
+                                <p className="text-sm">Creating speaker microsite and generating content</p>
                               </div>
                             </div>
                           ) : hasError ? (
                             <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
                               <div className="text-center space-y-3">
-                                <p>There was an error generating the podcast audio.</p>
+                                <p>There was an error processing the video content.</p>
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
@@ -557,9 +594,9 @@ const SessionDetail = () => {
                           ) : (
                             <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
                               <div className="text-center space-y-3">
-                                <Headphones className="h-12 w-12 mx-auto opacity-50" />
-                                <p>No podcast audio available yet.</p>
-                                <p className="text-sm">Audio will appear here once processing is complete.</p>
+                                <Video className="h-12 w-12 mx-auto opacity-50" />
+                                <p>No video content uploaded yet.</p>
+                                <p className="text-sm">Video content will appear here once uploaded and processed.</p>
                               </div>
                             </div>
                           )}
@@ -922,16 +959,29 @@ const SessionDetail = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {session.speakers?.map((speaker, index) => (
-                          <div key={index} className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary-subtle flex items-center justify-center">
-                              <span className="text-sm font-medium text-primary">
-                                {speaker.split(' ').map(n => n[0]).join('')}
-                              </span>
+                        {session.session_data?.speaker_name ? (
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              {speaker?.headshot_url ? (
+                                <AvatarImage src={speaker.headshot_url} alt={speaker.full_name} />
+                              ) : null}
+                              <AvatarFallback className="text-sm font-medium bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                                {session.session_data.speaker_name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">{session.session_data.speaker_name}</span>
+                              {speaker?.job_title && speaker?.company && (
+                                <span className="text-xs text-muted-foreground">
+                                  {speaker.job_title} at {speaker.company}
+                                </span>
+                              )}
                             </div>
-                            <span className="text-sm">{speaker}</span>
                           </div>
-                        ))}
+                        ) : (
+                          <div className="text-sm text-muted-foreground">
+                            No speaker assigned to this session.</div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

@@ -12,7 +12,7 @@
 export interface ContentGenerationResult {
   title: string;
   summary: string;
-  podcastScript: string;
+  contentScript: string;
   socialPosts: {
     linkedin: string;
     twitter: string;
@@ -120,44 +120,6 @@ QUALITY STANDARDS:
 ${categoryContext.specificInstructions}
 ${audienceContext.specificInstructions}
 ${voiceContext.specificInstructions}
-`;
-  }
-
-  /**
-   * Focused podcast script prompt for audio-first content
-   */
-  static getPodcastPrompt(content: string, context: PromptContext): string {
-    const { eventCategory, eventName, brandVoice = 'professional' } = context;
-    const categoryContext = this.getCategoryContext(eventCategory);
-
-    return `
-You are a professional podcast script writer specializing in ${categoryContext.domain} content.
-
-CONTENT: "${content}"
-EVENT: ${eventName || 'Professional Session'}
-
-Create a 3-4 minute podcast script that sounds natural when spoken aloud.
-
-STRUCTURE:
-1. HOOK (15 seconds): Open with the most compelling insight or statistic
-2. CONTEXT (30 seconds): Brief setup of what this session covered
-3. KEY INSIGHTS (2.5 minutes): 3-4 main takeaways with specific examples
-4. TAKEAWAY (30 seconds): What listeners should do next
-5. CTA (15 seconds): Invitation to engage with future content/events
-
-TONE: ${brandVoice === 'conversational' ? 'Friendly but authoritative, like a trusted advisor' : 
-        brandVoice === 'inspiring' ? 'Energetic and motivational, building excitement' :
-        'Professional and credible, delivering valuable insights clearly'}
-
-REQUIREMENTS:
-- Write for the ear, not the eye (use short sentences, natural pauses)
-- Include specific metrics, names, and examples when available
-- Use transition phrases: "Here's what's interesting...", "The key insight is...", "What this means for you..."
-- End with a clear, compelling call-to-action
-- Keep sentences under 20 words
-- Include natural speech patterns and emphasis cues
-
-${categoryContext.podcastInstructions}
 `;
   }
 
@@ -280,57 +242,49 @@ ${audienceContext.blogInstructions}
         domain: 'professional conference and industry events',
         description: 'professional conferences featuring industry leaders and innovation showcases',
         specificInstructions: 'Focus on networking value, industry trends, and competitive insights.',
-        podcastInstructions: 'Emphasize learning opportunities and professional development value.',
         blogInstructions: 'Position as industry analysis with forward-looking perspectives.'
       },
       earnings_call: {
         domain: 'financial reporting and investor relations',
         description: 'corporate earnings calls and financial performance discussions',
-        specificInstructions: 'Highlight financial metrics, strategic initiatives, and market positioning.',
-        podcastInstructions: 'Focus on financial performance drivers and strategic implications.',
-        blogInstructions: 'Include quantitative analysis and competitive positioning insights.'
+        specificInstructions: 'Focus on financial performance drivers and strategic implications.',
+        blogInstructions: 'Structure as financial analysis with clear metrics and forward guidance.'
       },
-      investor_update: {
-        domain: 'venture capital and investment analysis',
-        description: 'investor updates featuring portfolio performance and market insights',
-        specificInstructions: 'Emphasize ROI, market opportunities, and investment thesis validation.',
-        podcastInstructions: 'Highlight market trends and investment opportunities.',
-        blogInstructions: 'Focus on market analysis and investment implications.'
+      investor_meeting: {
+        domain: 'investment and portfolio management',
+        description: 'investor meetings and portfolio strategy discussions',
+        specificInstructions: 'Highlight market trends and investment opportunities.',
+        blogInstructions: 'Frame as investment thesis with supporting market analysis.'
       },
       board_meeting: {
         domain: 'corporate governance and strategic planning',
-        description: 'board meetings covering strategic decisions and company direction',
-        specificInstructions: 'Focus on strategic decisions, governance insights, and leadership perspectives.',
-        podcastInstructions: 'Emphasize strategic thinking and decision-making frameworks.',
-        blogInstructions: 'Highlight governance best practices and strategic insights.'
+        description: 'board meetings and strategic decision-making sessions',
+        specificInstructions: 'Emphasize strategic thinking and decision-making frameworks.',
+        blogInstructions: 'Present as strategic commentary with actionable frameworks.'
       },
-      portfolio_review: {
-        domain: 'portfolio management and performance analysis',
-        description: 'portfolio reviews analyzing performance and strategic adjustments',
-        specificInstructions: 'Highlight performance metrics, strategic adjustments, and market insights.',
-        podcastInstructions: 'Focus on performance drivers and portfolio optimization strategies.',
-        blogInstructions: 'Include performance analysis and strategic recommendations.'
+      limited_partner: {
+        domain: 'private equity and fund management',
+        description: 'limited partner meetings and fund performance reviews',
+        specificInstructions: 'Focus on performance drivers and portfolio optimization strategies.',
+        blogInstructions: 'Structure as performance analysis with portfolio insights.'
       },
-      market_update: {
-        domain: 'market analysis and economic trends',
-        description: 'market updates covering economic trends and industry analysis',
-        specificInstructions: 'Focus on market trends, economic indicators, and industry implications.',
-        podcastInstructions: 'Emphasize market opportunities and risk factors.',
-        blogInstructions: 'Include market analysis and economic trend implications.'
+      sales: {
+        domain: 'sales strategy and revenue optimization',
+        description: 'sales meetings and revenue strategy sessions',
+        specificInstructions: 'Emphasize market opportunities and risk factors.',
+        blogInstructions: 'Position as sales strategy guide with practical tactics.'
       },
-      due_diligence: {
-        domain: 'investment analysis and risk assessment',
-        description: 'due diligence sessions analyzing investment opportunities and risks',
-        specificInstructions: 'Highlight risk factors, opportunity assessment, and decision frameworks.',
-        podcastInstructions: 'Focus on analytical frameworks and decision-making criteria.',
-        blogInstructions: 'Include analytical insights and risk assessment methodologies.'
+      investment_committee: {
+        domain: 'investment analysis and decision making',
+        description: 'investment committee meetings and deal evaluation sessions',
+        specificInstructions: 'Focus on analytical frameworks and decision-making criteria.',
+        blogInstructions: 'Frame as investment analysis with detailed evaluation criteria.'
       },
       team_meeting: {
-        domain: 'organizational development and team collaboration',
-        description: 'team meetings focusing on collaboration and organizational effectiveness',
-        specificInstructions: 'Focus on collaboration insights, productivity improvements, and team dynamics.',
-        podcastInstructions: 'Emphasize teamwork strategies and organizational best practices.',
-        blogInstructions: 'Highlight organizational development and team effectiveness strategies.'
+        domain: 'team management and organizational development',
+        description: 'team meetings and organizational strategy discussions',
+        specificInstructions: 'Emphasize teamwork strategies and organizational best practices.',
+        blogInstructions: 'Present as leadership insights with actionable team strategies.'
       }
     };
     
@@ -456,7 +410,7 @@ function parseAIResponse(content: string): ContentGenerationResult {
   return {
     title: extractSection(content, 'TITLE:') || 'AI-Generated Content',
     summary: extractSection(content, 'EXECUTIVE SUMMARY:') || '',
-    podcastScript: extractSection(content, 'PODCAST SCRIPT:') || '',
+    contentScript: extractSection(content, 'PODCAST SCRIPT:') || '',
     socialPosts: {
       linkedin: extractSection(content, 'LINKEDIN POST:') || '',
       twitter: extractSection(content, 'TWITTER THREAD:') || '',
