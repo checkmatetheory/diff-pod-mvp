@@ -45,9 +45,9 @@ const mainNavItems = [
 ];
 
 const contentTypeItems = [
-  { title: "Video + Audio", url: "/content/video_audio", icon: Video },
-  { title: "Audio Only", url: "/content/audio_only", icon: Headphones },
-  { title: "Transcripts", url: "/content/transcript", icon: FileText },
+  { title: "Conference Production", url: "#", icon: Building2 },
+  { title: "Event Consulting", url: "#", icon: TrendingUp },
+  { title: "Industry Reports", url: "#", icon: FileText },
 ];
 
 interface AppSidebarProps {
@@ -157,13 +157,18 @@ export function AppSidebar({ onCreateEvent }: AppSidebarProps = {}) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Browse by Content Type */}
+        {/* Service Centre */}
         <SidebarGroup>
-          <SidebarGroupLabel>Content Type</SidebarGroupLabel>
+          <SidebarGroupLabel>Service Centre</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {contentTypeItems.map((item) => (
-                <NavItem key={item.title} item={item} />
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton className="flex items-center gap-3 cursor-default">
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    {!isCollapsed && <span className="truncate">{item.title}</span>}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -173,8 +178,7 @@ export function AppSidebar({ onCreateEvent }: AppSidebarProps = {}) {
       <SidebarFooter className="p-6 border-t border-sidebar-border/50">
         {!isCollapsed && (
           <div className="text-xs text-sidebar-foreground/60 text-center">
-            <p className="font-medium">Create new content</p>
-            <p>conference content</p>
+            <p className="font-medium">Conference Virality Made Easy</p>
           </div>
         )}
       </SidebarFooter>
