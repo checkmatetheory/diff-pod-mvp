@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Settings, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -18,12 +18,23 @@ export const UserMenu = () => {
   if (!user) return null;
 
   const initials = user.email?.charAt(0).toUpperCase() || 'U';
+  
+  // Get Google profile photo from user metadata
+  const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+  const fullName = user.user_metadata?.full_name || user.user_metadata?.name;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
+            {avatarUrl ? (
+              <AvatarImage 
+                src={avatarUrl} 
+                alt={fullName || user.email || 'User'} 
+                className="object-cover"
+              />
+            ) : null}
             <AvatarFallback className="bg-primary text-primary-foreground">
               {initials}
             </AvatarFallback>
@@ -33,7 +44,9 @@ export const UserMenu = () => {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Account</p>
+            <p className="text-sm font-medium leading-none">
+              {fullName || 'Account'}
+            </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
