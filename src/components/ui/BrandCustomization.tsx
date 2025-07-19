@@ -46,6 +46,7 @@ export default function BrandCustomization({
 }: BrandCustomizationProps) {
   const [uploading, setUploading] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Force edit mode when preview is hidden
@@ -66,10 +67,7 @@ export default function BrandCustomization({
     });
   };
 
-  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const validateAndUploadFile = async (file: File) => {
     // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('Please upload an image file');
@@ -108,6 +106,36 @@ export default function BrandCustomization({
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await validateAndUploadFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+
+    const file = files[0];
+    await validateAndUploadFile(file);
   };
 
   const removeLogo = () => {
@@ -151,10 +179,19 @@ export default function BrandCustomization({
         <div className="h-full overflow-y-auto pr-4 space-y-6">
           {!isInPreviewMode ? (
             <>
-              {/* Logo Upload */}
+              {/* Logo Upload with Drag & Drop */}
               <div className="space-y-3">
                 <Label>Event Logo</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                <div 
+                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${
+                    isDragOver 
+                      ? 'border-blue-500 bg-blue-50/50' 
+                      : 'border-border hover:border-blue-300 hover:bg-blue-50/20'
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   {value.logo_url ? (
                     <div className="space-y-3">
                       <img
@@ -186,10 +223,20 @@ export default function BrandCustomization({
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
+                      <Upload className={`h-12 w-12 mx-auto transition-colors ${
+                        isDragOver ? 'text-blue-500' : 'text-muted-foreground'
+                      }`} />
                       <div>
-                        <h4 className="font-medium">Upload your event logo</h4>
+                        <h4 className="font-medium">
+                          {isDragOver ? 'Drop your logo here' : 'Upload your event logo'}
+                        </h4>
                         <p className="text-sm text-muted-foreground">
+                          {isDragOver 
+                            ? 'Release to upload' 
+                            : 'Drag & drop an image here, or click to browse'
+                          }
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
                           PNG, JPG, SVG up to 5MB. Recommended: 200x50px
                         </p>
                       </div>

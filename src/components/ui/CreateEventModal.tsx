@@ -105,8 +105,9 @@ export default function CreateEventModal({ onEventCreated }: CreateEventModalPro
   };
 
   const handleClose = () => {
-    saveFormDataToContext(); // Save current form data before closing
-    closeModal();
+    // Don't save form data on close to prevent re-render flash
+    // Reset modal state for clean UX when reopened
+    resetModal();
   };
 
   const validateCurrentStep = async (): Promise<boolean> => {
@@ -193,7 +194,11 @@ export default function CreateEventModal({ onEventCreated }: CreateEventModalPro
       if (error) throw error;
 
       toast.success("Event created successfully!");
-      handleClose();
+      resetModal(); // Reset modal state after successful creation
+      
+      // Notify other components that an event was created
+      window.dispatchEvent(new CustomEvent('eventCreated'));
+      
       onEventCreated?.();
     } catch (error) {
       console.error('Error creating event:', error);

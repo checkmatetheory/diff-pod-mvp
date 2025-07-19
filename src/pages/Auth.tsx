@@ -15,6 +15,12 @@ import {
 } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
 
+// Import images directly - they'll be bundled and immediately available
+import carousel1 from '@/assets/carousel-1.png';
+import carousel2 from '@/assets/carousel-2.png';
+import carousel3 from '@/assets/carousel-3.png';
+import carousel4 from '@/assets/carousel-4.png';
+
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -26,12 +32,12 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Your uploaded carousel images
+  // Images are now imported as modules - instantly available
   const carouselImages = [
-    '/carousel-1.png',
-    '/carousel-2.png', 
-    '/carousel-3.png',
-    '/carousel-4.png'
+    carousel1,
+    carousel2,
+    carousel3,
+    carousel4
   ];
 
   // Auto-scroll every 9 seconds
@@ -95,7 +101,7 @@ export default function Auth() {
   return (
     <div className="h-screen bg-background flex">
       {/* Left Side - Image Carousel (60% width) */}
-      <div className="w-[60%] bg-gray-900 relative h-full">
+      <div className="w-[60%] bg-gradient-to-br from-blue-50 to-sky-100 relative h-full">
         <Carousel 
           className="w-full h-screen"
           setApi={setApi}
@@ -107,7 +113,7 @@ export default function Auth() {
           <CarouselContent className="h-screen ml-0">
             {carouselImages.map((image, index) => (
               <CarouselItem key={index} className="h-screen pl-0">
-                <div className="h-screen w-full relative">
+                <div className="h-screen w-full relative bg-gradient-to-br from-blue-50 to-sky-100">
                   <img 
                     src={image} 
                     alt={`Slide ${index + 1}`}

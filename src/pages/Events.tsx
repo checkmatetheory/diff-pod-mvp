@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "@/components/Header";
@@ -43,7 +43,7 @@ interface Event {
 export default function Events() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const { openModal, isOpen } = useCreateEventModal();
+  const { openModal } = useCreateEventModal(); // Remove isOpen completely
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -53,12 +53,20 @@ export default function Events() {
     }
   }, [user]);
 
-  // Refresh events when modal closes
+  // Listen for custom event when events are actually created
   useEffect(() => {
-    if (!isOpen && user) {
-      fetchEvents();
-    }
-  }, [isOpen, user]);
+    const handleEventCreated = () => {
+      if (user) {
+        fetchEvents();
+      }
+    };
+
+    window.addEventListener('eventCreated', handleEventCreated);
+    
+    return () => {
+      window.removeEventListener('eventCreated', handleEventCreated);
+    };
+  }, [user]);
 
   const fetchEvents = async () => {
     if (!user) return;
