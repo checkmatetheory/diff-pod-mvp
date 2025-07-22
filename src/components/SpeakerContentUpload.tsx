@@ -31,11 +31,14 @@ import {
   ChevronRight,
   Play,
   Scissors,
-  Zap
+  Zap,
+  Plus,
+  UserPlus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import AddSpeakerModal from "@/components/ui/AddSpeakerModal";
 
 interface Event {
   id: string;
@@ -73,23 +76,13 @@ const SpeakerContentUpload = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
-  const [selectedSpeakerId, setSelectedSpeakerId] = useState<string>("");
+  const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploads, setUploads] = useState<UploadedFile[]>([]);
   
-  // New speaker form
-  const [newSpeaker, setNewSpeaker] = useState({
-    full_name: "",
-    email: "",
-    company: "",
-    job_title: "",
-    linkedin_url: "",
-    bio: "",
-    headshot_url: ""
-  });
-  const [isCreatingSpeaker, setIsCreatingSpeaker] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  // Modal state
+  const [showAddSpeakerModal, setShowAddSpeakerModal] = useState(false);
   
   // Content inputs
   const [dragActive, setDragActive] = useState(false);
@@ -158,117 +151,22 @@ const SpeakerContentUpload = () => {
     }
   };
 
-  const createSpeaker = async () => {
-    if (!user || !newSpeaker.full_name) return;
+  const handleSpeakerCreated = (newSpeaker: Speaker) => {
+    setSpeakers(prev => [newSpeaker, ...prev]);
+    setSelectedSpeakerIds(prev => [...prev, newSpeaker.id]);
+  };
 
-    setIsCreatingSpeaker(true);
-    try {
-      // Generate slug from name
-      const slug = newSpeaker.full_name.toLowerCase()
-        .replace(/[^a-zA-Z0-9\s]/g, '')
-        .replace(/\s+/g, '-');
-
-      const { data, error } = await supabase
-        .from('speakers')
-        .insert({
-          ...newSpeaker,
-          slug,
-          created_by: user.id
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setSpeakers(prev => [data, ...prev]);
-      setSelectedSpeakerId(data.id);
-      setNewSpeaker({
-        full_name: "",
-        email: "",
-        company: "",
-        job_title: "",
-        linkedin_url: "",
-        bio: "",
-        headshot_url: ""
-      });
-      
-      toast({
-        title: "Speaker created successfully!",
-        description: `${data.full_name} has been added to your speaker network.`,
-      });
-
-    } catch (error: any) {
-      console.error('Error creating speaker:', error);
-      toast({
-        title: "Failed to create speaker",
-        description: error.message || "Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreatingSpeaker(false);
+  const addSpeaker = (speakerId: string) => {
+    if (!selectedSpeakerIds.includes(speakerId)) {
+      setSelectedSpeakerIds(prev => [...prev, speakerId]);
     }
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image file (JPG, PNG, etc.)",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Image size must be less than 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploadingImage(true);
-    try {
-      const fileName = `speaker-headshots/${Date.now()}-${file.name}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('assets')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('assets')
-        .getPublicUrl(fileName);
-
-      setNewSpeaker(prev => ({ ...prev, headshot_url: publicUrl }));
-
-      toast({
-        title: "Image uploaded successfully",
-        description: "Speaker headshot has been added.",
-      });
-
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload image. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingImage(false);
-    }
+  const removeSpeaker = (speakerId: string) => {
+    setSelectedSpeakerIds(prev => prev.filter(id => id !== speakerId));
   };
 
-  const removeImage = () => {
-    setNewSpeaker(prev => ({ ...prev, headshot_url: "" }));
-  };
+
 
   // Sanitize filename for storage upload
   const sanitizeFilename = (filename: string): string => {
@@ -289,10 +187,10 @@ const SpeakerContentUpload = () => {
   };
 
   const processFiles = async (files: File[]) => {
-    if (!user || !selectedEventId || !selectedSpeakerId) {
+    if (!user || !selectedEventId || selectedSpeakerIds.length === 0) {
       toast({
         title: "Setup incomplete",
-        description: "Please select an event and speaker first.",
+        description: "Please select an event and at least one speaker first.",
         variant: "destructive",
       });
       return;
@@ -353,8 +251,10 @@ const SpeakerContentUpload = () => {
             processing_status: 'uploaded',
             content_type: 'video_audio',
             session_data: { 
-              speaker_id: selectedSpeakerId,
-              speaker_name: speakers.find(s => s.id === selectedSpeakerId)?.full_name || ''
+              speaker_ids: selectedSpeakerIds,
+              speaker_names: selectedSpeakerIds.map(id => 
+                speakers.find(s => s.id === id)?.full_name || ''
+              ).filter(Boolean)
             }
           })
           .select()
@@ -384,8 +284,8 @@ const SpeakerContentUpload = () => {
           upload.id === newUpload.id ? { ...upload, status: 'complete' } : upload
         ));
 
-        // Generate speaker microsite
-        await generateSpeakerMicrosite(session.id);
+        // Generate speaker microsites for each selected speaker
+        await generateSpeakerMicrosites(session.id);
 
       } catch (error: any) {
         setUploading(false);
@@ -403,23 +303,26 @@ const SpeakerContentUpload = () => {
     }
   };
 
-  const generateSpeakerMicrosite = async (sessionId: string) => {
-    if (!selectedEventId || !selectedSpeakerId) return;
+  const generateSpeakerMicrosites = async (sessionId: string) => {
+    if (!selectedEventId || selectedSpeakerIds.length === 0) return;
 
     try {
       const selectedEvent = events.find(e => e.id === selectedEventId);
-      const selectedSpeaker = speakers.find(s => s.id === selectedSpeakerId);
-      
-      if (!selectedEvent || !selectedSpeaker) return;
+      if (!selectedEvent) return;
 
-      const micrositeUrl = `studio.diffused.app/event/${selectedEvent.subdomain}/speaker/${selectedSpeaker.slug}`;
+      // Create microsites for each selected speaker
+      for (const speakerId of selectedSpeakerIds) {
+        const selectedSpeaker = speakers.find(s => s.id === speakerId);
+        if (!selectedSpeaker) continue;
 
-              // Create speaker microsite
+        const micrositeUrl = `studio.diffused.app/event/${selectedEvent.subdomain}/speaker/${selectedSpeaker.slug}`;
+
+        // Create speaker microsite
         const { data: microsite, error: micrositeError } = await supabase
           .from('speaker_microsites')
           .insert({
             event_id: selectedEventId,
-            speaker_id: selectedSpeakerId,
+            speaker_id: speakerId,
             session_id: sessionId,
             microsite_url: micrositeUrl,
             custom_cta_text: `Get Early Access to ${selectedEvent.name} ${new Date().getFullYear() + 1}`,
@@ -427,34 +330,43 @@ const SpeakerContentUpload = () => {
             is_live: true,
             created_by: user!.id
           })
-        .select()
-        .single();
+          .select()
+          .single();
 
-      if (micrositeError) throw micrositeError;
+        if (micrositeError) {
+          console.error('Speaker microsite creation error:', micrositeError);
+          continue; // Continue with other speakers
+        }
 
-      // Create speaker content record
-      const { error: contentError } = await supabase
-        .from('speaker_content')
-        .insert({
-          microsite_id: microsite.id,
-          processing_status: 'pending',
-          generated_summary: 'Content is being processed...',
-          key_quotes: [],
-          key_takeaways: [],
-          social_captions: {},
-          video_clips: [],
-          prompt_version: 'v1.0',
-          ai_model_used: 'gpt-4o'
-        });
+        // Create speaker content record
+        const { error: contentError } = await supabase
+          .from('speaker_content')
+          .insert({
+            microsite_id: microsite.id,
+            processing_status: 'pending',
+            generated_summary: 'Content is being processed...',
+            key_quotes: [],
+            key_takeaways: [],
+            social_captions: {},
+            video_clips: [],
+            prompt_version: 'v1.0',
+            ai_model_used: 'gpt-4o'
+          });
 
-      if (contentError) {
-        console.error('Speaker content creation error:', contentError);
-        // Don't throw here - microsite was created successfully
+        if (contentError) {
+          console.error('Speaker content creation error:', contentError);
+          // Don't throw here - microsite was created successfully
+        }
       }
+
+      const speakerNames = selectedSpeakerIds
+        .map(id => speakers.find(s => s.id === id)?.full_name)
+        .filter(Boolean)
+        .join(', ');
 
       toast({
         title: "🎬 Viral clips are being generated!",
-        description: `AI is analyzing ${selectedSpeaker.full_name}'s video to create the most engaging clips.`,
+        description: `AI is analyzing the video featuring ${speakerNames} to create the most engaging clips.`,
       });
 
       setTimeout(() => {
@@ -463,7 +375,7 @@ const SpeakerContentUpload = () => {
       }, 1500);
 
     } catch (error: any) {
-      console.error('Error creating microsite:', error);
+      console.error('Error creating microsites:', error);
       toast({
         title: "Processing started",
         description: "Video uploaded successfully and processing has begun.",
@@ -474,7 +386,7 @@ const SpeakerContentUpload = () => {
 
   const handleUrlSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!urlInput.trim() || !user || !selectedEventId || !selectedSpeakerId) return;
+    if (!urlInput.trim() || !user || !selectedEventId || selectedSpeakerIds.length === 0) return;
 
     // Validate video URL
     const isVideoUrl = /(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/|zoom\.us\/rec\/|teams\.microsoft\.com\/|meet\.google\.com\/)/.test(urlInput);
@@ -516,8 +428,10 @@ const SpeakerContentUpload = () => {
           content_type: 'video_audio',
           session_data: { 
             source_url: urlInput,
-            speaker_id: selectedSpeakerId,
-            speaker_name: speakers.find(s => s.id === selectedSpeakerId)?.full_name || ''
+            speaker_ids: selectedSpeakerIds,
+            speaker_names: selectedSpeakerIds.map(id => 
+              speakers.find(s => s.id === id)?.full_name || ''
+            ).filter(Boolean)
           }
         })
         .select()
@@ -551,12 +465,17 @@ const SpeakerContentUpload = () => {
         upload.id === newUpload.id ? { ...upload, progress: 100, status: 'complete' } : upload
       ));
 
-      // Generate speaker microsite
-      await generateSpeakerMicrosite(session.id);
+      // Generate speaker microsites
+      await generateSpeakerMicrosites(session.id);
+
+      const speakerNames = selectedSpeakerIds
+        .map(id => speakers.find(s => s.id === id)?.full_name)
+        .filter(Boolean)
+        .join(', ');
 
       toast({
         title: "🎬 Video URL processed!",
-        description: `AI is creating viral clips from ${speakers.find(s => s.id === selectedSpeakerId)?.full_name}'s video.`,
+        description: `AI is creating viral clips from the video featuring ${speakerNames}.`,
       });
 
     } catch (error: any) {
@@ -605,7 +524,8 @@ const SpeakerContentUpload = () => {
   };
 
   const selectedEvent = events.find(e => e.id === selectedEventId);
-  const selectedSpeaker = speakers.find(s => s.id === selectedSpeakerId);
+  const selectedSpeakers = speakers.filter(s => selectedSpeakerIds.includes(s.id));
+  const availableSpeakers = speakers.filter(s => !selectedSpeakerIds.includes(s.id));
 
   if (loading) {
     return (
@@ -616,7 +536,7 @@ const SpeakerContentUpload = () => {
   }
 
   const canProceedToStep2 = selectedEventId && events.length > 0;
-  const canProceedToStep3 = canProceedToStep2 && (selectedSpeakerId || newSpeaker.full_name);
+  const canProceedToStep3 = canProceedToStep2 && selectedSpeakerIds.length > 0;
 
   return (
     <div className="space-y-8">
@@ -764,191 +684,113 @@ const SpeakerContentUpload = () => {
         </Card>
       )}
 
-      {/* Step 2: Speaker Selection */}
+      {/* Step 2: Multi-Speaker Selection */}
       {currentStep === 2 && canProceedToStep2 && (
         <Card className="backdrop-blur-md bg-white/50 shadow-xl border border-white/40">
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2">
               <Users className="h-6 w-6 text-blue-600" />
-              Select or Add Speaker
+              Select Speakers for Viral Clips
             </CardTitle>
             <CardDescription>
-              Choose an existing speaker or add a new one to your attribution network
+              Choose all speakers who feature in this content. Each will get their own microsite.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Existing Speakers */}
-            {speakers.length > 0 && (
+            
+            {/* Selected Speakers */}
+            {selectedSpeakers.length > 0 && (
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Select Existing Speaker</Label>
-                <Select value={selectedSpeakerId} onValueChange={setSelectedSpeakerId}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="Choose from your speaker network..." />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px] overflow-y-auto">
-                    {speakers.map((speaker) => (
-                      <SelectItem key={speaker.id} value={speaker.id} className="cursor-pointer">
-                        <div className="flex items-center gap-3 py-1">
-                          <Avatar className="h-8 w-8">
-                            {speaker.headshot_url ? (
-                              <AvatarImage src={speaker.headshot_url} alt={speaker.full_name} />
-                            ) : null}
-                            <AvatarFallback className="text-xs">
-                              {speaker.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{speaker.full_name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {speaker.job_title} at {speaker.company}
-                            </span>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {speakers.length > 0 && <div className="text-center text-sm text-gray-500">— OR —</div>}
-
-            {/* Add New Speaker */}
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">Add New Speaker</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="full_name">Full Name *</Label>
-                  <Input
-                    id="full_name"
-                    value={newSpeaker.full_name}
-                    onChange={(e) => setNewSpeaker(prev => ({ ...prev, full_name: e.target.value }))}
-                    placeholder="Sarah Chen"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newSpeaker.email}
-                    onChange={(e) => setNewSpeaker(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="sarah@company.com"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="company">Company</Label>
-                  <Input
-                    id="company"
-                    value={newSpeaker.company}
-                    onChange={(e) => setNewSpeaker(prev => ({ ...prev, company: e.target.value }))}
-                    placeholder="TechCorp Inc"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="job_title">Job Title</Label>
-                  <Input
-                    id="job_title"
-                    value={newSpeaker.job_title}
-                    onChange={(e) => setNewSpeaker(prev => ({ ...prev, job_title: e.target.value }))}
-                    placeholder="VP of Engineering"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              {/* Speaker Image Upload */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Speaker Headshot</Label>
-                <div className="flex items-start gap-4">
-                  {newSpeaker.headshot_url ? (
-                    <div className="relative">
-                      <img
-                        src={newSpeaker.headshot_url}
-                        alt="Speaker headshot"
-                        className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
-                      />
+                <Label className="text-sm font-medium">Selected Speakers ({selectedSpeakers.length})</Label>
+                <div className="flex flex-wrap gap-2">
+                  {selectedSpeakers.map((speaker) => (
+                    <div key={speaker.id} className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                      <Avatar className="h-5 w-5">
+                        {speaker.headshot_url ? (
+                          <AvatarImage src={speaker.headshot_url} alt={speaker.full_name} />
+                        ) : null}
+                        <AvatarFallback className="text-xs">
+                          {speaker.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{speaker.full_name}</span>
                       <button
-                        type="button"
-                        onClick={removeImage}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        onClick={() => removeSpeaker(speaker.id)}
+                        className="text-blue-600 hover:text-blue-800 ml-1"
                       >
                         <X className="h-3 w-3" />
                       </button>
                     </div>
-                  ) : (
-                    <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                      <Users className="h-8 w-8 text-gray-400" />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => document.getElementById('headshot-input')?.click()}
-                      disabled={uploadingImage}
-                      className="mb-2"
-                    >
-                      {uploadingImage ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4 mr-2" />
-                          {newSpeaker.headshot_url ? 'Change Photo' : 'Upload Photo'}
-                        </>
-                      )}
-                    </Button>
-                    <p className="text-xs text-gray-500">
-                      JPG, PNG up to 5MB. Recommended: Square image, 400x400px
-                    </p>
-                    <input
-                      id="headshot-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </div>
+                  ))}
                 </div>
               </div>
-              
-              {newSpeaker.full_name && (
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <Sparkles className="h-5 w-5 text-blue-600 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-blue-900">Microsite Preview</h4>
-                        <p className="text-sm text-blue-700 mt-1">
-                          This speaker's attribution microsite will be created at:
-                        </p>
-                        <code className="bg-blue-100 px-2 py-1 rounded text-xs mt-2 block">
-                          studio.diffused.app/event/{selectedEvent?.subdomain}/speaker/{newSpeaker.full_name.toLowerCase().replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-')}
-                        </code>
+            )}
+
+            {/* Available Speakers */}
+            {availableSpeakers.length > 0 && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Available Speakers</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {availableSpeakers.map((speaker) => (
+                    <div 
+                      key={speaker.id}
+                      onClick={() => addSpeaker(speaker.id)}
+                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-blue-50 hover:border-blue-200 cursor-pointer transition-colors"
+                    >
+                      <Avatar className="h-10 w-10">
+                        {speaker.headshot_url ? (
+                          <AvatarImage src={speaker.headshot_url} alt={speaker.full_name} />
+                        ) : null}
+                        <AvatarFallback className="text-xs">
+                          {speaker.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{speaker.full_name}</p>
+                        <p className="text-xs text-gray-500 truncate">{speaker.job_title}</p>
+                      </div>
+                      <Plus className="h-4 w-4 text-blue-600" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add New Speaker Button */}
+            <div className="flex justify-center pt-4 border-t">
+              <Button 
+                onClick={() => setShowAddSpeakerModal(true)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                Add New Speaker
+              </Button>
+            </div>
+
+            {/* Summary */}
+            {selectedSpeakers.length > 0 && (
+              <Card className="bg-green-50 border-green-200">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="h-5 w-5 text-green-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-green-900">Ready to Create Microsites</h4>
+                      <p className="text-sm text-green-700 mt-1">
+                        Each speaker will get their own microsite for lead generation:
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        {selectedSpeakers.map((speaker) => (
+                          <code key={speaker.id} className="bg-green-100 px-2 py-1 rounded text-xs block">
+                            studio.diffused.app/event/{selectedEvent?.subdomain}/speaker/{speaker.slug}
+                          </code>
+                        ))}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {newSpeaker.full_name && (
-                <Button 
-                  onClick={createSpeaker}
-                  disabled={isCreatingSpeaker}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                >
-                  {isCreatingSpeaker ? "Creating Speaker..." : "Create Speaker Profile"}
-                  <Users className="h-4 w-4 ml-2" />
-                </Button>
-              )}
-            </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="flex justify-between">
               <Button 
@@ -964,7 +806,7 @@ const SpeakerContentUpload = () => {
                 disabled={!canProceedToStep3}
                 className="px-8"
               >
-                Continue to Content Upload
+                Continue to Video Upload ({selectedSpeakers.length} speaker{selectedSpeakers.length !== 1 ? 's' : ''})
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
@@ -984,16 +826,16 @@ const SpeakerContentUpload = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-blue-900 mb-2">🎬 Ready to Generate Viral Clips</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-blue-700 font-medium">Event:</span> {selectedEvent?.name}
-                    </div>
-                    <div>
-                      <span className="text-blue-700 font-medium">Speaker:</span> {selectedSpeaker?.full_name}
-                    </div>
-                    <div>
-                      <span className="text-blue-700 font-medium">Company:</span> {selectedSpeaker?.company}
-                    </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-blue-700 font-medium">Event:</span> {selectedEvent?.name}
+                      </div>
+                      <div>
+                        <span className="text-blue-700 font-medium">Speakers:</span> {selectedSpeakers.map(s => s.full_name).join(', ')}
+                      </div>
+                      <div>
+                        <span className="text-blue-700 font-medium">Microsites:</span> {selectedSpeakers.length} will be created
+                      </div>
                     <div className="md:col-span-2">
                       <span className="text-blue-700 font-medium">AI Processing:</span> 
                       <span className="text-xs ml-1">Auto-extract viral moments • Generate captions • Optimize for platforms</span>
@@ -1184,7 +1026,7 @@ const SpeakerContentUpload = () => {
                         </span>
                       </div>
                       <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
-                        <span>🎯 Speaker: {selectedSpeaker?.full_name}</span>
+                        <span>🎯 Speakers: {selectedSpeakers.length}</span>
                         {upload.status === 'processing' && (
                           <span className="flex items-center gap-1">
                             <Zap className="h-3 w-3" />
@@ -1222,6 +1064,13 @@ const SpeakerContentUpload = () => {
           )}
         </div>
       )}
+
+      {/* Add Speaker Modal */}
+      <AddSpeakerModal 
+        isOpen={showAddSpeakerModal}
+        onClose={() => setShowAddSpeakerModal(false)}
+        onSpeakerCreated={handleSpeakerCreated}
+      />
     </div>
   );
 };
