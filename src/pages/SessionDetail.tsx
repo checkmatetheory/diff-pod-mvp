@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   ArrowLeft, 
   Clock, 
@@ -23,7 +24,15 @@ import {
   MessageSquare,
   Edit,
   Save,
-  X 
+  X,
+  Play,
+  Pause,
+  Calendar,
+  Linkedin,
+  Twitter,
+  Instagram,
+  Youtube,
+  Edit3
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -33,6 +42,52 @@ import { AudioPlayer } from "@/components/ui/audio-player";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
+// Mock data for preview
+const mockViralClips = [
+  {
+    id: '1',
+    title: 'The Rise of Women\'s Sports Investment',
+    duration: 75, // 1:15
+    viralityScore: 88,
+    reasoning: 'This video discusses a timely and relevant topic—women\'s sports investment—which is gaining traction and interest. The speaker\'s enthusiasm and optimism about the future of women\'s sports can resonate with viewers, encouraging shares and discussions. The mention of record-breaking transfer fees adds a compelling hook, while the call for investment and patience creates a sense of community and shared purpose. However, the pacing and depth of the content may limit its appeal to a broader audience, preventing a perfect score.',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    thumbnail: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=600&fit=crop',
+    transcript: 'and uh the good news is success begets more success and i think right now you\'re seeing this sweep you know throughout the world and and at the end of the day everyone realizes especially these athletes you know none of these women are looking for a handout they all understand that the broader business needs to justify those revenues and those salaries and so they\'ve been incredibly patient...',
+    suggestedCaption: '🏆 Women\'s sports are leveling up! Ready for the future 💪🏽 #WomensSports #InvestInHer',
+    suggestedHashtags: ['#WomensSports', '#InvestInHer', '#SportsInvestment', '#FutureOfSports'],
+    eventName: 'Web Summit Qatar 2025',
+    speakerName: 'Sarah Chen'
+  },
+  {
+    id: '2',
+    title: 'Listening to Your Inner Voice: The Journey of an Entrepreneur',
+    duration: 53,
+    viralityScore: 85,
+    reasoning: 'This video has strong emotional resonance, as it shares a personal journey of self-discovery and entrepreneurship. The relatable theme of listening to one\'s inner voice can inspire viewers, especially those interested in personal development and business. The storytelling aspect, combined with a motivational message, enhances its shareability. However, the pacing could be slightly faster to maintain high engagement throughout the entire duration.',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    thumbnail: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=600&fit=crop',
+    transcript: 'I listened to that voice inside of me that was like, you don\'t actually wanna be here. You don\'t actually wanna be doing this. You know, that was in 2004. So here we are a couple decades later, and I\'ve never heard that voice since. The only voice that I hear, and I realize how blessed I am to live this professionally. I\'ve only had a voice encouraging me to keep doing more, to be motivated...',
+    suggestedCaption: '💭 What if your inner voice could lead you to success? This entrepreneur\'s journey will inspire you 🚀 #Entrepreneurship #InnerVoice',
+    suggestedHashtags: ['#Entrepreneurship', '#InnerVoice', '#PersonalDevelopment', '#StartupLife'],
+    eventName: 'TechConf 2025',
+    speakerName: 'Alex Rivera'
+  },
+  {
+    id: '3',
+    title: 'The Evolution of Content Consumption in the Digital Age',
+    duration: 180, // 3:00
+    viralityScore: 92,
+    reasoning: 'This clip captures a transformative insight about how digital platforms are reshaping content consumption patterns. The speaker\'s expertise and the trending nature of this topic make it highly shareable among marketing professionals and content creators. The actionable insights provided create immediate value for viewers, driving engagement and shares.',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=600&fit=crop',
+    transcript: 'What if your favorite athletes lived together? The reality show featuring professional athletes which most successful collaboration between traditional media and digital platforms. This represents the future of content consumption where audiences demand authentic, behind-the-scenes access to their heroes...',
+    suggestedCaption: '🔮 The future of content is here! How digital platforms are changing everything we know about media consumption 📱✨ #DigitalTransformation #ContentStrategy',
+    suggestedHashtags: ['#DigitalTransformation', '#ContentStrategy', '#MediaEvolution', '#FutureOfMedia'],
+    eventName: 'Digital Marketing Summit 2025',
+    speakerName: 'Dr. Maya Patel'
+  }
+];
 
 const SessionDetail = () => {
   const { id } = useParams();
@@ -44,7 +99,16 @@ const SessionDetail = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [speaker, setSpeaker] = useState<any>(null);
+  
+  // New state for publish modal
+  const [selectedClip, setSelectedClip] = useState<any>(null);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [caption, setCaption] = useState('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['linkedin']);
 
+  // Mock preview mode toggle
+  const [showPreview, setShowPreview] = useState(true); // Set to true to show preview by default
 
   const fetchSpeaker = async (speakerId: string) => {
     if (!speakerId) {
@@ -129,58 +193,74 @@ const SessionDetail = () => {
     fetchData();
   }, [id]);
 
-
   // Fetch speaker data when session loads
   useEffect(() => {
     if (session?.session_data?.speaker_id) {
       fetchSpeaker(session.session_data.speaker_id);
     }
-  }, [session]);  // Auto-refresh when processing - with better performance
-  useEffect(() => {
-    if (session?.processing_status === 'processing' || session?.processing_status === 'uploaded') {
-      const interval = setInterval(async () => {
-        // Only refresh if not already refreshing to prevent overlapping requests
-        if (!refreshing) {
-          try {
-            const { data, error } = await supabase
-              .from("user_sessions")
-              .select("*")
-              .eq("id", id)
-              .single();
-            
-            if (error) {
-              console.error('Error in auto-refresh:', error);
-              return;
-            }
-            
-            // Only update state if the data actually changed
-            if (data && JSON.stringify(data) !== JSON.stringify(session)) {
-              setSession(data);
-              
-              // If processing completed, show notification and stop auto-refresh
-              if (data.processing_status === 'complete' && session?.processing_status !== 'complete') {
-                toast({
-                  title: "Processing complete!",
-                  description: "Your content has been processed and is ready to view.",
-                });
-              }
-            }
-          } catch (error) {
-            console.error('Error in auto-refresh:', error);
-          }
-        }
-      }, 5000); // Increased to 5 seconds to reduce frequency
+  }, [session]);
 
-      return () => clearInterval(interval);
-    }
-  }, [session?.processing_status, id, refreshing, session, toast]);
-
-  // Stop auto-refresh when processing is complete
+  // Auto-refresh when processing - with better performance
   useEffect(() => {
-    if (session?.processing_status === 'complete' || session?.processing_status === 'error') {
-      // Clear any existing intervals by re-running the effect
+    if (!session || session.processing_status === 'complete' || session.processing_status === 'error') {
+      return;
     }
-  }, [session?.processing_status]);
+
+    const interval = setInterval(() => {
+      refreshSession();
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [session?.processing_status, id]);
+
+  // Helper functions for viral clips
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getViralityColor = (score: number) => {
+    if (score >= 90) return 'bg-green-500 text-white';
+    if (score >= 80) return 'bg-blue-500 text-white';
+    if (score >= 70) return 'bg-yellow-500 text-black';
+    return 'bg-gray-500 text-white';
+  };
+
+  const getViralityRank = (score: number) => {
+    if (score >= 90) return '#1';
+    if (score >= 80) return '#2';
+    if (score >= 70) return '#3';
+    return `#${Math.floor(score / 10)}`;
+  };
+
+  const handlePublishClip = (clip: any) => {
+    setSelectedClip(clip);
+    setCaption(clip.suggestedCaption);
+    setIsPublishModalOpen(true);
+  };
+
+  const handleDownloadClip = (clip: any) => {
+    toast({
+      title: "Download started",
+      description: `Downloading "${clip.title}"`,
+    });
+  };
+
+  const handlePublish = () => {
+    toast({
+      title: "Published successfully!",
+      description: `"${selectedClip?.title}" has been published to ${selectedPlatforms.join(', ')}`,
+    });
+    setIsPublishModalOpen(false);
+  };
+
+  const platforms = [
+    { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'bg-blue-600' },
+    { id: 'twitter', name: 'Twitter', icon: Twitter, color: 'bg-black' },
+    { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
+    { id: 'youtube', name: 'YouTube', icon: Youtube, color: 'bg-red-600' },
+  ];
 
   if (loading) {
     return (
@@ -296,42 +376,11 @@ const SessionDetail = () => {
     });
   };
 
-  const handlePublish = () => {
+  const handlePublishRecap = () => {
     toast({
       title: "Published successfully",
       description: "Your session recap is now live and shareable",
     });
-  };
-
-  const handleDeleteSession = async () => {
-    if (!session?.id) return;
-    
-    setDeleting(true);
-    try {
-      const { error } = await supabase
-        .from('user_sessions')
-        .delete()
-        .eq('id', session.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Session deleted",
-        description: "The content has been permanently removed.",
-      });
-      
-      // Navigate back to events or dashboard
-      navigate('/events');
-    } catch (error) {
-      console.error('Error deleting session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete session. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setDeleting(false);
-    }
   };
 
   return (
@@ -370,76 +419,28 @@ const SessionDetail = () => {
                             </div>
                             <span>{session.created_at ? new Date(session.created_at).toLocaleDateString() : ''}</span>
                           </div>
-                          {getStatusBadge()}
+                          <div className="flex gap-2">
+                            {getStatusBadge()}
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                              Preview Mode
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => setIsEditing(!isEditing)}>
-                            {isEditing ? <Save className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
-                            {isEditing ? 'Save' : 'Edit'}
-                          </Button>
-                          {isProcessing && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={refreshSession}
-                              disabled={refreshing}
-                            >
-                              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                              {refreshing ? 'Refreshing...' : 'Refresh'}
-                            </Button>
-                          )}
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                                <Trash2 className="h-4 w-4" />
-                                Delete
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Session</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "{session.session_name || session.generated_title || 'this session'}"? This action cannot be undone and will permanently remove:
-                                  <ul className="list-disc list-inside mt-2 space-y-1">
-                                    <li>The session recording and transcript</li>
-                                    <li>Generated AI summary and insights</li>
-                                    <li>Video and media files</li>
-                                    <li>All analytics data for this content</li>
-                                  </ul>
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={handleDeleteSession}
-                                  disabled={deleting}
-                                  className="bg-red-600 hover:bg-red-700 text-white"
-                                >
-                                  {deleting ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Deleting...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Delete Permanently
-                                    </>
-                                  )}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowPreview(!showPreview)}
+                        >
+                          {showPreview ? 'Hide Preview' : 'Show Preview'}
+                        </Button>
                       </div>
                     </CardHeader>
                   </Card>
 
-                  {/* Processing Status Alert */}
                   {isProcessing && (
                     <Alert className="mb-6 border-blue-200 bg-blue-50">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <AlertTitle>Processing Content</AlertTitle>
+                      <AlertTitle>🧠 AI is finding your most viral moments...</AlertTitle>
                       <AlertDescription>
                         Your content is being processed with AI. This usually takes 30-60 seconds. 
                         The page will automatically update when processing is complete.
@@ -471,15 +472,138 @@ const SessionDetail = () => {
                   )}
 
                   {/* Content Tabs */}
-                  <Tabs defaultValue="summary" className="w-full">
+                  <Tabs defaultValue="videos" className="w-full">
                     <TabsList className="grid w-full grid-cols-6">
-                      <TabsTrigger value="summary">Summary</TabsTrigger>
                       <TabsTrigger value="videos">Videos</TabsTrigger>
+                      <TabsTrigger value="summary">Summary</TabsTrigger>
                       <TabsTrigger value="blog">Blog</TabsTrigger>
                       <TabsTrigger value="social">Social</TabsTrigger>
                       <TabsTrigger value="quotes">Quotes</TabsTrigger>
                       <TabsTrigger value="transcript">Transcript</TabsTrigger>
                     </TabsList>
+
+                    {/* UPDATED VIDEOS TAB */}
+                    <TabsContent value="videos" className="mt-6">
+                      <div className="space-y-6">
+                        {showPreview ? (
+                          <>
+                            {/* Header */}
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="text-xl font-bold">Your Viral Clips ({mockViralClips.length})</h3>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Generated from {session.session_name || 'your session'} • Ready to publish
+                                </p>
+                              </div>
+                              <Button variant="outline">
+                                <Download className="h-4 w-4 mr-2" />
+                                Download All
+                              </Button>
+                            </div>
+
+                            {/* Clips Grid */}
+                            <div className="space-y-6">
+                              {mockViralClips.map((clip, index) => (
+                                <div key={clip.id} className="flex gap-6 p-6 border rounded-lg hover:shadow-md transition-shadow bg-white">
+                                  {/* Video Thumbnail */}
+                                  <div className="relative flex-shrink-0">
+                                    <div className="w-48 h-72 bg-black rounded-lg overflow-hidden relative cursor-pointer"
+                                         onClick={() => handlePublishClip(clip)}>
+                                      <img 
+                                        src={clip.thumbnail} 
+                                        alt={clip.title}
+                                        className="w-full h-full object-cover"
+                                      />
+                                      
+                                      {/* Play Button Overlay */}
+                                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
+                                        <div className="bg-white/20 rounded-full p-3">
+                                          <Play className="h-8 w-8 text-white" />
+                                        </div>
+                                      </div>
+
+                                      {/* Duration Badge */}
+                                      <div className="absolute bottom-3 right-3">
+                                        <Badge variant="secondary" className="bg-black/70 text-white">
+                                          <Clock className="h-3 w-3 mr-1" />
+                                          {formatDuration(clip.duration)}
+                                        </Badge>
+                                      </div>
+
+                                      {/* Virality Score Badge */}
+                                      <div className="absolute top-3 left-3">
+                                        <Badge className={getViralityColor(clip.viralityScore)}>
+                                          {getViralityRank(clip.viralityScore)} Virality score ({clip.viralityScore}/100)
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Content */}
+                                  <div className="flex-1 flex flex-col">
+                                    <div className="flex-1">
+                                      {/* Title and Event */}
+                                      <h3 className="text-xl font-bold mb-2 leading-tight">{clip.title}</h3>
+                                      <p className="text-sm text-muted-foreground mb-4">
+                                        Generated from <span className="font-medium">{clip.eventName}</span>
+                                      </p>
+
+                                      {/* Virality Reasoning */}
+                                      <div className="mb-6">
+                                        <p className="text-sm leading-relaxed text-gray-700">
+                                          {clip.reasoning}
+                                        </p>
+                                      </div>
+
+                                      {/* Transcript Preview */}
+                                      <div className="mb-6">
+                                        <h4 className="font-medium text-sm mb-2">Transcript</h4>
+                                        <p className="text-sm text-gray-600 line-clamp-3">
+                                          {clip.transcript}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-3">
+                                      <Button 
+                                        className="flex-1 bg-black hover:bg-gray-800 text-white"
+                                        onClick={() => handlePublishClip(clip)}
+                                      >
+                                        <Share2 className="h-4 w-4 mr-2" />
+                                        Publish
+                                      </Button>
+                                      <Button 
+                                        variant="outline" 
+                                        onClick={() => handleDownloadClip(clip)}
+                                      >
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Download
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
+                            <div className="text-center space-y-3">
+                              <Video className="h-12 w-12 mx-auto opacity-50" />
+                              <p>No video content uploaded yet.</p>
+                              <p className="text-sm">Video content will appear here once uploaded and processed.</p>
+                              <Button 
+                                variant="outline" 
+                                onClick={() => setShowPreview(true)}
+                                className="mt-4"
+                              >
+                                Show Preview Mode
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
 
                     <TabsContent value="summary" className="mt-6">
                       <Card className="shadow-card">
@@ -544,60 +668,6 @@ const SessionDetail = () => {
                                 <Download className="h-4 w-4 mr-2" />
                                 PDF
                               </Button>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    <TabsContent value="videos" className="mt-6">
-                      <Card className="shadow-card">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Video className="h-5 w-5" />
-                            Video Content
-                          </CardTitle>
-                          <CardDescription>
-                            Access your uploaded video content and media
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                          {isProcessing ? (
-                            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                              <div className="text-center space-y-3">
-                                <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-                                <p>Editing your short from videos...</p>
-                                <p className="text-sm">Creating speaker microsite and generating content</p>
-                              </div>
-                            </div>
-                          ) : hasError ? (
-                            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                              <div className="text-center space-y-3">
-                                <p>There was an error processing the video content.</p>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={refreshSession}
-                                  disabled={refreshing}
-                                >
-                                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                                  Retry
-                                </Button>
-                              </div>
-                            </div>
-                          ) : session.podcast_url ? (
-                            <AudioPlayer 
-                              audioUrl={session.podcast_url} 
-                              title={session.session_name || session.generated_title}
-                              className="w-full"
-                            />
-                          ) : (
-                            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                              <div className="text-center space-y-3">
-                                <Video className="h-12 w-12 mx-auto opacity-50" />
-                                <p>No video content uploaded yet.</p>
-                                <p className="text-sm">Video content will appear here once uploaded and processed.</p>
-                              </div>
                             </div>
                           )}
                         </CardContent>
@@ -697,12 +767,6 @@ const SessionDetail = () => {
                                   </Button>
                                 </div>
                               </div>
-                            ) : isEditing ? (
-                              <Textarea 
-                                value={session.session_data?.social_posts?.twitter || 'No Twitter content available.'}
-                                className="min-h-[150px] resize-none"
-                                placeholder="Edit Twitter content..."
-                              />
                             ) : (
                               <div className="bg-muted/30 p-4 rounded-lg">
                                 <p className="whitespace-pre-wrap">{session.session_data?.social_posts?.twitter || 'No Twitter content available yet.'}</p>
@@ -746,12 +810,6 @@ const SessionDetail = () => {
                                   </Button>
                                 </div>
                               </div>
-                            ) : isEditing ? (
-                              <Textarea 
-                                value={session.session_data?.social_posts?.linkedin || 'No LinkedIn content available.'}
-                                className="min-h-[200px] resize-none"
-                                placeholder="Edit LinkedIn content..."
-                              />
                             ) : (
                               <div className="bg-muted/30 p-4 rounded-lg">
                                 <p className="whitespace-pre-wrap">{session.session_data?.social_posts?.linkedin || 'No LinkedIn content available yet.'}</p>
@@ -900,18 +958,18 @@ const SessionDetail = () => {
                     <CardContent className="space-y-3">
                       <Button 
                         className="w-full bg-accent hover:bg-accent-hover"
-                        onClick={handlePublish}
+                        onClick={() => toast({ title: "Feature preview", description: "Bulk publishing will be available soon!" })}
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Publish Recap
+                        Publish All Clips
                       </Button>
                       <Button variant="outline" className="w-full">
                         <Share2 className="h-4 w-4 mr-2" />
-                        Share Session
+                        Speaker Microsite
                       </Button>
                       <Button variant="outline" className="w-full">
                         <Download className="h-4 w-4 mr-2" />
-                        Download All
+                        Download Content Pack
                       </Button>
                     </CardContent>
                   </Card>
@@ -991,6 +1049,160 @@ const SessionDetail = () => {
           </main>
         </SidebarInset>
       </div>
+
+              {/* PUBLISH MODAL */}
+        <Dialog open={isPublishModalOpen} onOpenChange={setIsPublishModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">Publish Your Video</DialogTitle>
+            </DialogHeader>
+
+            {selectedClip && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Video Preview */}
+                <div className="space-y-4">
+                  <div className="relative bg-black rounded-lg overflow-hidden aspect-[9/16] max-w-sm mx-auto">
+                    <img 
+                      src={selectedClip.thumbnail}
+                      alt={selectedClip.title}
+                      className="w-full h-full object-cover"
+                    />
+                    
+                    {/* Play/Pause Overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Button
+                        variant="ghost"
+                        size="lg"
+                        className="bg-black/50 hover:bg-black/70 text-white rounded-full w-16 h-16"
+                        onClick={() => setIsPlaying(!isPlaying)}
+                      >
+                        {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
+                      </Button>
+                    </div>
+
+                    {/* Video Info Overlay */}
+                    <div className="absolute top-4 left-4 right-4">
+                      <Badge className={getViralityColor(selectedClip.viralityScore)}>
+                        {getViralityRank(selectedClip.viralityScore)} Virality score ({selectedClip.viralityScore}/100)
+                      </Badge>
+                    </div>
+
+                    <div className="absolute bottom-4 left-4 right-4 text-white">
+                      <h3 className="font-bold text-lg mb-1">{selectedClip.title}</h3>
+                      <p className="text-sm opacity-80">
+                        {formatDuration(selectedClip.duration)} • {selectedClip.eventName}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Virality Reasoning */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <h4 className="font-semibold mb-2 text-sm text-muted-foreground">
+                        Why this clip has viral potential:
+                      </h4>
+                      <p className="text-sm leading-relaxed">{selectedClip.reasoning}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Publishing Form */}
+                <div className="space-y-6">
+                  {/* Platform Selection */}
+                  <div>
+                    <h3 className="font-semibold mb-3">Select Platforms</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {platforms.map((platform) => {
+                        const Icon = platform.icon;
+                        const isSelected = selectedPlatforms.includes(platform.id);
+                        
+                        return (
+                          <Button
+                            key={platform.id}
+                            variant={isSelected ? "default" : "outline"}
+                            className={`h-12 ${isSelected ? platform.color : ''}`}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedPlatforms(prev => prev.filter(p => p !== platform.id));
+                              } else {
+                                setSelectedPlatforms(prev => [...prev, platform.id]);
+                              }
+                            }}
+                          >
+                            <Icon className="h-5 w-5 mr-2" />
+                            {platform.name}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Will post to 1 account per platform
+                    </p>
+                  </div>
+
+                  {/* Caption Editor */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold">Caption</h3>
+                      <Button variant="ghost" size="sm">
+                        <Edit3 className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={caption}
+                      onChange={(e) => setCaption(e.target.value)}
+                      placeholder="Write your caption..."
+                      className="min-h-[120px] resize-none"
+                    />
+                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                      <span>AI-optimized for engagement</span>
+                      <span>{caption.length} characters</span>
+                    </div>
+                  </div>
+
+                  {/* Hashtags */}
+                  <div>
+                    <h4 className="font-medium mb-2 text-sm">Suggested Hashtags</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedClip.suggestedHashtags.map((hashtag: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {hashtag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-3 pt-4 border-t">
+                    <Button 
+                      className="w-full bg-black hover:bg-gray-800 text-white"
+                      onClick={handlePublish}
+                      disabled={selectedPlatforms.length === 0}
+                    >
+                      Publish now
+                    </Button>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => toast({ title: "Scheduled!", description: "Your video will be published at the optimal time" })}
+                        disabled={selectedPlatforms.length === 0}
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Schedule
+                      </Button>
+                      <Button variant="outline" onClick={() => handleDownloadClip(selectedClip)}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
     </SidebarProvider>
   );
 };

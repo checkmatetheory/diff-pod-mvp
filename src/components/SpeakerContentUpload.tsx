@@ -15,9 +15,6 @@ import {
   Upload, 
   Link, 
   FileVideo, 
-  FileAudio, 
-  FileText, 
-  File, 
   X, 
   Check, 
   Calendar,
@@ -31,7 +28,10 @@ import {
   Share2,
   Eye,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Play,
+  Scissors,
+  Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -57,7 +57,7 @@ interface Speaker {
 interface UploadedFile {
   id: string;
   name: string;
-  type: 'video' | 'audio' | 'url' | 'text' | 'document';
+  type: 'video' | 'url';
   size?: string;
   progress: number;
   status: 'uploading' | 'processing' | 'complete' | 'error';
@@ -94,7 +94,6 @@ const SpeakerContentUpload = () => {
   // Content inputs
   const [dragActive, setDragActive] = useState(false);
   const [urlInput, setUrlInput] = useState("");
-  const [textInput, setTextInput] = useState("");
 
   useEffect(() => {
     fetchEvents();
@@ -299,18 +298,23 @@ const SpeakerContentUpload = () => {
       return;
     }
 
-    for (const file of files) {
-      // Determine file type
-      let fileType: 'video' | 'audio' | 'text' | 'document' = 'document';
-      if (file.type.includes('video')) fileType = 'video';
-      else if (file.type.includes('audio')) fileType = 'audio';
-      else if (file.type.includes('text') || file.name.endsWith('.txt')) fileType = 'text';
-      else if (file.type.includes('pdf') || file.name.endsWith('.pdf')) fileType = 'document';
+    // Filter for video files only
+    const videoFiles = files.filter(file => file.type.includes('video'));
+    
+    if (videoFiles.length === 0) {
+      toast({
+        title: "Video files only",
+        description: "Please upload video files to create viral clips.",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    for (const file of videoFiles) {
       const newUpload: UploadedFile = {
         id: Date.now().toString() + Math.random(),
         name: file.name,
-        type: fileType,
+        type: 'video',
         size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
         progress: 0,
         status: 'uploading'
@@ -339,16 +343,6 @@ const SpeakerContentUpload = () => {
           upload.id === newUpload.id ? { ...upload, progress: 90 } : upload
         ));
 
-        // For text files, extract content
-        let textContent = '';
-        if (fileType === 'text') {
-          try {
-            textContent = await file.text();
-          } catch (error) {
-            console.error('Error reading text file:', error);
-          }
-        }
-
         // Create session record
         const { data: session, error: sessionError } = await supabase
           .from('user_sessions')
@@ -357,13 +351,8 @@ const SpeakerContentUpload = () => {
             user_id: user.id,
             event_id: selectedEventId,
             processing_status: 'uploaded',
-            content_type: fileType === 'video' ? 'video_audio' : 
-                         fileType === 'audio' ? 'audio_only' : 'transcript',
-            session_data: textContent ? { 
-              text_content: textContent,
-              speaker_id: selectedSpeakerId,
-              speaker_name: speakers.find(s => s.id === selectedSpeakerId)?.full_name || ''
-            } : { 
+            content_type: 'video_audio',
+            session_data: { 
               speaker_id: selectedSpeakerId,
               speaker_name: speakers.find(s => s.id === selectedSpeakerId)?.full_name || ''
             }
@@ -383,7 +372,7 @@ const SpeakerContentUpload = () => {
             sessionId: session.id, 
             filePath: fileName,
             fileMimeType: file.type,
-            textContent: textContent
+            textContent: null
           }
         });
 
@@ -425,19 +414,19 @@ const SpeakerContentUpload = () => {
 
       const micrositeUrl = `studio.diffused.app/event/${selectedEvent.subdomain}/speaker/${selectedSpeaker.slug}`;
 
-      // Create speaker microsite
-      const { data: microsite, error: micrositeError } = await supabase
-        .from('speaker_microsites')
-        .insert({
-          event_id: selectedEventId,
-          speaker_id: selectedSpeakerId,
-          session_id: sessionId,
-          microsite_url: micrositeUrl,
-          custom_cta_text: 'Join us next year!',
-          approval_status: 'approved', // Auto-approve for now
-          is_live: true,
-          created_by: user!.id
-        })
+              // Create speaker microsite
+        const { data: microsite, error: micrositeError } = await supabase
+          .from('speaker_microsites')
+          .insert({
+            event_id: selectedEventId,
+            speaker_id: selectedSpeakerId,
+            session_id: sessionId,
+            microsite_url: micrositeUrl,
+            custom_cta_text: `Get Early Access to ${selectedEvent.name} ${new Date().getFullYear() + 1}`,
+            approval_status: 'approved', // Auto-approve for now
+            is_live: true,
+            created_by: user!.id
+          })
         .select()
         .single();
 
@@ -464,8 +453,8 @@ const SpeakerContentUpload = () => {
       }
 
       toast({
-        title: "Speaker content uploaded! 🎉",
-        description: `${selectedSpeaker.full_name}'s content is now live on their microsite.`,
+        title: "🎬 Viral clips are being generated!",
+        description: `AI is analyzing ${selectedSpeaker.full_name}'s video to create the most engaging clips.`,
       });
 
       setTimeout(() => {
@@ -476,8 +465,8 @@ const SpeakerContentUpload = () => {
     } catch (error: any) {
       console.error('Error creating microsite:', error);
       toast({
-        title: "Microsite creation failed",
-        description: "Content uploaded successfully, but microsite creation failed.",
+        title: "Processing started",
+        description: "Video uploaded successfully and processing has begun.",
         variant: "destructive",
       });
     }
@@ -486,6 +475,18 @@ const SpeakerContentUpload = () => {
   const handleUrlSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!urlInput.trim() || !user || !selectedEventId || !selectedSpeakerId) return;
+
+    // Validate video URL
+    const isVideoUrl = /(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/|zoom\.us\/rec\/|teams\.microsoft\.com\/|meet\.google\.com\/)/.test(urlInput);
+    
+    if (!isVideoUrl) {
+      toast({
+        title: "Video URL required",
+        description: "Please enter a YouTube, Vimeo, Zoom, or other video platform URL.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const newUpload: UploadedFile = {
       id: Date.now().toString(),
@@ -508,10 +509,11 @@ const SpeakerContentUpload = () => {
       const { data: session, error: sessionError } = await supabase
         .from('user_sessions')
         .insert({
-          session_name: `URL Session - ${new URL(urlInput).hostname}`,
+          session_name: `Video Session - ${new URL(urlInput).hostname}`,
           user_id: user.id,
           event_id: selectedEventId,
           processing_status: 'uploaded',
+          content_type: 'video_audio',
           session_data: { 
             source_url: urlInput,
             speaker_id: selectedSpeakerId,
@@ -553,8 +555,8 @@ const SpeakerContentUpload = () => {
       await generateSpeakerMicrosite(session.id);
 
       toast({
-        title: "URL processed successfully!",
-        description: `URL content has been processed for ${speakers.find(s => s.id === selectedSpeakerId)?.full_name}.`,
+        title: "🎬 Video URL processed!",
+        description: `AI is creating viral clips from ${speakers.find(s => s.id === selectedSpeakerId)?.full_name}'s video.`,
       });
 
     } catch (error: any) {
@@ -565,100 +567,13 @@ const SpeakerContentUpload = () => {
       ));
       
       toast({
-        title: "Failed to process URL",
+        title: "Failed to process video URL",
         description: error.message || "Please try again.",
         variant: "destructive",
       });
     }
 
     setUrlInput("");
-  };
-
-  const handleTextSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!textInput.trim() || !user || !selectedEventId || !selectedSpeakerId) return;
-
-    const newUpload: UploadedFile = {
-      id: Date.now().toString(),
-      name: `Text: ${textInput.slice(0, 50)}...`,
-      type: 'text',
-      progress: 0,
-      status: 'uploading'
-    };
-    
-    setUploads(prev => [...prev, newUpload]);
-
-    try {
-      setUploading(true);
-      
-      setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id ? { ...upload, progress: 50 } : upload
-      ));
-
-      // Create session record for text content
-      const { data: session, error: sessionError } = await supabase
-        .from('user_sessions')
-        .insert({
-          session_name: `Text Session - ${textInput.slice(0, 50)}`,
-          user_id: user.id,
-          event_id: selectedEventId,
-          processing_status: 'uploaded',
-          session_data: { 
-            text_content: textInput,
-            speaker_id: selectedSpeakerId,
-            speaker_name: speakers.find(s => s.id === selectedSpeakerId)?.full_name || ''
-          }
-        })
-        .select()
-        .single();
-
-      if (sessionError) throw sessionError;
-
-      setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id ? { ...upload, progress: 90, status: 'processing' } : upload
-      ));
-
-      // Start processing with edge function
-      const { error: processError } = await supabase.functions.invoke('process-session', {
-        body: { 
-          sessionId: session.id,
-          filePath: null,
-          fileType: 'text',
-          textContent: textInput
-        }
-      });
-
-      if (processError) {
-        console.error('Processing error:', processError);
-      }
-
-      setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id ? { ...upload, progress: 100, status: 'complete' } : upload
-      ));
-
-      // Generate speaker microsite
-      await generateSpeakerMicrosite(session.id);
-
-      toast({
-        title: "Text processed successfully!",
-        description: `Text content has been processed for ${speakers.find(s => s.id === selectedSpeakerId)?.full_name}.`,
-      });
-
-    } catch (error: any) {
-      setUploading(false);
-      console.error('Text submission error:', error);
-      setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id ? { ...upload, status: 'error' } : upload
-      ));
-      
-      toast({
-        title: "Failed to process text content",
-        description: error.message || "Please try again.",
-        variant: "destructive",
-      });
-    }
-
-    setTextInput("");
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -679,7 +594,7 @@ const SpeakerContentUpload = () => {
     if (currentStep !== 3) {
       toast({
         title: "Complete setup first",
-        description: "Please select an event and speaker before uploading content.",
+        description: "Please select an event and speaker before uploading video content.",
         variant: "destructive",
       });
       return;
@@ -735,17 +650,31 @@ const SpeakerContentUpload = () => {
             )}>
               3
             </div>
-            <div className="ml-2 text-sm font-medium">Content</div>
+            <div className="ml-2 text-sm font-medium">Video Upload</div>
           </div>
         </div>
         
         <div className="space-y-2">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Turn Speakers Into Measurable Marketing Channels
+            🎬 AI Finds Your Most Viral Moments in Seconds
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Create attribution microsites for your speakers to track conversions, measure network ROI, and turn every presentation into a revenue-generating asset.
+            Upload your conference videos and our AI will automatically extract the most engaging clips optimized for maximum social media reach and virality.
           </p>
+          <div className="flex justify-center gap-4 mt-4">
+            <Badge variant="outline" className="gap-2 border-blue-500/20 text-blue-600 bg-blue-50">
+              <Scissors className="h-4 w-4" />
+              Auto Clip Generation
+            </Badge>
+            <Badge variant="outline" className="gap-2 border-green-500/20 text-green-600 bg-green-50">
+              <Zap className="h-4 w-4" />
+              Virality Scoring
+            </Badge>
+            <Badge variant="outline" className="gap-2 border-purple-500/20 text-purple-600 bg-purple-50">
+              <Share2 className="h-4 w-4" />
+              One-Click Publishing
+            </Badge>
+          </div>
         </div>
       </div>
 
@@ -773,12 +702,12 @@ const SpeakerContentUpload = () => {
               <>
                 <Select value={selectedEventId} onValueChange={setSelectedEventId}>
                   <SelectTrigger className="h-12">
-                    <SelectValue placeholder="Choose an event to build speaker attribution for..." />
+                    <SelectValue placeholder="Choose an event for viral clip generation..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[300px] overflow-y-auto">
                     {events.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        <div className="flex flex-col">
+                      <SelectItem key={event.id} value={event.id} className="cursor-pointer">
+                        <div className="flex flex-col py-1">
                           <span className="font-medium">{event.name}</span>
                           <span className="text-xs text-muted-foreground">/{event.subdomain}</span>
                         </div>
@@ -856,10 +785,10 @@ const SpeakerContentUpload = () => {
                   <SelectTrigger className="h-12">
                     <SelectValue placeholder="Choose from your speaker network..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[300px] overflow-y-auto">
                     {speakers.map((speaker) => (
-                      <SelectItem key={speaker.id} value={speaker.id}>
-                        <div className="flex items-center gap-3">
+                      <SelectItem key={speaker.id} value={speaker.id} className="cursor-pointer">
+                        <div className="flex items-center gap-3 py-1">
                           <Avatar className="h-8 w-8">
                             {speaker.headshot_url ? (
                               <AvatarImage src={speaker.headshot_url} alt={speaker.full_name} />
@@ -1046,145 +975,135 @@ const SpeakerContentUpload = () => {
       {/* Step 3: Content Upload */}
       {currentStep === 3 && canProceedToStep3 && (
         <div className="space-y-6">
-          {/* Speaker Attribution Summary */}
-          <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+          {/* Video Processing Summary */}
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-full bg-green-100">
-                  <TrendingUp className="h-6 w-6 text-green-600" />
+                <div className="p-3 rounded-full bg-blue-100">
+                  <Scissors className="h-6 w-6 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-green-900 mb-2">Ready to Create Attribution Microsite</h3>
+                  <h3 className="font-semibold text-blue-900 mb-2">🎬 Ready to Generate Viral Clips</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-green-700 font-medium">Event:</span> {selectedEvent?.name}
+                      <span className="text-blue-700 font-medium">Event:</span> {selectedEvent?.name}
                     </div>
                     <div>
-                      <span className="text-green-700 font-medium">Speaker:</span> {selectedSpeaker?.full_name}
+                      <span className="text-blue-700 font-medium">Speaker:</span> {selectedSpeaker?.full_name}
                     </div>
                     <div>
-                      <span className="text-green-700 font-medium">Company:</span> {selectedSpeaker?.company}
+                      <span className="text-blue-700 font-medium">Company:</span> {selectedSpeaker?.company}
                     </div>
-                    <div>
-                      <span className="text-green-700 font-medium">Microsite URL:</span> 
-                      <span className="text-xs ml-1">studio.diffused.app/event/{selectedEvent?.subdomain}/speaker/{selectedSpeaker?.slug}</span>
+                    <div className="md:col-span-2">
+                      <span className="text-blue-700 font-medium">AI Processing:</span> 
+                      <span className="text-xs ml-1">Auto-extract viral moments • Generate captions • Optimize for platforms</span>
                     </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-50">
+                      <Scissors className="h-3 w-3 mr-1" />
+                      Auto Clip Creation
+                    </Badge>
+                    <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
+                      <Zap className="h-3 w-3 mr-1" />
+                      Virality Scoring
+                    </Badge>
+                    <Badge variant="outline" className="text-purple-600 border-purple-300 bg-purple-50">
+                      <Share2 className="h-3 w-3 mr-1" />
+                      One-Click Publishing
+                    </Badge>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Upload Area */}
-          <Card className="backdrop-blur-md bg-white/50 shadow-xl border border-white/40">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5 text-blue-600" />
-                Upload Speaker Content
-              </CardTitle>
-              <CardDescription>
-                Upload the speaker's presentation, video, audio, or documents to generate their attribution microsite and track conversions.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Drag & Drop Area */}
-              <div
-                className={cn(
-                  "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
-                  dragActive 
-                    ? "border-blue-500 bg-blue-50" 
-                    : "border-gray-300 hover:border-blue-400 hover:bg-blue-50/50"
-                )}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-                onClick={() => document.getElementById('file-input')?.click()}
-              >
-                <div className="flex flex-col items-center gap-4">
-                  <div className="p-4 rounded-full bg-blue-100">
-                    <Upload className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 mb-1">
-                      Drop speaker content here or click to browse
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Supports videos, audio, PDFs, presentations, and documents (up to 500MB)
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-2 mt-2">
-                    <Badge variant="outline" className="gap-1 border-green-500/20 text-green-600 bg-green-50">
-                      <FileText className="h-3 w-3" />
-                      Presentations
-                    </Badge>
-                    <Badge variant="outline" className="gap-1 border-blue-500/20 text-blue-600 bg-blue-50">
-                      <FileVideo className="h-3 w-3" />
-                      Videos
-                    </Badge>
-                    <Badge variant="outline" className="gap-1 border-purple-500/20 text-purple-600 bg-purple-50">
-                      <FileAudio className="h-3 w-3" />
-                      Audio
-                    </Badge>
-                  </div>
-                  <input
-                    id="file-input"
-                    type="file"
-                    multiple
-                    accept="audio/*,video/*,text/*,.txt,.md,.pdf,.doc,.docx,.ppt,.pptx"
-                    className="hidden"
-                    disabled={uploading}
-                    onChange={(e) => {
-                      if (e.target.files) {
-                        processFiles(Array.from(e.target.files));
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* URL Input */}
-              <div className="flex items-center gap-2 p-4 border rounded-lg bg-gray-50">
-                <Link className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                <form onSubmit={handleUrlSubmit} className="flex-1 flex gap-2">
-                  <Input
-                    placeholder="Paste YouTube, Vimeo, or recording link..."
-                    value={urlInput}
-                    onChange={(e) => setUrlInput(e.target.value)}
-                    className="flex-1"
-                    disabled={uploading}
-                  />
-                  <Button type="submit" size="sm" disabled={!urlInput.trim() || uploading}>
-                    Add Link
-                  </Button>
-                </form>
-              </div>
-
-              {/* Text Content */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium">Or paste content directly</span>
-                </div>
-                <form onSubmit={handleTextSubmit} className="space-y-3">
-                  <Textarea
-                    placeholder="Paste presentation transcript, notes, or any text content to create the speaker's attribution microsite..."
-                    value={textInput}
-                    onChange={(e) => setTextInput(e.target.value)}
-                    className="min-h-[120px] resize-none"
-                    disabled={uploading}
-                  />
-                  <Button 
-                    type="submit" 
-                    size="sm" 
-                    disabled={!textInput.trim() || uploading}
-                    className="bg-blue-600 hover:bg-blue-700"
+                        {/* Upload Area */}
+              <Card className="backdrop-blur-md bg-white/50 shadow-xl border border-white/40">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Scissors className="h-5 w-5 text-blue-600" />
+                    Upload Video for Viral Clip Generation
+                  </CardTitle>
+                  <CardDescription>
+                    Upload your conference video and our AI will automatically extract the most engaging moments optimized for social media virality.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Drag & Drop Area */}
+                  <div
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
+                      dragActive 
+                        ? "border-blue-500 bg-blue-50" 
+                        : "border-gray-300 hover:border-blue-400 hover:bg-blue-50/50"
+                    )}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById('file-input')?.click()}
                   >
-                    <FileText className="h-4 w-4 mr-2" />
-                    {uploading ? "Processing..." : "Create Attribution Microsite"}
-                  </Button>
-                </form>
-              </div>
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="p-4 rounded-full bg-blue-100">
+                        <FileVideo className="h-8 w-8 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 mb-1">
+                          🎬 Drop your conference video here or click to browse
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          AI will find the most viral moments and create clips optimized for each platform
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap justify-center gap-2 mt-2">
+                        <Badge variant="outline" className="gap-1 border-blue-500/20 text-blue-600 bg-blue-50">
+                          <Play className="h-3 w-3" />
+                          MP4, MOV, AVI
+                        </Badge>
+                        <Badge variant="outline" className="gap-1 border-green-500/20 text-green-600 bg-green-50">
+                          <Zap className="h-3 w-3" />
+                          Up to 2GB
+                        </Badge>
+                        <Badge variant="outline" className="gap-1 border-purple-500/20 text-purple-600 bg-purple-50">
+                          <Scissors className="h-3 w-3" />
+                          Auto Clips
+                        </Badge>
+                      </div>
+                      <input
+                        id="file-input"
+                        type="file"
+                        multiple
+                        accept="video/*"
+                        className="hidden"
+                        disabled={uploading}
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            processFiles(Array.from(e.target.files));
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* URL Input */}
+                  <div className="flex items-center gap-2 p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50">
+                    <Link className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                    <form onSubmit={handleUrlSubmit} className="flex-1 flex gap-2">
+                      <Input
+                        placeholder="🔗 Paste YouTube, Vimeo, Zoom recording, or any video URL..."
+                        value={urlInput}
+                        onChange={(e) => setUrlInput(e.target.value)}
+                        className="flex-1 border-blue-200 focus:border-blue-400"
+                        disabled={uploading}
+                      />
+                      <Button type="submit" size="sm" disabled={!urlInput.trim() || uploading} className="bg-blue-600 hover:bg-blue-700">
+                        <Scissors className="h-4 w-4 mr-1" />
+                        Create Clips
+                      </Button>
+                    </form>
+                  </div>
 
               <div className="flex justify-start">
                 <Button 
@@ -1198,24 +1117,24 @@ const SpeakerContentUpload = () => {
             </CardContent>
           </Card>
 
-          {/* Upload Queue */}
+                    {/* Upload Queue */}
           {uploads.length > 0 && (
             <Card className="backdrop-blur-md bg-white/50 shadow-xl border border-white/40">
               <CardHeader>
-                <CardTitle className="text-lg">Creating Speaker Attribution Assets</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Scissors className="h-5 w-5 text-blue-600" />
+                  🎬 Creating Viral Clips
+                </CardTitle>
                 <CardDescription>
-                  {uploads.filter(u => u.status === 'complete').length} of {uploads.length} complete
+                  AI is analyzing video content and generating optimized clips for maximum engagement
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {uploads.map((upload) => (
-                  <div key={upload.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                  <div key={upload.id} className="flex items-center gap-3 p-3 border rounded-lg bg-gradient-to-r from-blue-50/50 to-purple-50/50">
                     <div className="p-2 rounded bg-blue-100">
                       {upload.type === 'video' && <FileVideo className="h-4 w-4 text-blue-600" />}
-                      {upload.type === 'audio' && <FileAudio className="h-4 w-4 text-blue-600" />}
                       {upload.type === 'url' && <Link className="h-4 w-4 text-blue-600" />}
-                      {upload.type === 'text' && <FileText className="h-4 w-4 text-blue-600" />}
-                      {upload.type === 'document' && <File className="h-4 w-4 text-blue-600" />}
                     </div>
                     
                     <div className="flex-1 min-w-0">
@@ -1225,12 +1144,19 @@ const SpeakerContentUpload = () => {
                           {upload.status === 'complete' && (
                             <Badge variant="secondary" className="bg-green-100 text-green-800">
                               <Check className="h-3 w-3 mr-1" />
-                              Microsite Ready
+                              🎬 Clips Ready
                             </Badge>
                           )}
                           {upload.status === 'processing' && (
                             <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                              Creating Attribution
+                              <Scissors className="h-3 w-3 mr-1" />
+                              Creating Clips
+                            </Badge>
+                          )}
+                          {upload.status === 'uploading' && (
+                            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                              <Upload className="h-3 w-3 mr-1" />
+                              Uploading
                             </Badge>
                           )}
                           {upload.status === 'error' && (
@@ -1257,12 +1183,40 @@ const SpeakerContentUpload = () => {
                           {Math.round(upload.progress)}%
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Creating microsite for: {selectedSpeaker?.full_name}
-                      </p>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
+                        <span>🎯 Speaker: {selectedSpeaker?.full_name}</span>
+                        {upload.status === 'processing' && (
+                          <span className="flex items-center gap-1">
+                            <Zap className="h-3 w-3" />
+                            Finding viral moments...
+                          </span>
+                        )}
+                        {upload.status === 'complete' && (
+                          <span className="flex items-center gap-1 text-green-600">
+                            <Check className="h-3 w-3" />
+                            Ready for social publishing
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
+                
+                {uploads.some(u => u.status === 'complete') && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-green-100">
+                        <Sparkles className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-green-900">🎬 Viral clips are ready!</h4>
+                        <p className="text-sm text-green-700 mt-1">
+                          AI has extracted the most engaging moments. Click below to view, edit, and publish your viral clips.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

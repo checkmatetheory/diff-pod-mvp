@@ -46,7 +46,7 @@ CREATE TABLE public.speaker_microsites (
   
   -- Microsite configuration
   microsite_url TEXT NOT NULL UNIQUE, -- e.g. "studio.diffused.app/sxsw-2025/sarah-chen"
-  custom_cta_text TEXT DEFAULT 'Join us next year!',
+  custom_cta_text TEXT DEFAULT 'Get Early Access - Register for Next Year!',
   custom_cta_url TEXT,
   
   -- Brand customization (inherits from event, can override)
@@ -185,7 +185,6 @@ CREATE INDEX idx_speakers_created_by ON public.speakers(created_by);
 -- Speaker microsites table indexes  
 CREATE INDEX idx_speaker_microsites_event_id ON public.speaker_microsites(event_id);
 CREATE INDEX idx_speaker_microsites_speaker_id ON public.speaker_microsites(speaker_id);
-CREATE INDEX idx_speaker_microsites_session_id ON public.speaker_microsites(session_id);
 CREATE INDEX idx_speaker_microsites_approval_status ON public.speaker_microsites(approval_status);
 CREATE INDEX idx_speaker_microsites_is_live ON public.speaker_microsites(is_live);
 CREATE INDEX idx_speaker_microsites_url ON public.speaker_microsites(microsite_url);
@@ -195,79 +194,116 @@ CREATE INDEX idx_speaker_content_microsite_id ON public.speaker_content(microsit
 CREATE INDEX idx_speaker_content_processing_status ON public.speaker_content(processing_status);
 
 -- Attribution tracking table indexes
-CREATE INDEX idx_attribution_microsite_id ON public.attribution_tracking(microsite_id);
-CREATE INDEX idx_attribution_event_id ON public.attribution_tracking(event_id);
-CREATE INDEX idx_attribution_event_type ON public.attribution_tracking(event_type);
-CREATE INDEX idx_attribution_referral_code ON public.attribution_tracking(referral_code);
-CREATE INDEX idx_attribution_tracked_at ON public.attribution_tracking(tracked_at DESC);
+CREATE INDEX idx_attribution_tracking_microsite_id ON public.attribution_tracking(microsite_id);
+CREATE INDEX idx_attribution_tracking_event_id ON public.attribution_tracking(event_id);
+CREATE INDEX idx_attribution_tracking_event_type ON public.attribution_tracking(event_type);
+CREATE INDEX idx_attribution_tracking_tracked_at ON public.attribution_tracking(tracked_at);
+CREATE INDEX idx_attribution_tracking_referral_code ON public.attribution_tracking(referral_code);
 
--- Approval history indexes
-CREATE INDEX idx_approval_history_microsite_id ON public.microsite_approval_history(microsite_id);
-CREATE INDEX idx_approval_history_changed_at ON public.microsite_approval_history(changed_at DESC);
+-- Approval history table indexes
+CREATE INDEX idx_microsite_approval_history_microsite_id ON public.microsite_approval_history(microsite_id);
+CREATE INDEX idx_microsite_approval_history_changed_at ON public.microsite_approval_history(changed_at);
 
 -- ===================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ===================================================================
 
--- Enable RLS on all new tables
+-- Enable RLS on all tables
 ALTER TABLE public.speakers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.speaker_microsites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.speaker_content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attribution_tracking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.microsite_approval_history ENABLE ROW LEVEL SECURITY;
 
--- Speakers RLS policies
-CREATE POLICY "Users can manage speakers they created" 
-ON public.speakers FOR ALL 
-USING (auth.uid() = created_by) 
+-- Speakers policies
+CREATE POLICY "Users can manage their own speakers"
+ON public.speakers FOR ALL
+USING (auth.uid() = created_by)
 WITH CHECK (auth.uid() = created_by);
 
--- Speaker microsites RLS policies  
-CREATE POLICY "Users can manage microsites for their events" 
-ON public.speaker_microsites FOR ALL 
-USING (
-  EXISTS (SELECT 1 FROM public.events WHERE id = speaker_microsites.event_id AND user_id = auth.uid())
-);
-
--- Speaker content RLS policies
-CREATE POLICY "Users can manage content for their microsites" 
-ON public.speaker_content FOR ALL 
+-- Speaker microsites policies
+CREATE POLICY "Users can manage microsites for their events"
+ON public.speaker_microsites FOR ALL
 USING (
   EXISTS (
-    SELECT 1 FROM public.speaker_microsites sm 
-    JOIN public.events e ON e.id = sm.event_id 
-    WHERE sm.id = speaker_content.microsite_id AND e.user_id = auth.uid()
+    SELECT 1 FROM public.events 
+    WHERE events.id = speaker_microsites.event_id 
+    AND events.user_id = auth.uid()
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.events 
+    WHERE events.id = speaker_microsites.event_id 
+    AND events.user_id = auth.uid()
   )
 );
 
--- Attribution tracking RLS policies
-CREATE POLICY "Users can view attribution for their events" 
-ON public.attribution_tracking FOR SELECT
+-- Speaker content policies
+CREATE POLICY "Users can manage content for their microsites"
+ON public.speaker_content FOR ALL
 USING (
-  EXISTS (SELECT 1 FROM public.events WHERE id = attribution_tracking.event_id AND user_id = auth.uid())
+  EXISTS (
+    SELECT 1 FROM public.speaker_microsites
+    JOIN public.events ON events.id = speaker_microsites.event_id
+    WHERE speaker_microsites.id = speaker_content.microsite_id
+    AND events.user_id = auth.uid()
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.speaker_microsites
+    JOIN public.events ON events.id = speaker_microsites.event_id
+    WHERE speaker_microsites.id = speaker_content.microsite_id
+    AND events.user_id = auth.uid()
+  )
 );
 
--- Allow public INSERT for attribution tracking (needed for public microsites)
-CREATE POLICY "Public can track attribution" 
-ON public.attribution_tracking FOR INSERT 
+-- Attribution tracking policies
+CREATE POLICY "Users can view attribution for their events"
+ON public.attribution_tracking FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM public.events
+    WHERE events.id = attribution_tracking.event_id
+    AND events.user_id = auth.uid()
+  )
+);
+
+-- Public can insert attribution data (for tracking external visitors)
+CREATE POLICY "Public can insert attribution tracking"
+ON public.attribution_tracking FOR INSERT
 WITH CHECK (true);
 
--- Approval history RLS policies
-CREATE POLICY "Users can view approval history for their microsites" 
+-- Approval history policies
+CREATE POLICY "Users can view approval history for their microsites"
 ON public.microsite_approval_history FOR SELECT
 USING (
   EXISTS (
-    SELECT 1 FROM public.speaker_microsites sm 
-    JOIN public.events e ON e.id = sm.event_id 
-    WHERE sm.id = microsite_approval_history.microsite_id AND e.user_id = auth.uid()
+    SELECT 1 FROM public.speaker_microsites
+    JOIN public.events ON events.id = speaker_microsites.event_id
+    WHERE speaker_microsites.id = microsite_approval_history.microsite_id
+    AND events.user_id = auth.uid()
+  )
+);
+
+-- Only event owners can update approval history
+CREATE POLICY "Users can manage approval history for their microsites"
+ON public.microsite_approval_history FOR INSERT
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.speaker_microsites
+    JOIN public.events ON events.id = speaker_microsites.event_id
+    WHERE speaker_microsites.id = microsite_approval_history.microsite_id
+    AND events.user_id = auth.uid()
   )
 );
 
 -- ===================================================================
--- UPDATED_AT TRIGGERS
+-- TRIGGERS FOR AUTOMATIC UPDATES
 -- ===================================================================
 
--- Create triggers for updated_at columns
+-- Updated at triggers
 CREATE TRIGGER update_speakers_updated_at
 BEFORE UPDATE ON public.speakers
 FOR EACH ROW
@@ -325,21 +361,27 @@ $$ LANGUAGE plpgsql;
 
 -- This will be helpful for testing the microsite system
 INSERT INTO public.speakers (full_name, email, bio, slug, created_by)
-SELECT 
+VALUES (
   'Sarah Chen',
-  'sarah@stanford.edu',
-  'Leading AI researcher at Stanford Medical School, pioneering machine learning applications in healthcare diagnostics.',
+  'sarah.chen@example.com', 
+  'VP of Engineering at CloudScale Technologies with 10+ years of experience building distributed systems.',
   'sarah-chen',
-  id
-FROM auth.users 
-LIMIT 1;
+  (SELECT id FROM auth.users LIMIT 1)
+),
+(
+  'Marcus Rodriguez', 
+  'marcus@neuraldynamics.ai',
+  'Founder & CEO of Neural Dynamics, leading breakthroughs in autonomous AI systems.',
+  'marcus-rodriguez',
+  (SELECT id FROM auth.users LIMIT 1)  
+),
+(
+  'Dr. Priya Patel',
+  'priya.patel@quantumtech.com',
+  'Chief Technology Officer at Quantum Computing Labs, pioneering quantum algorithm development.',
+  'priya-patel', 
+  (SELECT id FROM auth.users LIMIT 1)
+);
 
-INSERT INTO public.speakers (full_name, email, bio, slug, created_by)
-SELECT 
-  'Tom Cowell',
-  'tom@techstartup.com',
-  'Serial entrepreneur and founder of three successful fintech startups. Expert in digital payment solutions.',
-  'tom-cowell',
-  id
-FROM auth.users 
-LIMIT 1; 
+-- Note: Demo microsite creation would require existing events
+-- This should be run after events are created in demo data migration 

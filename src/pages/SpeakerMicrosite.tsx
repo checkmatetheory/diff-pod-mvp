@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { 
   Play, 
   Share2, 
@@ -14,7 +15,13 @@ import {
   Eye,
   Users,
   Building,
-  MapPin
+  MapPin,
+  Calendar,
+  Bell,
+  Star,
+  ArrowRight,
+  CheckCircle,
+  Gift
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AudioPlayer } from "@/components/ui/audio-player";
@@ -39,6 +46,8 @@ interface SpeakerMicrosite {
     name: string;
     subdomain: string;
     description: string;
+    next_event_date: string | null;
+    next_event_registration_url: string | null;
     branding: any;
   };
   speakers: {
@@ -71,6 +80,11 @@ export default function SpeakerMicrosite() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('summary');
+  
+  // Lead capture state
+  const [email, setEmail] = useState('');
+  const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
 
   // Determine which URL format we're using
   const isUUIDFormat = eventId && speakerId;
@@ -228,6 +242,45 @@ export default function SpeakerMicrosite() {
     }
   };
 
+  const trackLeadCapture = async (leadEmail: string) => {
+    try {
+      const actualEventId = microsite?.events.id;
+      if (actualEventId && microsite) {
+        // Track lead conversion with high value
+        await attribution.trackCTAClick(
+          actualEventId,
+          microsite.id,
+          microsite.speakers.id,
+          500 // High value for email capture
+        );
+
+        // Insert lead into database
+        await supabase
+          .from('leads')
+          .insert({
+            email: leadEmail,
+            event_id: actualEventId,
+            source: 'speaker_microsite',
+            metadata: {
+              speaker_id: microsite.speakers.id,
+              speaker_name: microsite.speakers.full_name,
+              microsite_id: microsite.id
+            }
+          });
+
+        // Update conversion count
+        await supabase
+          .from('speaker_microsites')
+          .update({ 
+            total_conversions: (microsite.total_conversions || 0) + 1
+          })
+          .eq('id', microsite.id);
+      }
+    } catch (error) {
+      console.error('Error tracking lead capture:', error);
+    }
+  };
+
   const handleShare = async (platform: string) => {
     // Use the actual event ID from the microsite data
     const actualEventId = microsite?.events.id;
@@ -275,7 +328,46 @@ export default function SpeakerMicrosite() {
     await trackCTAClick();
     if (microsite?.custom_cta_url) {
       window.open(microsite.custom_cta_url, '_blank');
+    } else if (microsite?.events.next_event_registration_url) {
+      window.open(microsite.events.next_event_registration_url, '_blank');
     }
+  };
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || isSubmittingEmail) return;
+
+    setIsSubmittingEmail(true);
+    try {
+      await trackLeadCapture(email);
+      setEmailSubmitted(true);
+      toast.success("🎉 You're on the list! We'll notify you when tickets go live.");
+    } catch (error) {
+      console.error('Error submitting email:', error);
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmittingEmail(false);
+    }
+  };
+
+  const getNextEventDate = () => {
+    if (!microsite?.events.next_event_date) return null;
+    return new Date(microsite.events.next_event_date);
+  };
+
+  const getEventYear = () => {
+    const nextDate = getNextEventDate();
+    return nextDate ? nextDate.getFullYear() : new Date().getFullYear() + 1;
+  };
+
+  const formatEventDate = () => {
+    const nextDate = getNextEventDate();
+    if (!nextDate) return 'Next Year';
+    return nextDate.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
   };
 
   if (loading) {
@@ -329,7 +421,7 @@ export default function SpeakerMicrosite() {
     <div className="min-h-screen">
       {/* Beautiful Blue Gradient Background */}
       <div 
-        className="min-h-screen"
+        className="min-h-screen relative"
         style={{
           background: `linear-gradient(135deg, #4A90E2 0%, #357ABD 50%, #2C5282 100%)`
         }}
@@ -353,16 +445,100 @@ export default function SpeakerMicrosite() {
                 )}
               </div>
               
-              {/* CTA Button */}
+              {/* Primary CTA Button */}
               <Button
                 onClick={handleCTAClick}
-                className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-6 py-2 rounded-full"
+                className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-xl transition-all"
               >
-                {microsite.custom_cta_text || "Get Access"} →
+                <Calendar className="h-4 w-4 mr-2" />
+                {microsite.custom_cta_text || `Register for ${microsite.events.name} ${getEventYear()}`} →
               </Button>
             </div>
           </div>
         </div>
+
+        {/* Lead Generation Banner - Floating */}
+        {!emailSubmitted && (
+          <div className="absolute top-20 right-6 z-10 hidden lg:block">
+            <Card className="w-80 bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Gift className="h-5 w-5 text-orange-500" />
+                  <CardTitle className="text-lg text-gray-900">Don't Miss {getEventYear()}!</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">
+                    Get notified when tickets go live for {microsite.events.name} {getEventYear()}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <Calendar className="h-3 w-3" />
+                    <span>{formatEventDate()}</span>
+                  </div>
+                </div>
+                <form onSubmit={handleEmailSubmit} className="space-y-3">
+                  <Input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="border-gray-200"
+                    required
+                  />
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={isSubmittingEmail}
+                  >
+                    {isSubmittingEmail ? (
+                      "Adding you..."
+                    ) : (
+                      <>
+                        <Bell className="h-4 w-4 mr-2" />
+                        Get Early Access
+                      </>
+                    )}
+                  </Button>
+                </form>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    <span>Early bird pricing</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    <span>VIP access</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Success State for Lead Capture */}
+        {emailSubmitted && (
+          <div className="absolute top-20 right-6 z-10 hidden lg:block">
+            <Card className="w-80 bg-green-50 border-green-200 shadow-2xl">
+              <CardContent className="pt-6">
+                <div className="text-center space-y-3">
+                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+                  <h3 className="font-semibold text-green-800">You're on the list! 🎉</h3>
+                  <p className="text-sm text-green-700">
+                    We'll notify you the moment tickets for {microsite.events.name} {getEventYear()} go live.
+                  </p>
+                  <Button
+                    onClick={handleCTAClick}
+                    variant="outline"
+                    className="border-green-300 text-green-700 hover:bg-green-100"
+                  >
+                    View Event Details →
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="container mx-auto px-6 pb-12">
@@ -383,9 +559,15 @@ export default function SpeakerMicrosite() {
                   <p className="text-white/80 text-sm lg:text-base mb-2">
                     {microsite.speakers.job_title}
                   </p>
-                  <p className="text-white/60 text-sm">
+                  <p className="text-white/60 text-sm mb-4">
                     @ {microsite.speakers.company}
                   </p>
+                  
+                  {/* Speaker Attribution */}
+                  <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                    <Star className="h-3 w-3 mr-1" />
+                    Speaker at {microsite.events.name}
+                  </Badge>
                 </div>
               </div>
 
@@ -399,9 +581,54 @@ export default function SpeakerMicrosite() {
                       "Session Insights & Highlights"
                     )}
                   </h1>
-                  <p className="text-white/80 text-lg lg:text-xl leading-relaxed max-w-4xl">
+                  <p className="text-white/80 text-lg lg:text-xl leading-relaxed max-w-4xl mb-6">
                     {microsite.speakers.bio}
                   </p>
+                  
+                  {/* Mobile Lead Capture */}
+                  <div className="md:hidden mb-8">
+                    {!emailSubmitted ? (
+                      <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+                        <CardContent className="p-4">
+                          <div className="text-center space-y-4">
+                            <div>
+                              <h3 className="text-white font-semibold mb-2">
+                                Don't miss {microsite.events.name} {getEventYear()}!
+                              </h3>
+                              <p className="text-white/80 text-sm">
+                                Get notified when tickets go live
+                              </p>
+                            </div>
+                            <form onSubmit={handleEmailSubmit} className="space-y-3">
+                              <Input
+                                type="email"
+                                placeholder="Enter your email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
+                                required
+                              />
+                              <Button 
+                                type="submit" 
+                                className="w-full bg-white text-blue-600 hover:bg-white/90"
+                                disabled={isSubmittingEmail}
+                              >
+                                {isSubmittingEmail ? "Adding you..." : "Get Early Access"}
+                              </Button>
+                            </form>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="bg-green-500/20 border-green-400/30">
+                        <CardContent className="p-4 text-center">
+                          <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-2" />
+                          <h3 className="text-white font-semibold mb-1">You're on the list! 🎉</h3>
+                          <p className="text-white/80 text-sm">We'll notify you when tickets go live.</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
                 </div>
 
                 {/* Navigation Pills - Desktop */}
@@ -444,9 +671,14 @@ export default function SpeakerMicrosite() {
               <p className="text-white/80 text-sm mb-1">
                 {microsite.speakers.job_title}
               </p>
-              <p className="text-white/60 text-sm mb-6">
+              <p className="text-white/60 text-sm mb-4">
                 @ {microsite.speakers.company}
               </p>
+              
+              <Badge className="bg-white/20 text-white border-white/30 mb-6">
+                <Star className="h-3 w-3 mr-1" />
+                Speaker at {microsite.events.name}
+              </Badge>
               
               <h1 className="text-white text-2xl font-bold mb-4 leading-tight">
                 {content?.generated_summary ? (
@@ -455,6 +687,49 @@ export default function SpeakerMicrosite() {
                   "Session Insights"
                 )}
               </h1>
+
+              {/* Mobile Lead Capture - Top */}
+              {!emailSubmitted ? (
+                <Card className="bg-white/10 backdrop-blur-sm border-white/20 mb-6">
+                  <CardContent className="p-4">
+                    <div className="text-center space-y-4">
+                      <div>
+                        <h3 className="text-white font-semibold mb-2">
+                          Don't miss {microsite.events.name} {getEventYear()}!
+                        </h3>
+                        <p className="text-white/80 text-sm">
+                          Get notified when tickets go live • {formatEventDate()}
+                        </p>
+                      </div>
+                      <form onSubmit={handleEmailSubmit} className="space-y-3">
+                        <Input
+                          type="email"
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
+                          required
+                        />
+                        <Button 
+                          type="submit" 
+                          className="w-full bg-white text-blue-600 hover:bg-white/90"
+                          disabled={isSubmittingEmail}
+                        >
+                          {isSubmittingEmail ? "Adding you..." : "Get Early Access"}
+                        </Button>
+                      </form>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="bg-green-500/20 border-green-400/30 mb-6">
+                  <CardContent className="p-4 text-center">
+                    <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-2" />
+                    <h3 className="text-white font-semibold mb-1">You're on the list! 🎉</h3>
+                    <p className="text-white/80 text-sm">We'll notify you when tickets go live.</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Navigation Pills - Mobile */}
@@ -513,16 +788,18 @@ export default function SpeakerMicrosite() {
             {/* Quotes Tab */}
             {activeTab === 'quotes' && content?.key_quotes && content.key_quotes.length > 0 && (
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 lg:p-8">
-                <h3 className="text-white text-xl font-bold mb-6">Notable Quotes</h3>
+                <h3 className="text-white text-xl font-bold mb-6">Key Quotes</h3>
                 <div className="space-y-6">
                   {content.key_quotes.map((quote, index) => (
                     <blockquote key={index} className="border-l-4 border-white/40 pl-6">
-                      <p className="text-white/90 text-lg lg:text-xl italic leading-relaxed">
+                      <p className="text-white/90 text-lg leading-relaxed italic">
                         "{quote}"
                       </p>
-                      <cite className="text-white/60 text-sm mt-2 block">
-                        — {microsite.speakers.full_name}
-                      </cite>
+                      <footer className="mt-3">
+                        <cite className="text-white/70 text-sm not-italic">
+                          — {microsite.speakers.full_name}
+                        </cite>
+                      </footer>
                     </blockquote>
                   ))}
                 </div>
@@ -530,47 +807,24 @@ export default function SpeakerMicrosite() {
             )}
 
             {/* Videos Tab */}
-            {activeTab === 'videos' && (
+            {activeTab === 'videos' && content?.video_clips && content.video_clips.length > 0 && (
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 lg:p-8">
-                <h3 className="text-white text-xl font-bold mb-6">Session Videos</h3>
-                
-                {content?.highlight_reel_url ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Main Video */}
-                    <div className="md:col-span-2 lg:col-span-2">
-                      <div className="relative group cursor-pointer rounded-xl overflow-hidden">
-                        <div className="aspect-video bg-black/20 flex items-center justify-center">
-                          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all">
-                            <Play className="h-8 w-8 text-white ml-1" />
-                          </div>
+                <h3 className="text-white text-xl font-bold mb-6">Video Highlights</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {content.video_clips.map((clip, index) => (
+                    <div key={index} className="relative group cursor-pointer rounded-xl overflow-hidden bg-black/20">
+                      <div className="aspect-video bg-black/40 flex items-center justify-center">
+                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all">
+                          <Play className="h-8 w-8 text-white ml-1" />
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                          <p className="text-white font-medium">Full Session Recording</p>
-                          <p className="text-white/80 text-sm">Main presentation</p>
-                        </div>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                        <h4 className="text-white font-medium mb-1">{clip.title}</h4>
+                        <p className="text-white/70 text-sm">{Math.floor(clip.duration / 60)}:{(clip.duration % 60).toString().padStart(2, '0')}</p>
                       </div>
                     </div>
-                    
-                    {/* Additional Video Clips */}
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="relative group cursor-pointer rounded-xl overflow-hidden">
-                        <div className="aspect-video bg-black/20 flex items-center justify-center">
-                          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all">
-                            <Play className="h-6 w-6 text-white ml-0.5" />
-                          </div>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-                          <p className="text-white text-sm font-medium">Highlight {i}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Play className="h-16 w-16 text-white/40 mx-auto mb-4" />
-                    <p className="text-white/60 text-lg">Videos coming soon</p>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
             )}
 
@@ -594,6 +848,87 @@ export default function SpeakerMicrosite() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Bottom CTA Section */}
+          <div className="mt-16 bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center">
+            <div className="max-w-2xl mx-auto">
+              <div className="mb-6">
+                <Calendar className="h-12 w-12 text-white mx-auto mb-4" />
+                <h2 className="text-white text-2xl lg:text-3xl font-bold mb-4">
+                  Experience {microsite.events.name} {getEventYear()}
+                </h2>
+                <p className="text-white/80 text-lg">
+                  Join {microsite.speakers.full_name} and other industry leaders for insights that shape the future
+                </p>
+              </div>
+
+              {/* Bottom Lead Capture - Only show if not submitted */}
+              {!emailSubmitted && (
+                <div className="mb-6">
+                  <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                    <Input
+                      type="email"
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="bg-white/20 border-white/30 text-white placeholder:text-white/60 flex-1"
+                      required
+                    />
+                    <Button 
+                      type="submit" 
+                      className="bg-white text-blue-600 hover:bg-white/90 font-semibold px-6"
+                      disabled={isSubmittingEmail}
+                    >
+                      {isSubmittingEmail ? "Adding..." : "Get Notified"}
+                    </Button>
+                  </form>
+                  <p className="text-white/60 text-sm mt-2">
+                    Be the first to know when tickets go live • {formatEventDate()}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <Button
+                  onClick={handleCTAClick}
+                  size="lg"
+                  className="bg-white text-blue-600 hover:bg-white/90 font-semibold px-8 py-3 rounded-full shadow-lg"
+                >
+                  <ArrowRight className="h-5 w-5 mr-2" />
+                  {microsite.custom_cta_text || `Register for ${microsite.events.name} ${getEventYear()}`}
+                </Button>
+                
+                {/* Social Sharing */}
+                <div className="flex items-center gap-3">
+                  <span className="text-white/60 text-sm">Share:</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleShare('linkedin')}
+                    className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-10 h-10 p-0"
+                  >
+                    <Linkedin className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleShare('twitter')}
+                    className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-10 h-10 p-0"
+                  >
+                    <Twitter className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleShare('copy')}
+                    className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-10 h-10 p-0"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
