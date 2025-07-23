@@ -159,8 +159,27 @@ const SessionDetail = () => {
     if (!session?.event_id || !id) return;
     
     try {
-      // Fetch microsites for speakers linked to THIS SESSION via junction table
-      const { data: microsites, error } = await (supabase as any)
+      // Step 1: Get microsite IDs for this session from junction table
+      const { data: sessionLinks, error: linkError } = await (supabase as any)
+        .from('speaker_microsite_sessions')
+        .select('microsite_id')
+        .eq('session_id', id);
+
+      if (linkError) {
+        console.error('Error fetching session links:', linkError);
+        return;
+      }
+
+      if (!sessionLinks || sessionLinks.length === 0) {
+        console.log('No speakers linked to this session via junction table');
+        setSpeakers([]);
+        return;
+      }
+
+      const micrositeIds = sessionLinks.map(link => link.microsite_id);
+
+      // Step 2: Get microsites and speaker data for those IDs
+      const { data: microsites, error: micrositeError } = await supabase
         .from('speaker_microsites')
         .select(`
           *,
@@ -169,19 +188,16 @@ const SessionDetail = () => {
           ),
           events (
             id, name, subdomain
-          ),
-          speaker_microsite_sessions!inner (
-            session_id
           )
         `)
-        .eq('event_id', session.event_id)
-        .eq('speaker_microsite_sessions.session_id', id);
+        .in('id', micrositeIds);
 
-      if (error) {
-        console.error('Error fetching speaker microsites:', error);
+      if (micrositeError) {
+        console.error('Error fetching speaker microsites:', micrositeError);
         return;
       }
 
+      console.log('Fetched speakers from junction table:', microsites);
       setSpeakers(microsites || []);
     } catch (error) {
       console.error('Error fetching speakers:', error);
