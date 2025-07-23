@@ -156,11 +156,11 @@ const SessionDetail = () => {
   };
 
   const fetchAllSpeakers = async () => {
-    if (!session?.event_id) return;
+    if (!session?.event_id || !id) return;
     
     try {
-      // Fetch all microsites for this EVENT (not session)
-      const { data: microsites, error } = await supabase
+      // Fetch microsites for speakers linked to THIS SESSION via junction table
+      const { data: microsites, error } = await (supabase as any)
         .from('speaker_microsites')
         .select(`
           *,
@@ -169,9 +169,13 @@ const SessionDetail = () => {
           ),
           events (
             id, name, subdomain
+          ),
+          speaker_microsite_sessions!inner (
+            session_id
           )
         `)
-        .eq('event_id', session.event_id);
+        .eq('event_id', session.event_id)
+        .eq('speaker_microsite_sessions.session_id', id);
 
       if (error) {
         console.error('Error fetching speaker microsites:', error);
@@ -247,20 +251,95 @@ const SessionDetail = () => {
     });
   };
 
-  const handleExistingSpeakersSelected = async (selectedSpeakers: any[]) => {
-    if (!session?.event_id) {
+  const handleRemoveSpeaker = async (speaker: any) => {
+    if (!session?.event_id || !id) {
       toast({
         title: "Error",
-        description: "No event associated with this session.",
+        description: "Missing session or event information.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      // For each selected speaker, create/find their microsite for this EVENT
-      const micrositePromises = selectedSpeakers.map(async (speaker) => {
-        // Check if a microsite already exists for this speaker + event combination
+      // Find the microsite for this speaker in this event
+      const { data: microsite } = await supabase
+        .from('speaker_microsites')
+        .select('id')
+        .eq('speaker_id', speaker.id)
+        .eq('event_id', session.event_id)
+        .single();
+
+      if (!microsite) {
+        toast({
+          title: "Error",
+          description: "Speaker microsite not found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Remove the session link from the junction table
+      const { error: deleteError } = await (supabase as any)
+        .from('speaker_microsite_sessions')
+        .delete()
+        .eq('microsite_id', microsite.id)
+        .eq('session_id', id);
+
+      if (deleteError) {
+        console.error('Error removing speaker from session:', deleteError);
+        toast({
+          title: "Error",
+          description: "Failed to remove speaker from session.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if this was the last session for this speaker in this event
+      const { data: remainingSessions, error: checkError } = await (supabase as any)
+        .from('speaker_microsite_sessions')
+        .select('id')
+        .eq('microsite_id', microsite.id);
+
+      if (checkError) {
+        console.error('Error checking remaining sessions:', checkError);
+      }
+
+      // If no sessions remain, optionally delete the microsite
+      // (You can decide whether to auto-delete or keep it for manual cleanup)
+      
+      // Refresh the speakers list
+      await fetchAllSpeakers();
+      
+      toast({
+        title: "Speaker removed",
+        description: `${speaker.full_name} has been removed from this session.`,
+      });
+    } catch (error) {
+      console.error('Error removing speaker:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to remove speaker from session.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExistingSpeakersSelected = async (selectedSpeakers: any[]) => {
+    if (!session?.event_id || !id) {
+      toast({
+        title: "Error",
+        description: "No event or session information available.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // For each selected speaker, create/find their microsite and link it to this session
+      const speakerPromises = selectedSpeakers.map(async (speaker) => {
+        // Step 1: Check if a microsite already exists for this speaker + event combination
         const { data: existingMicrosite } = await supabase
           .from('speaker_microsites')
           .select('id, microsite_url')
@@ -268,36 +347,53 @@ const SessionDetail = () => {
           .eq('event_id', session.event_id)
           .single();
 
-        if (existingMicrosite) {
-          console.log(`Microsite already exists for speaker ${speaker.full_name} in this event`);
-          return existingMicrosite;
+        let micrositeId = existingMicrosite?.id;
+
+        if (!existingMicrosite) {
+          // Step 2: Create new microsite for this speaker + event (without session_id)
+          const { data: newMicrosite, error: micrositeError } = await supabase
+            .from('speaker_microsites')
+            .insert({
+              speaker_id: speaker.id,
+              event_id: session.event_id,
+              microsite_url: speaker.slug, // This will be used to construct the full URL
+              is_live: true,
+              created_by: user?.id
+            })
+            .select('id')
+            .single();
+
+          if (micrositeError) {
+            console.error(`Error creating microsite for ${speaker.full_name}:`, micrositeError);
+            throw micrositeError;
+          }
+
+          micrositeId = newMicrosite.id;
+          console.log(`Created new microsite for ${speaker.full_name}`);
+        } else {
+          console.log(`Using existing microsite for ${speaker.full_name}`);
         }
 
-        // Create new microsite for this speaker + event
-        const { data: newMicrosite, error } = await supabase
-          .from('speaker_microsites')
-          .insert({
-            speaker_id: speaker.id,
-            event_id: session.event_id,
-            session_id: session.id, // Link this session to the microsite
-            microsite_url: speaker.slug, // This will be used to construct the full URL
-            is_live: true,
-            created_at: new Date().toISOString(),
-            created_by: session.user_id || user?.id
-          })
-          .select()
-          .single();
+        // Step 3: Create junction table entry to link microsite to this session
+        const { error: junctionError } = await (supabase as any)
+          .from('speaker_microsite_sessions')
+          .upsert({
+            microsite_id: micrositeId,
+            session_id: id,
+            created_by: user?.id
+          }, {
+            onConflict: 'microsite_id, session_id'
+          });
 
-        if (error) {
-          console.error(`Error creating microsite for ${speaker.full_name}:`, error);
-          throw error;
+        if (junctionError) {
+          console.error(`Error linking session to microsite for ${speaker.full_name}:`, junctionError);
+          throw junctionError;
         }
 
-        console.log(`Created new microsite for ${speaker.full_name}`);
-        return newMicrosite;
+        console.log(`Linked session to microsite for ${speaker.full_name}`);
       });
 
-      await Promise.all(micrositePromises);
+      await Promise.all(speakerPromises);
       
       // Refresh the speakers list to show the newly added speakers
       await fetchAllSpeakers();
@@ -305,13 +401,13 @@ const SessionDetail = () => {
       const speakerNames = selectedSpeakers.map(s => s.full_name).join(', ');
       toast({
         title: "Speakers added successfully",
-        description: `${speakerNames} ${selectedSpeakers.length === 1 ? 'has' : 'have'} been added to this event.`,
+        description: `${speakerNames} ${selectedSpeakers.length === 1 ? 'has' : 'have'} been added to this session.`,
       });
     } catch (error) {
-      console.error('Error adding speakers to event:', error);
+      console.error('Error adding speakers to session:', error);
       toast({
         title: "Error adding speakers",
-        description: "There was an error adding speakers to this event. Please try again.",
+        description: "There was an error adding speakers to this session. Please try again.",
         variant: "destructive",
       });
     }
@@ -1245,6 +1341,7 @@ const SessionDetail = () => {
                               onEdit={handleEditSpeaker}
                               onAdvanced={handleAdvancedSpeaker}
                               onDelete={handleDeleteSpeaker}
+                              onRemove={handleRemoveSpeaker}
                               onViewMicrosite={handleViewMicrosite}
                               compact={true}
                             />
@@ -1274,6 +1371,7 @@ const SessionDetail = () => {
                                 onEdit={handleEditSpeaker}
                                 onAdvanced={handleAdvancedSpeaker}
                                 onDelete={handleDeleteSpeaker}
+                                onRemove={handleRemoveSpeaker}
                                 onViewMicrosite={handleViewMicrosite}
                                 compact={true}
                               />
@@ -1298,6 +1396,7 @@ const SessionDetail = () => {
                             onEdit={handleEditSpeaker}
                             onAdvanced={handleAdvancedSpeaker}
                             onDelete={handleDeleteSpeaker}
+                            onRemove={handleRemoveSpeaker}
                             onViewMicrosite={handleViewMicrosite}
                             compact={true}
                           />

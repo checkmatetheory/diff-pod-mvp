@@ -417,8 +417,8 @@ export default function Settings() {
                         <CardTitle>Profile Information</CardTitle>
                         <CardDescription>
                           Update your personal information and preferences
-                        </CardDescription>
-                      </CardHeader>
+                  </CardDescription>
+                </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-20 w-20">
@@ -444,16 +444,16 @@ export default function Settings() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <Label htmlFor="display_name">Display Name</Label>
-                            <Input
+                      <Input
                               id="display_name"
                               value={profile.display_name}
                               onChange={(e) => setProfile(prev => ({ ...prev, display_name: e.target.value }))}
                               placeholder="Your display name"
-                            />
-                          </div>
+                      />
+                    </div>
                           <div>
                             <Label htmlFor="email">Email Address</Label>
-                            <Input
+                        <Input
                               id="email"
                               value={profile.email}
                               disabled
@@ -522,7 +522,7 @@ export default function Settings() {
                             <p className="text-sm text-muted-foreground">
                               Real-time updates in your browser
                             </p>
-                          </div>
+                      </div>
                           <Switch
                             checked={settings.notifications.browser_notifications}
                             onCheckedChange={(checked) => 
@@ -532,7 +532,7 @@ export default function Settings() {
                               }))
                             }
                           />
-                        </div>
+                    </div>
                       </CardContent>
                     </Card>
                   </div>
@@ -622,10 +622,10 @@ export default function Settings() {
                                           Archived
                                         </Badge>
                                       </div>
-                                    </div>
+                      </div>
                                     <div className="flex gap-2">
-                                      <Button
-                                        variant="outline"
+                      <Button 
+                        variant="outline"
                                         size="sm"
                                         onClick={() => handleRestoreSpeaker(speaker)}
                                       >
@@ -640,8 +640,8 @@ export default function Settings() {
                                       >
                                         <Trash2 className="h-4 w-4 mr-2" />
                                         Delete Forever
-                                      </Button>
-                                    </div>
+                      </Button>
+                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -690,7 +690,7 @@ export default function Settings() {
 
                         <Separator />
 
-                        <div className="space-y-2">
+                    <div className="space-y-2">
                           <Label>Default Video Quality</Label>
                           <Select 
                             value={settings.processing.default_quality} 
@@ -739,7 +739,7 @@ export default function Settings() {
                           <div>
                             <Label htmlFor="subdomain">Subdomain</Label>
                             <div className="relative">
-                              <Input
+                        <Input
                                 id="subdomain"
                                 value={settings.branding.subdomain}
                                 onChange={(e) => 
@@ -760,7 +760,7 @@ export default function Settings() {
                           <div>
                             <Label htmlFor="primary_color">Primary Color</Label>
                             <div className="flex gap-2">
-                              <Input
+                        <Input
                                 id="primary_color"
                                 value={settings.branding.primary_color}
                                 onChange={(e) => 
@@ -773,13 +773,13 @@ export default function Settings() {
                               <div 
                                 className="w-10 h-10 rounded border border-gray-300"
                                 style={{ backgroundColor: settings.branding.primary_color }}
-                              />
-                            </div>
-                          </div>
+                        />
+                      </div>
+                    </div>
                           <div>
                             <Label htmlFor="accent_color">Accent Color</Label>
                             <div className="flex gap-2">
-                              <Input
+                        <Input
                                 id="accent_color"
                                 value={settings.branding.accent_color}
                                 onChange={(e) => 
@@ -792,12 +792,12 @@ export default function Settings() {
                               <div 
                                 className="w-10 h-10 rounded border border-gray-300"
                                 style={{ backgroundColor: settings.branding.accent_color }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
                   </div>
                 </TabsContent>
 
@@ -809,11 +809,11 @@ export default function Settings() {
                         <CardTitle className="flex items-center gap-2">
                           <Crown className="h-5 w-5 text-yellow-500" />
                           Current Plan
-                        </CardTitle>
+                  </CardTitle>
                         <CardDescription>
                           Manage your subscription and billing
-                        </CardDescription>
-                      </CardHeader>
+                  </CardDescription>
+                </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
                           <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -826,8 +826,8 @@ export default function Settings() {
                             <div className="text-right">
                               <p className="text-2xl font-bold">$29</p>
                               <p className="text-sm text-muted-foreground">per month</p>
-                            </div>
-                          </div>
+                    </div>
+                  </div>
 
                           <div className="flex gap-3 pt-4 border-t">
                             <Button variant="outline">
@@ -839,7 +839,7 @@ export default function Settings() {
                               Download Invoices
                             </Button>
                           </div>
-                        </div>
+                    </div>
                       </CardContent>
                     </Card>
                   </div>
@@ -895,20 +895,20 @@ export default function Settings() {
                             <Key className="h-4 w-4 mr-2" />
                             Generate Key
                           </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
                     <Card className="border-destructive">
                       <CardHeader>
                         <CardTitle className="text-destructive flex items-center gap-2">
                           <AlertTriangle className="h-5 w-5" />
                           Danger Zone
-                        </CardTitle>
+                  </CardTitle>
                         <CardDescription>
                           Irreversible actions that will permanently affect your account
-                        </CardDescription>
-                      </CardHeader>
+                  </CardDescription>
+                </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="flex items-center justify-between p-4 border border-destructive rounded-lg">
                           <div>
@@ -916,12 +916,12 @@ export default function Settings() {
                             <p className="text-sm text-muted-foreground">
                               Permanently delete your account and all associated data
                             </p>
-                          </div>
+                      </div>
                           <Button variant="destructive">
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete Account
-                          </Button>
-                        </div>
+                      </Button>
+                    </div>
                       </CardContent>
                     </Card>
                   </div>

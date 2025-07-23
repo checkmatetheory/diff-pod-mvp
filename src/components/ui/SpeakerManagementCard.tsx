@@ -43,6 +43,7 @@ interface SpeakerManagementCardProps {
   onEdit: (speaker: Speaker) => void;
   onAdvanced: (speaker: Speaker) => void;
   onDelete: (speaker: Speaker) => void;
+  onRemove?: (speaker: Speaker) => void;
   onViewMicrosite?: (speaker: Speaker) => void;
   showMetrics?: boolean;
   compact?: boolean;
@@ -53,6 +54,7 @@ export default function SpeakerManagementCard({
   onEdit,
   onAdvanced,
   onDelete,
+  onRemove,
   onViewMicrosite,
   showMetrics = false,
   compact = false
