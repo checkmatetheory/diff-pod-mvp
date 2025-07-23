@@ -111,6 +111,8 @@ export default function AllSpeakers() {
           speaker_microsites!inner (
             id,
             session_id,
+            microsite_url,
+            is_live,
             created_at,
             user_sessions!inner (
               id,
@@ -221,6 +223,24 @@ export default function AllSpeakers() {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toString();
+  };
+
+  const getMicrositeUrl = (speaker: Speaker) => {
+    // Find the first live microsite for this speaker
+    const liveMicrosite = (speaker as any).speaker_microsites?.find((m: any) => m.is_live);
+    
+    if (liveMicrosite?.user_sessions?.events?.subdomain && speaker.slug) {
+      return `/event/${liveMicrosite.user_sessions.events.subdomain}/speaker/${speaker.slug}`;
+    }
+    
+    return null;
+  };
+
+  const handleMicrositeClick = (speaker: Speaker) => {
+    const micrositeUrl = getMicrositeUrl(speaker);
+    if (micrositeUrl) {
+      window.open(micrositeUrl, '_blank');
+    }
   };
 
   const openSpeakerModal = (speaker: Speaker) => {
@@ -416,8 +436,24 @@ export default function AllSpeakers() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredSpeakers.map((speaker) => (
-                      <Card key={speaker.id} className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300 group cursor-pointer">
+                      <Card key={speaker.id} className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300 group cursor-pointer relative">
                         <CardContent className="p-6">
+                          {/* Microsite Link Icon - Top Right */}
+                          {getMicrositeUrl(speaker) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="absolute top-3 right-3 h-8 w-8 p-0 backdrop-blur-sm bg-white/60 border border-white/40 hover:bg-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMicrositeClick(speaker);
+                              }}
+                              title="Visit Speaker Microsite"
+                            >
+                              <ExternalLink className="h-4 w-4 text-gray-600" />
+                            </Button>
+                          )}
+                          
                           <div className="flex items-start gap-4 mb-4">
                             <Avatar className="h-16 w-16">
                               {speaker.headshot_url ? (

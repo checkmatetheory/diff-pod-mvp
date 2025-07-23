@@ -32,8 +32,11 @@ import {
   Twitter,
   Instagram,
   Youtube,
-  Edit3
+  Edit3,
+  Globe,
+  Users
 } from 'lucide-react';
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -42,6 +45,11 @@ import { AudioPlayer } from "@/components/ui/audio-player";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import SpeakerManagementCard from "@/components/ui/SpeakerManagementCard";
+import QuickEditSpeakerModal from "@/components/ui/QuickEditSpeakerModal";
+import AdvancedSpeakerModal from "@/components/ui/AdvancedSpeakerModal";
+import AddSpeakerModal from "@/components/ui/AddSpeakerModal";
+import SelectExistingSpeakerModal from "@/components/ui/SelectExistingSpeakerModal";
 
 // Mock data for preview
 const mockViralClips = [
@@ -92,6 +100,7 @@ const mockViralClips = [
 const SessionDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [session, setSession] = useState<any>(null);
@@ -99,6 +108,16 @@ const SessionDetail = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [speaker, setSpeaker] = useState<any>(null);
+  const [speakers, setSpeakers] = useState<any[]>([]);
+  
+  // New state for speaker management
+  const [selectedSpeakerForEdit, setSelectedSpeakerForEdit] = useState<any>(null);
+  const [selectedSpeakerForAdvanced, setSelectedSpeakerForAdvanced] = useState<any>(null);
+  const [isQuickEditOpen, setIsQuickEditOpen] = useState(false);
+  const [isAdvancedModalOpen, setIsAdvancedModalOpen] = useState(false);
+  const [isAddSpeakerModalOpen, setIsAddSpeakerModalOpen] = useState(false);
+  const [isSelectExistingModalOpen, setIsSelectExistingModalOpen] = useState(false);
+  const [allSpeakers, setAllSpeakers] = useState<any[]>([]);
   
   // New state for publish modal
   const [selectedClip, setSelectedClip] = useState<any>(null);
@@ -134,6 +153,187 @@ const SessionDetail = () => {
       console.error('Error fetching speaker:', error);
       setSpeaker(null);
     }
+  };
+
+  const fetchAllSpeakers = async () => {
+    if (!session?.event_id) return;
+    
+    try {
+      // Fetch all microsites for this EVENT (not session)
+      const { data: microsites, error } = await supabase
+        .from('speaker_microsites')
+        .select(`
+          *,
+          speakers (
+            id, full_name, email, company, job_title, bio, headshot_url, slug
+          ),
+          events (
+            id, name, subdomain
+          )
+        `)
+        .eq('event_id', session.event_id);
+
+      if (error) {
+        console.error('Error fetching speaker microsites:', error);
+        return;
+      }
+
+      setSpeakers(microsites || []);
+    } catch (error) {
+      console.error('Error fetching speakers:', error);
+    }
+  };
+
+  // Speaker management handlers
+  const handleEditSpeaker = (speaker: any) => {
+    setSelectedSpeakerForEdit(speaker);
+    setIsQuickEditOpen(true);
+  };
+
+  const handleAdvancedSpeaker = (speaker: any) => {
+    setSelectedSpeakerForAdvanced(speaker);
+    setIsAdvancedModalOpen(true);
+  };
+
+  const handleDeleteSpeaker = (speaker: any) => {
+    setSelectedSpeakerForAdvanced(speaker);
+    setIsAdvancedModalOpen(true);
+    // The advanced modal will handle the delete flow
+  };
+
+  const handleSpeakerUpdate = (updatedSpeaker: any) => {
+    // Update speaker in local state
+    setSpeakers(prev => prev.map(s => 
+      s.speakers?.id === updatedSpeaker.id 
+        ? { ...s, speakers: updatedSpeaker }
+        : s
+    ));
+  };
+
+  const handleSpeakerDelete = (speakerId: string) => {
+    // Remove speaker from local state
+    setSpeakers(prev => prev.filter(s => s.speakers?.id !== speakerId));
+  };
+
+  const handleViewMicrosite = (speaker: any) => {
+    // Find the microsite data for this speaker
+    const micrositeData = speakers.find(s => s.speakers?.id === speaker.id);
+    if (micrositeData?.events?.subdomain && speaker.slug) {
+      const url = `/event/${micrositeData.events.subdomain}/speaker/${speaker.slug}`;
+      window.open(url, '_blank');
+    } else {
+      toast({
+        title: "Microsite not ready",
+        description: "Speaker microsite is being prepared and will be available soon.",
+      });
+    }
+  };
+
+  const handleAddNewSpeaker = () => {
+    setIsAddSpeakerModalOpen(true);
+  };
+
+  const handleAddExistingSpeaker = () => {
+    setIsSelectExistingModalOpen(true);
+  };
+
+  const handleSpeakerCreated = (newSpeaker: any) => {
+    // Add the new speaker to the session
+    // This would typically involve creating a microsite for this session
+    fetchAllSpeakers(); // Refresh the speakers list
+    toast({
+      title: "Speaker added successfully",
+      description: `${newSpeaker.full_name} has been added to this session.`,
+    });
+  };
+
+  const handleExistingSpeakersSelected = async (selectedSpeakers: any[]) => {
+    if (!session?.event_id) {
+      toast({
+        title: "Error",
+        description: "No event associated with this session.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // For each selected speaker, create/find their microsite for this EVENT
+      const micrositePromises = selectedSpeakers.map(async (speaker) => {
+        // Check if a microsite already exists for this speaker + event combination
+        const { data: existingMicrosite } = await supabase
+          .from('speaker_microsites')
+          .select('id, microsite_url')
+          .eq('speaker_id', speaker.id)
+          .eq('event_id', session.event_id)
+          .single();
+
+        if (existingMicrosite) {
+          console.log(`Microsite already exists for speaker ${speaker.full_name} in this event`);
+          return existingMicrosite;
+        }
+
+        // Create new microsite for this speaker + event
+        const { data: newMicrosite, error } = await supabase
+          .from('speaker_microsites')
+          .insert({
+            speaker_id: speaker.id,
+            event_id: session.event_id,
+            session_id: session.id, // Link this session to the microsite
+            microsite_url: speaker.slug, // This will be used to construct the full URL
+            is_live: true,
+            created_at: new Date().toISOString(),
+            created_by: session.user_id || user?.id
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error(`Error creating microsite for ${speaker.full_name}:`, error);
+          throw error;
+        }
+
+        console.log(`Created new microsite for ${speaker.full_name}`);
+        return newMicrosite;
+      });
+
+      await Promise.all(micrositePromises);
+      
+      // Refresh the speakers list to show the newly added speakers
+      await fetchAllSpeakers();
+      
+      const speakerNames = selectedSpeakers.map(s => s.full_name).join(', ');
+      toast({
+        title: "Speakers added successfully",
+        description: `${speakerNames} ${selectedSpeakers.length === 1 ? 'has' : 'have'} been added to this event.`,
+      });
+    } catch (error) {
+      console.error('Error adding speakers to event:', error);
+      toast({
+        title: "Error adding speakers",
+        description: "There was an error adding speakers to this event. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Get IDs of speakers already in this EVENT to exclude from selection
+  const getExistingSpeakerIds = () => {
+    const eventSpeakerIds = [];
+    
+    // From session_data speaker_ids (legacy)
+    if (session?.session_data?.speaker_ids) {
+      eventSpeakerIds.push(...session.session_data.speaker_ids);
+    }
+    
+    // From fetched speakers (current microsites for this event)
+    speakers.forEach(s => {
+      if (s.speakers?.id) {
+        eventSpeakerIds.push(s.speakers.id);
+      }
+    });
+    
+    return eventSpeakerIds.filter(Boolean);
   };
 
   const refreshSession = async () => {
@@ -197,6 +397,10 @@ const SessionDetail = () => {
   useEffect(() => {
     if (session?.session_data?.speaker_id) {
       fetchSpeaker(session.session_data.speaker_id);
+    }
+    // Also fetch all speakers for the event
+    if (session?.event_id) {
+      fetchAllSpeakers();
     }
   }, [session]);
 
@@ -957,19 +1161,20 @@ const SessionDetail = () => {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <Button 
-                        className="w-full bg-accent hover:bg-accent-hover"
-                        onClick={() => toast({ title: "Feature preview", description: "Bulk publishing will be available soon!" })}
+                        variant="outline" 
+                        className="w-full"
+                        onClick={handleAddExistingSpeaker}
                       >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Publish All Clips
+                        <Users className="h-4 w-4 mr-2" />
+                        Add Existing Speaker
                       </Button>
-                      <Button variant="outline" className="w-full">
-                        <Share2 className="h-4 w-4 mr-2" />
-                        Speaker Microsite
-                      </Button>
-                      <Button variant="outline" className="w-full">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Content Pack
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={handleAddNewSpeaker}
+                      >
+                        <Users className="h-4 w-4 mr-2" />
+                        Add New Speaker
                       </Button>
                     </CardContent>
                   </Card>
@@ -1010,35 +1215,96 @@ const SessionDetail = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Speakers */}
+                  {/* Speakers & Microsites */}
                   <Card className="shadow-card">
                     <CardHeader>
-                      <CardTitle className="text-lg">Speakers</CardTitle>
+                      <CardTitle className="text-lg">Speakers & Microsites</CardTitle>
+                      <CardDescription className="text-xs">
+                        Each speaker gets their own lead generation microsite
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2">
-                        {session.session_data?.speaker_name ? (
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              {speaker?.headshot_url ? (
-                                <AvatarImage src={speaker.headshot_url} alt={speaker.full_name} />
-                              ) : null}
-                              <AvatarFallback className="text-sm font-medium bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                                {session.session_data.speaker_name.split(' ').map(n => n[0]).join('')}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium">{session.session_data.speaker_name}</span>
-                              {speaker?.job_title && speaker?.company && (
-                                <span className="text-xs text-muted-foreground">
-                                  {speaker.job_title} at {speaker.company}
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                      <div className="space-y-3">
+                        {/* Show speakers from fetched microsites (PRIORITY: always show these first) */}
+                        {speakers.length > 0 ? (
+                          speakers.map((micrositeData, index) => (
+                            <SpeakerManagementCard
+                              key={micrositeData.speakers?.id || index}
+                              speaker={{
+                                id: micrositeData.speakers?.id || `unknown-${index}`,
+                                full_name: micrositeData.speakers?.full_name || 'Unknown Speaker',
+                                email: micrositeData.speakers?.email || '',
+                                company: micrositeData.speakers?.company || '',
+                                job_title: micrositeData.speakers?.job_title || '',
+                                bio: micrositeData.speakers?.bio || '',
+                                linkedin_url: micrositeData.speakers?.linkedin_url || '',
+                                headshot_url: micrositeData.speakers?.headshot_url || null,
+                                slug: micrositeData.speakers?.slug || '',
+                                created_at: micrositeData.speakers?.created_at || ''
+                              }}
+                              onEdit={handleEditSpeaker}
+                              onAdvanced={handleAdvancedSpeaker}
+                              onDelete={handleDeleteSpeaker}
+                              onViewMicrosite={handleViewMicrosite}
+                              compact={true}
+                            />
+                          ))
+                        ) : 
+                        /* FALLBACK: Handle multiple speakers from new format */
+                        session.session_data?.speaker_names && session.session_data.speaker_names.length > 0 ? (
+                          session.session_data.speaker_names.map((speakerName: string, index: number) => {
+                            const speakerId = session.session_data?.speaker_ids?.[index];
+                            const speakerData = speakers.find(s => s.speakers?.id === speakerId)?.speakers;
+                            
+                            return (
+                              <SpeakerManagementCard
+                                key={index}
+                                speaker={{
+                                  id: speakerId || `temp-${index}`,
+                                  full_name: speakerName,
+                                  email: speakerData?.email || '',
+                                  company: speakerData?.company || '',
+                                  job_title: speakerData?.job_title || '',
+                                  bio: speakerData?.bio || '',
+                                  linkedin_url: speakerData?.linkedin_url || '',
+                                  headshot_url: speakerData?.headshot_url || null,
+                                  slug: speakerData?.slug || '',
+                                  created_at: speakerData?.created_at || ''
+                                }}
+                                onEdit={handleEditSpeaker}
+                                onAdvanced={handleAdvancedSpeaker}
+                                onDelete={handleDeleteSpeaker}
+                                onViewMicrosite={handleViewMicrosite}
+                                compact={true}
+                              />
+                            );
+                          })
+                        ) : 
+                        /* FALLBACK: Handle legacy single speaker format */
+                        session.session_data?.speaker_name ? (
+                          <SpeakerManagementCard
+                            speaker={{
+                              id: speaker?.id || 'legacy',
+                              full_name: session.session_data.speaker_name,
+                              email: speaker?.email || '',
+                              company: speaker?.company || '',
+                              job_title: speaker?.job_title || '',
+                              bio: speaker?.bio || '',
+                              linkedin_url: speaker?.linkedin_url || '',
+                              headshot_url: speaker?.headshot_url || null,
+                              slug: speaker?.slug || '',
+                              created_at: speaker?.created_at || ''
+                            }}
+                            onEdit={handleEditSpeaker}
+                            onAdvanced={handleAdvancedSpeaker}
+                            onDelete={handleDeleteSpeaker}
+                            onViewMicrosite={handleViewMicrosite}
+                            compact={true}
+                          />
                         ) : (
-                          <div className="text-sm text-muted-foreground">
-                            No speaker assigned to this session.</div>
+                          <div className="text-sm text-muted-foreground text-center py-4">
+                            No speakers assigned to this session.
+                          </div>
                         )}
                       </div>
                     </CardContent>
@@ -1203,6 +1469,41 @@ const SessionDetail = () => {
             )}
           </DialogContent>
         </Dialog>
+
+      {/* Add the modals before the closing tags */}
+      <QuickEditSpeakerModal
+        speaker={selectedSpeakerForEdit}
+        isOpen={isQuickEditOpen}
+        onClose={() => {
+          setIsQuickEditOpen(false);
+          setSelectedSpeakerForEdit(null);
+        }}
+        onUpdate={handleSpeakerUpdate}
+      />
+
+      <AdvancedSpeakerModal
+        speaker={selectedSpeakerForAdvanced}
+        isOpen={isAdvancedModalOpen}
+        onClose={() => {
+          setIsAdvancedModalOpen(false);
+          setSelectedSpeakerForAdvanced(null);
+        }}
+        onUpdate={handleSpeakerUpdate}
+        onDelete={handleSpeakerDelete}
+      />
+
+      <AddSpeakerModal
+        isOpen={isAddSpeakerModalOpen}
+        onClose={() => setIsAddSpeakerModalOpen(false)}
+        onSpeakerCreated={handleSpeakerCreated}
+      />
+
+      <SelectExistingSpeakerModal
+        isOpen={isSelectExistingModalOpen}
+        onClose={() => setIsSelectExistingModalOpen(false)}
+        onSpeakersSelected={handleExistingSpeakersSelected}
+        excludeSpeakerIds={getExistingSpeakerIds()}
+      />
     </SidebarProvider>
   );
 };
