@@ -94,8 +94,8 @@ export default function AllSpeakers() {
     try {
       setLoading(true);
       
-      // Fetch speakers with aggregated metrics
-      const { data: speakersData, error: speakersError } = await supabase
+      // Fetch speakers with simple query (aggregated metrics will be calculated separately)
+      const { data: speakersData, error: speakersError } = await (supabase as any)
         .from('speakers')
         .select(`
           id,
@@ -107,32 +107,7 @@ export default function AllSpeakers() {
           linkedin_url,
           headshot_url,
           slug,
-          created_at,
-          speaker_microsites!inner (
-            id,
-            session_id,
-            microsite_url,
-            is_live,
-            created_at,
-            user_sessions!inner (
-              id,
-              session_name,
-              processing_status,
-              created_at,
-              event_id,
-              events!inner (
-                id,
-                name,
-                subdomain
-              )
-            ),
-            attribution_tracking (
-              id,
-              conversion_value,
-              conversion_type,
-              created_at
-            )
-          )
+          created_at
         `)
         .eq('created_by', user!.id)
         .order('created_at', { ascending: false });
@@ -140,7 +115,7 @@ export default function AllSpeakers() {
       if (speakersError) throw speakersError;
 
       // Fetch user's events
-      const { data: eventsData, error: eventsError } = await supabase
+      const { data: eventsData, error: eventsError } = await (supabase as any)
         .from('events')
         .select('id, name, subdomain')
         .eq('user_id', user!.id)

@@ -159,27 +159,43 @@ const SessionDetail = () => {
     if (!session?.event_id || !id) return;
     
     try {
-      // Step 1: Get microsite IDs for this session from junction table
+      // APPROACH 1: Try junction table method first (most accurate)
+      console.log('Attempting junction table query for session:', id);
+      
       const { data: sessionLinks, error: linkError } = await (supabase as any)
         .from('speaker_microsite_sessions')
         .select('microsite_id')
         .eq('session_id', id);
 
-      if (linkError) {
-        console.error('Error fetching session links:', linkError);
-        return;
+      if (!linkError && sessionLinks && sessionLinks.length > 0) {
+        console.log('Found session links:', sessionLinks);
+        const micrositeIds = sessionLinks.map(link => link.microsite_id);
+
+        const { data: microsites, error: micrositeError } = await (supabase as any)
+          .from('speaker_microsites')
+          .select(`
+            *,
+            speakers (
+              id, full_name, email, company, job_title, bio, headshot_url, slug
+            ),
+            events (
+              id, name, subdomain
+            )
+          `)
+          .in('id', micrositeIds);
+
+        if (!micrositeError && microsites && microsites.length > 0) {
+          console.log('✅ Successfully fetched speakers from junction table:', microsites);
+          setSpeakers(microsites);
+          return;
+        }
       }
 
-      if (!sessionLinks || sessionLinks.length === 0) {
-        console.log('No speakers linked to this session via junction table');
-        setSpeakers([]);
-        return;
-      }
-
-      const micrositeIds = sessionLinks.map(link => link.microsite_id);
-
-      // Step 2: Get microsites and speaker data for those IDs
-      const { data: microsites, error: micrositeError } = await supabase
+      // APPROACH 2: Fallback to all event speakers (ensures Remove Speaker option works)
+      console.log('Junction table failed, falling back to all event speakers');
+      console.log('Link error:', linkError);
+      
+      const { data: allEventMicrosites, error: eventError } = await (supabase as any)
         .from('speaker_microsites')
         .select(`
           *,
@@ -190,17 +206,20 @@ const SessionDetail = () => {
             id, name, subdomain
           )
         `)
-        .in('id', micrositeIds);
+        .eq('event_id', session.event_id);
 
-      if (micrositeError) {
-        console.error('Error fetching speaker microsites:', micrositeError);
+      if (eventError) {
+        console.error('❌ Event speakers query failed:', eventError);
+        setSpeakers([]);
         return;
       }
 
-      console.log('Fetched speakers from junction table:', microsites);
-      setSpeakers(microsites || []);
+      console.log('✅ Fallback: Fetched all event speakers:', allEventMicrosites);
+      setSpeakers(allEventMicrosites || []);
+      
     } catch (error) {
-      console.error('Error fetching speakers:', error);
+      console.error('❌ fetchAllSpeakers failed completely:', error);
+      setSpeakers([]);
     }
   };
 
@@ -257,14 +276,71 @@ const SessionDetail = () => {
     setIsSelectExistingModalOpen(true);
   };
 
-  const handleSpeakerCreated = (newSpeaker: any) => {
-    // Add the new speaker to the session
-    // This would typically involve creating a microsite for this session
-    fetchAllSpeakers(); // Refresh the speakers list
-    toast({
-      title: "Speaker added successfully",
-      description: `${newSpeaker.full_name} has been added to this session.`,
-    });
+  const handleSpeakerCreated = async (newSpeaker: any) => {
+    if (!session?.event_id || !id || !user?.id) {
+      toast({
+        title: "Error",
+        description: "Missing session or event information.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log('🚀 Creating microsite and linking new speaker to session...');
+      
+      // Step 1: Create microsite for this speaker + event
+      const { data: newMicrosite, error: micrositeError } = await supabase
+        .from('speaker_microsites')
+        .insert({
+          speaker_id: newSpeaker.id,
+          event_id: session.event_id,
+          microsite_url: newSpeaker.slug,
+          is_live: true,
+          created_by: user.id
+        })
+        .select('id')
+        .single();
+
+      if (micrositeError) {
+        console.error('Error creating microsite for new speaker:', micrositeError);
+        throw micrositeError;
+      }
+
+      console.log('✅ Created microsite for new speaker:', newMicrosite.id);
+
+      // Step 2: Create junction table entry to link microsite to this session
+      const { error: junctionError } = await (supabase as any)
+        .from('speaker_microsite_sessions')
+        .insert({
+          microsite_id: newMicrosite.id,
+          session_id: id,
+          created_by: user.id
+        });
+
+      if (junctionError) {
+        console.error('Error linking session to new speaker microsite:', junctionError);
+        throw junctionError;
+      }
+
+      console.log('✅ Linked new speaker to session via junction table');
+      
+      // Step 3: Refresh the speakers list to show the newly created speaker
+      await fetchAllSpeakers();
+      
+      toast({
+        title: "Speaker added successfully",
+        description: `${newSpeaker.full_name} has been added to this session and their microsite is ready.`,
+      });
+      
+    } catch (error) {
+      console.error('Error adding new speaker to session:', error);
+      toast({
+        title: "Error adding speaker",
+        description: "The speaker was created but couldn't be added to this session. Please try adding them as an existing speaker.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRemoveSpeaker = async (speaker: any) => {

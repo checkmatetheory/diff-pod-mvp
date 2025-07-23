@@ -29,6 +29,7 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   
   const [formData, setFormData] = useState({
     full_name: "",
@@ -44,10 +45,7 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const processImageFile = async (file: File) => {
     // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
@@ -100,6 +98,45 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
       setUploadingImage(false);
     }
   };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await processImageFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(file => file.type.startsWith('image/'));
+    
+    if (imageFile) {
+      await processImageFile(imageFile);
+    } else if (files.length > 0) {
+      toast({
+        title: "Invalid file type",
+        description: "Please drag and drop an image file (JPG, PNG, etc.)",
+        variant: "destructive",
+      });
+    }
+  };
+
+
 
   const removeImage = () => {
     setFormData(prev => ({ ...prev, headshot_url: "" }));
@@ -188,7 +225,16 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
         
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Speaker Image Upload */}
-          <div className="flex items-center gap-4">
+          <div 
+            className={`flex items-center gap-4 p-4 rounded-lg border-2 border-dashed transition-colors ${
+              isDragOver 
+                ? 'border-blue-500 bg-blue-50' 
+                : 'border-gray-300 hover:border-gray-400'
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             {formData.headshot_url ? (
               <div className="relative">
                 <img
@@ -205,8 +251,14 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
                 </button>
               </div>
             ) : (
-              <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                <Users className="h-8 w-8 text-gray-400" />
+              <div className={`w-20 h-20 rounded-full border-2 border-dashed flex items-center justify-center transition-colors ${
+                isDragOver 
+                  ? 'border-blue-500 bg-blue-100' 
+                  : 'border-gray-300 bg-gray-50'
+              }`}>
+                <Users className={`h-8 w-8 transition-colors ${
+                  isDragOver ? 'text-blue-500' : 'text-gray-400'
+                }`} />
               </div>
             )}
             <div className="flex-1">
@@ -231,7 +283,13 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
                 )}
               </Button>
               <p className="text-xs text-gray-500">
-                JPG, PNG up to 5MB. Square image recommended.
+                {isDragOver 
+                  ? "Drop image here..." 
+                  : "JPG, PNG up to 5MB. Square image recommended."
+                }
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Click to browse or drag & drop an image
               </p>
               <input
                 id="modal-headshot-input"

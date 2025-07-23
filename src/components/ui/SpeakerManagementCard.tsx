@@ -17,7 +17,8 @@ import {
   BarChart3, 
   Trash2,
   Copy,
-  Settings
+  Settings,
+  UserMinus
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -140,6 +141,15 @@ export default function SpeakerManagementCard({
               Advanced Options
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {onRemove && (
+              <DropdownMenuItem 
+                onClick={() => onRemove(speaker)}
+                className="text-orange-600 focus:text-orange-600"
+              >
+                <UserMinus className="h-4 w-4 mr-2" />
+                Remove Speaker
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem 
               onClick={() => onDelete(speaker)}
               className="text-destructive focus:text-destructive"
