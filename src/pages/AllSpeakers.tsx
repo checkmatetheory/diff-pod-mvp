@@ -94,7 +94,7 @@ export default function AllSpeakers() {
     try {
       setLoading(true);
       
-      // Fetch speakers with simple query (aggregated metrics will be calculated separately)
+      // Fetch speakers with microsite data using junction table
       const { data: speakersData, error: speakersError } = await (supabase as any)
         .from('speakers')
         .select(`
@@ -107,7 +107,19 @@ export default function AllSpeakers() {
           linkedin_url,
           headshot_url,
           slug,
-          created_at
+          created_at,
+          speaker_microsites (
+            id,
+            is_live,
+            event_id,
+            speaker_microsite_sessions (
+              user_sessions (
+                events (
+                  subdomain
+                )
+              )
+            )
+          )
         `)
         .eq('created_by', user!.id)
         .order('created_at', { ascending: false });
@@ -136,7 +148,7 @@ export default function AllSpeakers() {
           avg_engagement: Math.random() * 100, // Mock data
           revenue_attributed: attributions.reduce((sum, attr) => sum + (attr.conversion_value || 0), 0),
           latest_session_date: microsites[0]?.created_at || null,
-          top_performing_event: microsites[0]?.user_sessions?.events?.name || null
+          top_performing_event: microsites[0]?.speaker_microsite_sessions?.[0]?.user_sessions?.events?.name || null
         };
       }) || [];
 
@@ -204,8 +216,13 @@ export default function AllSpeakers() {
     // Find the first live microsite for this speaker
     const liveMicrosite = (speaker as any).speaker_microsites?.find((m: any) => m.is_live);
     
-    if (liveMicrosite?.user_sessions?.events?.subdomain && speaker.slug) {
-      return `/event/${liveMicrosite.user_sessions.events.subdomain}/speaker/${speaker.slug}`;
+    if (liveMicrosite?.speaker_microsite_sessions?.length > 0) {
+      const session = liveMicrosite.speaker_microsite_sessions[0];
+      const eventSubdomain = session?.user_sessions?.events?.subdomain;
+      
+      if (eventSubdomain && speaker.slug) {
+        return `/event/${eventSubdomain}/speaker/${speaker.slug}`;
+      }
     }
     
     return null;

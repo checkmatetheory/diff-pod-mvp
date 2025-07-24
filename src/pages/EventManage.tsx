@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -19,7 +20,8 @@ import {
   Upload,
   Trash2,
   MoreVertical,
-  User
+  User,
+  Search
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -91,6 +93,7 @@ const EventManage = () => {
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [savingBranding, setSavingBranding] = useState(false);
   const [activeTab, setActiveTab] = useState("sessions");
+  const [sessionSearchTerm, setSessionSearchTerm] = useState('');
   const [stats, setStats] = useState({
     totalSessions: 0,
     completedSessions: 0,
@@ -99,6 +102,17 @@ const EventManage = () => {
   });
 
   const activeSpeakersCount = speakers.length;
+
+  // Optimized session filtering with useMemo for performance
+  const filteredSessions = useMemo(() => {
+    if (!sessionSearchTerm) return sessions;
+    const searchLower = sessionSearchTerm.toLowerCase();
+    return sessions.filter(session => 
+      session.session_name.toLowerCase().includes(searchLower) ||
+      session.processing_status.toLowerCase().includes(searchLower) ||
+      (session.generated_summary && session.generated_summary.toLowerCase().includes(searchLower))
+    );
+  }, [sessions, sessionSearchTerm]);
 
   useEffect(() => {
     if (eventId) {
@@ -500,6 +514,19 @@ const EventManage = () => {
                         </Button>
                       </div>
 
+                      {/* Session Search Bar */}
+                      {sessions.length > 0 && (
+                        <div className="relative max-w-lg">
+                          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-textSecondary" />
+                          <Input
+                            placeholder="Search sessions by name, status, or content..."
+                            value={sessionSearchTerm}
+                            onChange={(e) => setSessionSearchTerm(e.target.value)}
+                            className="pl-12 py-3 text-base border-accent bg-white shadow-sm rounded-full focus:ring-2 focus:ring-primary focus:border-primary"
+                          />
+                        </div>
+                      )}
+
                       {/* Sessions List */}
                       <div className="space-y-4">
                         {sessions.length === 0 ? (
@@ -518,8 +545,16 @@ const EventManage = () => {
                               Upload First Session
                             </Button>
                           </div>
+                        ) : filteredSessions.length === 0 ? (
+                          <div className="text-center py-12">
+                            <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <h4 className="text-lg font-medium text-gray-700 mb-2">No sessions found</h4>
+                            <p className="text-gray-500 mb-4">
+                              Try adjusting your search terms to find the sessions you're looking for
+                            </p>
+                          </div>
                         ) : (
-                          sessions.map((session) => (
+                          filteredSessions.map((session) => (
                             <Card key={session.id} className="border-0 backdrop-blur-md bg-white/40 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
                               <CardContent className="p-6">
                                 <div className="flex items-center justify-between">

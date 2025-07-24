@@ -27,7 +27,6 @@ import {
   Archive,
   Crown,
   Database,
-  Key,
   Palette,
   Volume2,
   Zap,
@@ -106,6 +105,11 @@ export default function Settings() {
   const [deletionDetails, setDeletionDetails] = useState<DeletionDetails | null>(null);
   const [loadingDeletionDetails, setLoadingDeletionDetails] = useState(false);
 
+  // Email change modal state
+  const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailChangeLoading, setEmailChangeLoading] = useState(false);
+
   // Settings state
   const [settings, setSettings] = useState({
     notifications: {
@@ -132,6 +136,23 @@ export default function Settings() {
       loadUserData();
     }
   }, [user]);
+
+  // Listen for email change confirmations
+  useEffect(() => {
+    if (!user) return;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'USER_UPDATED' && session?.user) {
+        // Update profile email when user email is confirmed
+        if (session.user.email !== profile.email) {
+          setProfile(prev => ({ ...prev, email: session.user.email || '' }));
+          toast.success("Email successfully updated!");
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [user, profile.email]);
 
   const loadUserData = async () => {
     setLoading(true);
@@ -241,6 +262,55 @@ export default function Settings() {
       toast.error("Failed to update profile");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleEmailChange = async () => {
+    if (!newEmail || !newEmail.includes('@')) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    if (newEmail === profile.email) {
+      toast.error("New email must be different from current email");
+      return;
+    }
+
+    setEmailChangeLoading(true);
+    try {
+      // Use Supabase Auth to update email - this automatically sends verification emails
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail
+      });
+
+      if (error) {
+        if (error.message.includes('email_change_confirm_status')) {
+          toast.success("Verification emails sent! Please check both your current and new email addresses.");
+          setShowEmailChangeModal(false);
+          setNewEmail('');
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success(`Verification emails sent to both ${profile.email} and ${newEmail}. Please confirm both emails to complete the change.`);
+        setShowEmailChangeModal(false);
+        setNewEmail('');
+      }
+    } catch (error: any) {
+      console.error('Error updating email:', error);
+      
+      // Handle specific Supabase Auth errors
+      if (error.message?.includes('email_address_invalid')) {
+        toast.error("Please enter a valid email address");
+      } else if (error.message?.includes('email_address_not_authorized')) {
+        toast.error("This email domain is not authorized");
+      } else if (error.message?.includes('too_many_requests')) {
+        toast.error("Too many requests. Please wait a few minutes before trying again.");
+      } else {
+        toast.error("Failed to update email. Please try again.");
+      }
+    } finally {
+      setEmailChangeLoading(false);
     }
   };
 
@@ -463,7 +533,12 @@ export default function Settings() {
                               <p className="text-xs text-muted-foreground">
                                 Email changes require verification
                               </p>
-                              <Button variant="link" size="sm" className="text-xs p-0 h-auto">
+                              <Button 
+                                variant="link" 
+                                size="sm" 
+                                className="text-xs p-0 h-auto"
+                                onClick={() => setShowEmailChangeModal(true)}
+                              >
                                 Change Email
                               </Button>
                             </div>
@@ -823,10 +898,10 @@ export default function Settings() {
                                 Unlimited speakers, advanced analytics, priority support
                               </p>
                             </div>
-                            <div className="text-right">
-                              <p className="text-2xl font-bold">$29</p>
+                                                        <div className="text-right">
+                              <p className="text-2xl font-bold">$365</p>
                               <p className="text-sm text-muted-foreground">per month</p>
-                    </div>
+                            </div>
                   </div>
 
                           <div className="flex gap-3 pt-4 border-t">
@@ -876,29 +951,6 @@ export default function Settings() {
                 {/* Advanced Tab */}
                 <TabsContent value="advanced">
                   <div className="grid gap-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>API Access</CardTitle>
-                        <CardDescription>
-                          Manage API keys and integrations
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between p-4 border rounded-lg">
-                          <div>
-                            <h3 className="font-medium">API Key</h3>
-                            <p className="text-sm text-muted-foreground">
-                              Use this key to integrate with our API
-                            </p>
-                          </div>
-                          <Button variant="outline">
-                            <Key className="h-4 w-4 mr-2" />
-                            Generate Key
-                          </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
                     <Card className="border-destructive">
                       <CardHeader>
                         <CardTitle className="text-destructive flex items-center gap-2">
@@ -917,10 +969,10 @@ export default function Settings() {
                               Permanently delete your account and all associated data
                             </p>
                       </div>
-                          <Button variant="destructive">
+                          <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white border-red-600">
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete Account
-                      </Button>
+                          </Button>
                     </div>
                       </CardContent>
                     </Card>
@@ -1001,6 +1053,84 @@ export default function Settings() {
                 <>
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Forever
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Change Modal */}
+      <Dialog open={showEmailChangeModal} onOpenChange={setShowEmailChangeModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Email Address</DialogTitle>
+            <DialogDescription>
+              For security, we'll send verification links to both your current and new email addresses. 
+              You must confirm both emails to complete the change.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="current-email">Current Email</Label>
+              <Input
+                id="current-email"
+                value={profile.email}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="new-email">New Email Address</Label>
+              <Input
+                id="new-email"
+                type="email"
+                placeholder="Enter your new email address"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                disabled={emailChangeLoading}
+              />
+            </div>
+
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <Shield className="h-5 w-5 text-blue-400" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-blue-800">
+                    Security Notice
+                  </h3>
+                  <div className="mt-2 text-sm text-blue-700">
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>Check your current email ({profile.email}) for a confirmation link</li>
+                      <li>Check your new email for a verification link</li>
+                      <li>Both links must be clicked to complete the change</li>
+                      <li>This process helps protect your account from unauthorized changes</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              onClick={handleEmailChange}
+              disabled={emailChangeLoading || !newEmail}
+              className="bg-blue-600 hover:bg-blue-700 text-white w-full"
+            >
+              {emailChangeLoading ? (
+                <>
+                  <Settings2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending Verification...
+                </>
+              ) : (
+                <>
+                  <Shield className="h-4 w-4 mr-2" />
+                  Send Verification Emails
                 </>
               )}
             </Button>

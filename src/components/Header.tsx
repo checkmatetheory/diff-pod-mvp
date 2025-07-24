@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Settings, User, Bell } from "lucide-react";
+import { Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { UserMenu } from "@/components/UserMenu";
@@ -32,8 +31,8 @@ const Header = () => {
           <Link to="/events" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
             Events
           </Link>
-          <Link to="/portfolios" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-            Portfolios
+          <Link to="/speakers" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+            Speakers
           </Link>
           <Link to="/settings" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
             Settings
@@ -42,17 +41,8 @@ const Header = () => {
 
         {/* Actions */}
         <div className="flex items-center space-x-3">
-          <Badge variant="secondary" className="hidden sm:flex bg-secondary text-secondary-foreground font-medium">
-            Free Plan
-          </Badge>
           <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary hover:bg-secondary">
             <Bell className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary hover:bg-secondary">
-            <Settings className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary hover:bg-secondary">
-            <User className="h-4 w-4" />
           </Button>
           <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-all duration-200">
             Upgrade Pro

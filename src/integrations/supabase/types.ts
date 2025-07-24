@@ -915,7 +915,6 @@ export type Database = {
           microsite_url: string
           published_at: string | null
           rejection_reason: string | null
-          session_id: string | null
           speaker_id: string
           speaker_notification_email: string | null
           speaker_notified_at: string | null
@@ -941,7 +940,6 @@ export type Database = {
           microsite_url: string
           published_at?: string | null
           rejection_reason?: string | null
-          session_id?: string | null
           speaker_id: string
           speaker_notification_email?: string | null
           speaker_notified_at?: string | null
@@ -967,7 +965,6 @@ export type Database = {
           microsite_url?: string
           published_at?: string | null
           rejection_reason?: string | null
-          session_id?: string | null
           speaker_id?: string
           speaker_notification_email?: string | null
           speaker_notified_at?: string | null
@@ -986,19 +983,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "speaker_microsites_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "user_sessions"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "speaker_microsites_speaker_id_fkey"
             columns: ["speaker_id"]
             isOneToOne: false
             referencedRelation: "speakers"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      speaker_microsite_sessions: {
+        Row: {
+          id: string
+          microsite_id: string
+          session_id: string
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          microsite_id: string
+          session_id: string
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          microsite_id?: string
+          session_id?: string
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_microsite_sessions_microsite_id_fkey"
+            columns: ["microsite_id"]
+            isOneToOne: false
+            referencedRelation: "speaker_microsites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_microsite_sessions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["id"]
+          }
         ]
       }
       speakers: {

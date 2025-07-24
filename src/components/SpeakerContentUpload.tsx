@@ -323,7 +323,6 @@ const SpeakerContentUpload = () => {
           .insert({
             event_id: selectedEventId,
             speaker_id: speakerId,
-            session_id: sessionId,
             microsite_url: micrositeUrl,
             custom_cta_text: `Get Early Access to ${selectedEvent.name} ${new Date().getFullYear() + 1}`,
             approval_status: 'approved', // Auto-approve for now
@@ -336,6 +335,20 @@ const SpeakerContentUpload = () => {
         if (micrositeError) {
           console.error('Speaker microsite creation error:', micrositeError);
           continue; // Continue with other speakers
+        }
+
+        // Create junction table entry to link microsite to session
+        const { error: junctionError } = await supabase
+          .from('speaker_microsite_sessions')
+          .insert({
+            microsite_id: microsite.id,
+            session_id: sessionId,
+            created_by: user!.id
+          });
+
+        if (junctionError) {
+          console.error('Junction table creation error:', junctionError);
+          // Continue - microsite was created successfully
         }
 
         // Create speaker content record

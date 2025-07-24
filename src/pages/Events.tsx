@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "@/components/Header";
@@ -10,9 +10,11 @@ import {
   TrendingUp,
   Play,
   Clock,
-  Award
+  Award,
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
@@ -43,6 +45,7 @@ interface Event {
 export default function Events() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const { openModal } = useCreateEventModal(); // Remove isOpen completely
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -152,6 +155,18 @@ export default function Events() {
     }).format(amount);
   };
 
+  // Optimized filtering with useMemo for performance
+  const filteredEvents = useMemo(() => {
+    if (!searchTerm) return events;
+    const searchLower = searchTerm.toLowerCase();
+    return events.filter(event => 
+      event.name.toLowerCase().includes(searchLower) ||
+      event.description.toLowerCase().includes(searchLower) ||
+      event.status.toLowerCase().includes(searchLower) ||
+      event.top_performing_speaker.toLowerCase().includes(searchLower)
+    );
+  }, [events, searchTerm]);
+
   const totalRevenue = events.reduce((sum, event) => sum + event.revenue_attributed, 0);
   const totalTickets = events.reduce((sum, event) => sum + event.tickets_sold, 0);
   const liveEvents = events.filter(e => e.status === 'live').length;
@@ -231,6 +246,17 @@ export default function Events() {
                 </Button>
               </div>
 
+              {/* Search Bar */}
+              <div className="relative max-w-lg mb-12">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-textSecondary" />
+                <Input
+                  placeholder="Search events by name, description, or status..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-12 py-3 text-base border-accent bg-white shadow-sm rounded-full focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+              </div>
+
               {/* Essential Metrics - Glassmorphism Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="border-0 backdrop-blur-md bg-white/40 shadow-xl border border-white/30 hover:shadow-2xl transition-all duration-300">
@@ -284,7 +310,8 @@ export default function Events() {
 
               {/* Events List - Glass Cards */}
               <div className="space-y-6">
-                {events.length === 0 ? (
+                {/* Empty State - No Events */}
+                {events.length === 0 && (
                   <Card className="border-0 backdrop-blur-md bg-white/40 shadow-xl border border-white/30">
                     <CardContent className="flex flex-col items-center justify-center py-16">
                       <div className="text-center max-w-md">
@@ -306,111 +333,129 @@ export default function Events() {
                       </div>
                     </CardContent>
                   </Card>
-                ) : (
-                  events.map((event) => (
-                    <Card key={event.id} className="border-0 backdrop-blur-md bg-white/50 shadow-xl border border-white/40 hover:shadow-2xl hover:bg-white/60 transition-all duration-300">
-                      <CardContent className="p-8">
-                        
-                        {/* Event Header */}
-                        <div className="flex justify-between items-start mb-8">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                              <h3 className="text-xl font-semibold text-gray-800">{event.name}</h3>
-                              <Badge 
-                                variant={event.status === 'live' ? 'default' : 'secondary'}
-                                className={
-                                  event.status === 'live' 
-                                    ? 'bg-green-100/80 text-green-800 backdrop-blur-sm border border-green-200/50' 
-                                    : event.status === 'planning'
-                                    ? 'bg-blue-100/80 text-blue-700 backdrop-blur-sm border border-blue-200/50'
-                                    : 'bg-gray-100/80 text-gray-700 backdrop-blur-sm border border-gray-200/50'
-                                }
-                              >
-                                {event.status === 'live' && <Play className="w-3 h-3 mr-1" />}
-                                {event.status === 'planning' && <Clock className="w-3 h-3 mr-1" />}
-                                {event.status}
+                )}
+
+                {/* Empty State - No Search Results */}
+                {events.length > 0 && filteredEvents.length === 0 && (
+                  <Card className="border-0 backdrop-blur-md bg-white/40 shadow-xl border border-white/30">
+                    <CardContent className="flex flex-col items-center justify-center py-16">
+                      <div className="text-center max-w-md">
+                        <div className="p-4 bg-gray-100/60 backdrop-blur-sm rounded-2xl inline-block mb-4">
+                          <Search className="h-16 w-16 text-gray-400 mx-auto" />
+                        </div>
+                        <h3 className="text-xl font-semibold mb-2 text-gray-800">No events found</h3>
+                        <p className="text-gray-600 mb-6">
+                          Try adjusting your search terms to find the events you're looking for
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Events List */}
+                {filteredEvents.map((event) => (
+                  <Card key={event.id} className="border-0 backdrop-blur-md bg-white/50 shadow-xl border border-white/40 hover:shadow-2xl hover:bg-white/60 transition-all duration-300">
+                    <CardContent className="p-8">
+                      
+                      {/* Event Header */}
+                      <div className="flex justify-between items-start mb-8">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h3 className="text-xl font-semibold text-gray-800">{event.name}</h3>
+                            <Badge 
+                              variant={event.status === 'live' ? 'default' : 'secondary'}
+                              className={
+                                event.status === 'live' 
+                                  ? 'bg-green-100/80 text-green-800 backdrop-blur-sm border border-green-200/50' 
+                                  : event.status === 'planning'
+                                  ? 'bg-blue-100/80 text-blue-700 backdrop-blur-sm border border-blue-200/50'
+                                  : 'bg-gray-100/80 text-gray-700 backdrop-blur-sm border border-gray-200/50'
+                              }
+                            >
+                              {event.status === 'live' && <Play className="w-3 h-3 mr-1" />}
+                              {event.status === 'planning' && <Clock className="w-3 h-3 mr-1" />}
+                              {event.status}
+                            </Badge>
+                            {event.pending_approvals > 0 && (
+                              <Badge className="bg-orange-100/80 text-orange-700 backdrop-blur-sm border border-orange-200/50">
+                                {event.pending_approvals} pending
                               </Badge>
-                              {event.pending_approvals > 0 && (
-                                <Badge className="bg-orange-100/80 text-orange-700 backdrop-blur-sm border border-orange-200/50">
-                                  {event.pending_approvals} pending
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-gray-600">{event.description}</p>
+                            )}
                           </div>
-                          
-                          <div className="flex gap-3">
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => navigate(`/events/${event.id}/manage`)}
-                              className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm shadow-lg border border-blue-500/20"
-                            >
-                              Manage
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(`/event/${event.subdomain}`, '_blank')}
-                              className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70 shadow-lg"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </Button>
-                          </div>
+                          <p className="text-gray-600">{event.description}</p>
                         </div>
-
-                        {/* Key Metrics - Glass Style */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                          <div className="text-center p-4 backdrop-blur-sm bg-white/40 rounded-xl border border-white/30 shadow-lg">
-                            <p className="text-lg font-bold text-gray-800">
-                              {formatCurrency(event.revenue_attributed)}
-                            </p>
-                            <p className="text-sm text-gray-600">Revenue</p>
-                          </div>
-                          <div className="text-center p-4 backdrop-blur-sm bg-white/40 rounded-xl border border-white/30 shadow-lg">
-                            <p className="text-lg font-bold text-gray-800">
-                              {event.tickets_sold.toLocaleString()}
-                            </p>
-                            <p className="text-sm text-gray-600">Tickets</p>
-                          </div>
-                          <div className="text-center p-4 backdrop-blur-sm bg-white/40 rounded-xl border border-white/30 shadow-lg">
-                            <p className="text-lg font-bold text-gray-800">
-                              {event.qualified_leads.toLocaleString()}
-                            </p>
-                            <p className="text-sm text-gray-600">Leads</p>
-                          </div>
-                          <div className="text-center p-4 backdrop-blur-sm bg-white/40 rounded-xl border border-white/30 shadow-lg">
-                            <p className="text-lg font-bold text-gray-800">
-                              {event.conversion_rate}%
-                            </p>
-                            <p className="text-sm text-gray-600">CVR</p>
-                          </div>
+                        
+                        <div className="flex gap-3">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => navigate(`/events/${event.id}/manage`)}
+                            className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm shadow-lg border border-blue-500/20"
+                          >
+                            Manage
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(`/event/${event.subdomain}`, '_blank')}
+                            className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70 shadow-lg"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
                         </div>
+                      </div>
 
-                        {/* Event Details - Clean */}
-                        <div className="flex justify-between items-center text-sm text-gray-600 border-t border-white/30 pt-6">
-                          <div className="flex items-center gap-4">
-                            <span className="flex items-center gap-1">
-                              <Users className="w-4 h-4" />
-                              {event.speaker_count} speakers
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Award className="w-4 w-4" />
-                              Top: {event.top_performing_speaker}
-                            </span>
-                          </div>
+                      {/* Key Metrics - Glass Style */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="text-center p-4 backdrop-blur-sm bg-white/40 rounded-xl border border-white/30 shadow-lg">
+                          <p className="text-lg font-bold text-gray-800">
+                            {formatCurrency(event.revenue_attributed)}
+                          </p>
+                          <p className="text-sm text-gray-600">Revenue</p>
+                        </div>
+                        <div className="text-center p-4 backdrop-blur-sm bg-white/40 rounded-xl border border-white/30 shadow-lg">
+                          <p className="text-lg font-bold text-gray-800">
+                            {event.tickets_sold.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-600">Tickets</p>
+                        </div>
+                        <div className="text-center p-4 backdrop-blur-sm bg-white/40 rounded-xl border border-white/30 shadow-lg">
+                          <p className="text-lg font-bold text-gray-800">
+                            {event.qualified_leads.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-600">Leads</p>
+                        </div>
+                        <div className="text-center p-4 backdrop-blur-sm bg-white/40 rounded-xl border border-white/30 shadow-lg">
+                          <p className="text-lg font-bold text-gray-800">
+                            {event.conversion_rate}%
+                          </p>
+                          <p className="text-sm text-gray-600">CVR</p>
+                        </div>
+                      </div>
+
+                      {/* Event Details - Clean */}
+                      <div className="flex justify-between items-center text-sm text-gray-600 border-t border-white/30 pt-6">
+                        <div className="flex items-center gap-4">
                           <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {event.next_event_date 
-                              ? new Date(event.next_event_date).toLocaleDateString()
-                              : 'Date TBD'
-                            }
+                            <Users className="w-4 h-4" />
+                            {event.speaker_count} speakers
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Award className="w-4 w-4" />
+                            Top: {event.top_performing_speaker}
                           </span>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {event.next_event_date 
+                            ? new Date(event.next_event_date).toLocaleDateString()
+                            : 'Date TBD'
+                          }
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
           </main>

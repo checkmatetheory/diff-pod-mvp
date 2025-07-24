@@ -92,7 +92,13 @@ export default function SpeakerApprovalDashboard() {
           *,
           speaker:speakers(*),
           content:speaker_content(*),
-          session:user_sessions(id, session_name, generated_summary)
+          speaker_microsite_sessions (
+            user_sessions (
+              id,
+              session_name,
+              generated_summary
+            )
+          )
         `)
         .eq('event_id', eventId)
         .in('approval_status', ['pending', 'needs_revision'])

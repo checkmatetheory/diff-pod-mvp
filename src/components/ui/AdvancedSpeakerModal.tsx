@@ -90,9 +90,11 @@ export default function AdvancedSpeakerModal({
           microsite_url,
           is_live,
           total_views,
-          user_sessions (
-            id,
-            session_name
+          speaker_microsite_sessions (
+            user_sessions (
+              id,
+              session_name
+            )
           )
         `)
         .eq('speaker_id', speaker.id);

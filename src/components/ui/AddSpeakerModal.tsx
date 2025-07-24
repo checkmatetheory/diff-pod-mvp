@@ -45,6 +45,40 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Image optimization function for avatars
+  const optimizeImageForAvatar = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Smart cropping - center crop to square
+        const size = Math.min(img.width, img.height);
+        const x = (img.width - size) / 2;
+        const y = (img.height - size) / 2;
+        
+        // Optimal size: 300x300 (good quality, reasonable file size)
+        canvas.width = 300;
+        canvas.height = 300;
+        
+        // Draw cropped and resized image
+        ctx.drawImage(img, x, y, size, size, 0, 0, 300, 300);
+        
+        // Convert to optimized JPEG
+        canvas.toBlob((blob) => {
+          const optimizedFile = new File([blob!], `${Date.now()}-avatar.jpg`, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(optimizedFile);
+        }, 'image/jpeg', 0.85); // 85% quality - good balance
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const processImageFile = async (file: File) => {
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -68,11 +102,13 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
 
     setUploadingImage(true);
     try {
-      const fileName = `speaker-headshots/${Date.now()}-${file.name}`;
+      // Optimize image for avatar use
+      const optimizedFile = await optimizeImageForAvatar(file);
+      const fileName = `speaker-headshots/${Date.now()}-avatar.jpg`;
       
       const { error: uploadError } = await supabase.storage
         .from('assets')
-        .upload(fileName, file);
+        .upload(fileName, optimizedFile);
 
       if (uploadError) throw uploadError;
 
@@ -84,7 +120,7 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
 
       toast({
         title: "Image uploaded successfully",
-        description: "Speaker headshot has been added.",
+        description: "Speaker headshot has been optimized and added.",
       });
 
     } catch (error: any) {
