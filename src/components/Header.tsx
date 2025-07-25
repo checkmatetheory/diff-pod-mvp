@@ -44,9 +44,6 @@ const Header = () => {
           <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary hover:bg-secondary">
             <Bell className="h-4 w-4" />
           </Button>
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-all duration-200">
-            Upgrade Pro
-          </Button>
           <UserMenu />
         </div>
       </div>

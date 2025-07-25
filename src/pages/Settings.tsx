@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,11 +78,13 @@ interface DeletionDetails {
 }
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { openModal } = useCreateEventModal();
   const [activeTab, setActiveTab] = useState('account');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Profile state
   const [profile, setProfile] = useState<UserProfile>({
@@ -248,13 +250,16 @@ export default function Settings() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user!.id,
+        .update({
           display_name: profile.display_name,
           avatar_url: profile.avatar_url
-        });
+        })
+        .eq('user_id', user!.id);
 
       if (error) throw error;
+
+      // Update context profile to sync across all pages
+      updateProfile({ display_name: profile.display_name, avatar_url: profile.avatar_url });
 
       toast.success("Profile updated successfully!");
     } catch (error) {
@@ -263,6 +268,80 @@ export default function Settings() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file (JPG, PNG, or GIF)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      // Create a unique filename following the assets bucket pattern
+      const fileExt = file.name.split('.').pop();
+      const fileName = `user-avatars/${user!.id}-${Date.now()}.${fileExt}`;
+      
+      // Upload to Supabase Storage using the assets bucket (same as speakers and logos)
+      const { data, error: uploadError } = await supabase.storage
+        .from('assets')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error('Upload error details:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('assets')
+        .getPublicUrl(fileName);
+
+      // Update the profile state
+      setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+
+      // Save to database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          display_name: profile.display_name,
+          avatar_url: publicUrl
+        })
+        .eq('user_id', user!.id);
+
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw new Error(`Database update failed: ${updateError.message}`);
+      }
+
+      // Update context profile to sync across all pages
+      updateProfile({ display_name: profile.display_name, avatar_url: publicUrl });
+
+      toast.success('Profile photo updated successfully!');
+    } catch (error: any) {
+      console.error('Error uploading photo:', error);
+      toast.error(`Failed to upload photo: ${error.message}`);
+    } finally {
+      setUploadingAvatar(false);
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleChangePhoto = () => {
+    fileInputRef.current?.click();
   };
 
   const handleEmailChange = async () => {
@@ -501,9 +580,30 @@ export default function Settings() {
                             )}
                           </Avatar>
                           <div>
-                            <Button variant="outline" size="sm">
-                              <Upload className="h-4 w-4 mr-2" />
-                              Change Photo
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handlePhotoUpload}
+                              className="hidden"
+                            />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={handleChangePhoto}
+                              disabled={uploadingAvatar}
+                            >
+                              {uploadingAvatar ? (
+                                <>
+                                  <Settings2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Change Photo
+                                </>
+                              )}
                             </Button>
                             <p className="text-sm text-muted-foreground mt-1">
                               JPG, PNG or GIF. Max size 5MB.

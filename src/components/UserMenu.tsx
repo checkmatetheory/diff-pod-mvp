@@ -13,15 +13,20 @@ import { User, Settings, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const UserMenu = () => {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   if (!user) return null;
 
   const initials = user.email?.charAt(0).toUpperCase() || 'U';
   
-  // Get Google profile photo from user metadata
-  const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
-  const fullName = user.user_metadata?.full_name || user.user_metadata?.name;
+  // Use profile avatar first, fall back to Google auth avatar
+  const avatarUrl = profile?.avatar_url || 
+                   user.user_metadata?.avatar_url || 
+                   user.user_metadata?.picture;
+  
+  const fullName = profile?.display_name || 
+                  user.user_metadata?.full_name || 
+                  user.user_metadata?.name;
 
   return (
     <DropdownMenu>
