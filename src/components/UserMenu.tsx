@@ -8,8 +8,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Settings, LogOut } from 'lucide-react';
+import CachedAvatar from '@/components/ui/cached-avatar';
+import { Settings, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const UserMenu = () => {
@@ -31,19 +31,13 @@ export const UserMenu = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            {avatarUrl ? (
-              <AvatarImage 
-                src={avatarUrl} 
-                alt={fullName || user.email || 'User'} 
-                className="object-cover"
-              />
-            ) : null}
-            <AvatarFallback className="bg-primary text-primary-foreground">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
+          <CachedAvatar 
+            src={avatarUrl}
+            alt={fullName || user.email || 'User'}
+            fallback={initials}
+            size="md"
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>

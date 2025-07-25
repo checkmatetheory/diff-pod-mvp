@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import CachedAvatar from "@/components/ui/cached-avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -570,15 +571,11 @@ export default function Settings() {
                 </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="flex items-center gap-4">
-                          <Avatar className="h-20 w-20">
-                            {profile.avatar_url ? (
-                              <AvatarImage src={profile.avatar_url} alt={profile.display_name} />
-                            ) : (
-                              <AvatarFallback className="text-lg">
-                                {profile.display_name.split(' ').map(n => n[0]).join('')}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
+                          <CachedAvatar
+                            src={profile.avatar_url}
+                            alt={profile.display_name}
+                            fallback={profile.display_name.split(' ').map(n => n[0]).join('')}
+                          />
                           <div>
                             <input
                               ref={fileInputRef}
@@ -776,15 +773,11 @@ export default function Settings() {
                                 {archivedSpeakers.map((speaker) => (
                                   <div key={speaker.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
                                     <div className="flex items-center gap-3">
-                                      <Avatar className="h-10 w-10">
-                                        {speaker.headshot_url ? (
-                                          <AvatarImage src={speaker.headshot_url} alt={speaker.full_name} />
-                                        ) : (
-                                          <AvatarFallback>
-                                            {speaker.full_name.replace('[DELETED] ', '').split(' ').map(n => n[0]).join('')}
-                                          </AvatarFallback>
-                                        )}
-                                      </Avatar>
+                                      <CachedAvatar
+                                        src={speaker.headshot_url}
+                                        alt={speaker.full_name}
+                                        fallback={speaker.full_name.replace('[DELETED] ', '').split(' ').map(n => n[0]).join('')}
+                                      />
                                       <div>
                                         <p className="font-medium text-gray-500">
                                           {speaker.full_name.replace('[DELETED] ', '')}

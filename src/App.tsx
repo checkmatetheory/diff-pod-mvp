@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreateEventModalProvider } from "@/contexts/CreateEventModalContext";
 import GlobalCreateEventModal from "@/components/GlobalCreateEventModal";
+import { AvatarPreloader } from "@/components/AvatarPreloader";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -41,6 +42,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <GlobalCreateEventModal />
+          <AvatarPreloader />
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
