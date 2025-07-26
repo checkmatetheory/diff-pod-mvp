@@ -1014,13 +1014,12 @@ export default function PublicEvent(): JSX.Element {
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Powered by</span>
+              <span>Built with</span>
               <img 
-                src="/diffused logo white no bg.png" 
+                src="/diffused logo back no bg.png" 
                 alt="Diffused" 
                 className="h-5 w-auto"
               />
-              <span>• Turn your events into viral microsites</span>
             </div>
             
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
