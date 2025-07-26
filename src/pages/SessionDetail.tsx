@@ -109,6 +109,7 @@ const SessionDetail = () => {
   const [deleting, setDeleting] = useState(false);
   const [speaker, setSpeaker] = useState<any>(null);
   const [speakers, setSpeakers] = useState<any[]>([]);
+  const [event, setEvent] = useState<any>(null);
   
   // New state for speaker management
   const [selectedSpeakerForEdit, setSelectedSpeakerForEdit] = useState<any>(null);
@@ -152,6 +153,32 @@ const SessionDetail = () => {
     } catch (error) {
       console.error('Error fetching speaker:', error);
       setSpeaker(null);
+    }
+  };
+
+  const fetchEvent = async (eventId: string) => {
+    if (!eventId) {
+      setEvent(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select("subdomain")
+        .eq("id", eventId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching event subdomain:', error);
+        setEvent(null);
+        return;
+      }
+
+      setEvent(data);
+    } catch (error) {
+      console.error('Error fetching event subdomain:', error);
+      setEvent(null);
     }
   };
 
@@ -593,6 +620,7 @@ const SessionDetail = () => {
     // Also fetch all speakers for the event
     if (session?.event_id) {
       fetchAllSpeakers();
+      fetchEvent(session.event_id);
     }
   }, [session]);
 
@@ -1499,7 +1527,7 @@ const SessionDetail = () => {
                   {/* Public URL */}
                   <Card className="shadow-card">
                     <CardHeader>
-                      <CardTitle className="text-lg">Public Recap</CardTitle>
+                      <CardTitle className="text-lg">Public Event Page</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
@@ -1507,14 +1535,26 @@ const SessionDetail = () => {
                         <div className="flex gap-2">
                           <Input
                             id="public-url"
-                            value={session.public_url || session.generated_public_url || 'No public URL available.'}
+                            value={(() => {
+                              const eventSubdomain = speakers[0]?.events?.subdomain || event?.subdomain;
+                              return eventSubdomain 
+                                ? `${window.location.origin}/event/${eventSubdomain}`
+                                : 'Event page URL will be available once event is configured.';
+                            })()}
                             readOnly
                             className="flex-1"
                           />
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleCopy(session.public_url || session.generated_public_url || 'No public URL available.', "URL")}
+                            onClick={() => {
+                              const eventSubdomain = speakers[0]?.events?.subdomain || event?.subdomain;
+                              const url = eventSubdomain 
+                                ? `${window.location.origin}/event/${eventSubdomain}`
+                                : 'Event page URL will be available once event is configured.';
+                              handleCopy(url, "URL");
+                            }}
+                            disabled={!speakers[0]?.events?.subdomain && !event?.subdomain}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
@@ -1523,7 +1563,20 @@ const SessionDetail = () => {
                           variant="ghost" 
                           size="sm" 
                           className="w-full"
-                          onClick={() => window.open(`/recap/${session.id}`, '_blank')}
+                          onClick={() => {
+                            // Get event subdomain from speakers data or direct event fetch
+                            const eventSubdomain = speakers[0]?.events?.subdomain || event?.subdomain;
+                            if (eventSubdomain) {
+                              window.open(`/event/${eventSubdomain}`, '_blank');
+                            } else {
+                              toast({
+                                title: "Event page not available",
+                                description: "The public event page is being prepared and will be available soon.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          disabled={!speakers[0]?.events?.subdomain && !event?.subdomain}
                         >
                           <ExternalLink className="h-4 w-4 mr-2" />
                           Preview Public Page
