@@ -125,7 +125,7 @@ const SessionDetail = () => {
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [caption, setCaption] = useState('');
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['linkedin']);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
 
   // Mock preview mode toggle
   const [showPreview, setShowPreview] = useState(true); // Set to true to show preview by default
@@ -1759,10 +1759,16 @@ const SessionDetail = () => {
                           <Button
                             key={platform.id}
                             variant="outline"
-                            className={`h-12 transition-all ${
+                            className={`h-12 transition-all border-2 ${
                               isSelected 
-                                ? `!${platform.color} !text-white !border-transparent` 
-                                : 'hover:bg-muted/50'
+                                ? platform.id === 'linkedin' 
+                                  ? 'bg-blue-600 text-white border-blue-600' 
+                                  : platform.id === 'twitter'
+                                  ? 'bg-black text-white border-black'
+                                  : platform.id === 'youtube' 
+                                  ? 'bg-red-600 text-white border-red-600'
+                                  : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-500'
+                                : 'hover:bg-muted/50 border-border'
                             }`}
                             onClick={() => {
                               if (isSelected) {
