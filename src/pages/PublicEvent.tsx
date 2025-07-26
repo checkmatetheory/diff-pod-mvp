@@ -680,150 +680,57 @@ export default function PublicEvent(): JSX.Element {
 
       {/* Hero Section */}
       <section 
-        className="relative py-20 px-6 text-center"
+        className="relative py-24 px-6 text-center"
         style={{ 
-          background: `linear-gradient(135deg, ${brandColors.primary}15, ${brandColors.secondary}10)` 
+          background: `linear-gradient(135deg, ${brandColors.primary}08, ${brandColors.secondary}05)` 
         }}
       >
-        <div className="container mx-auto max-w-4xl">
+        <div className="container mx-auto max-w-5xl">
           {/* Event branding */}
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-12">
             {brandColors.logo ? (
               <img 
                 src={brandColors.logo} 
                 alt={`${event.name} logo`}
-                className="h-16 w-auto object-contain"
+                className="h-8 w-auto object-contain"
               />
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <img 
                   src="/diffused logo white no bg.png" 
                   alt="Diffused" 
-                  className="h-12 w-auto"
+                  className="h-6 w-auto"
                 />
-                <span className="text-sm text-muted-foreground">presents</span>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider">presents</span>
             </div>
             )}
           </div>
 
           {/* Event title and description */}
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-            {event.name}
-          </h1>
-          
-          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-            {event.description}
-          </p>
+          <div className="space-y-8">
+            <h1 className="text-6xl md:text-7xl font-bold text-foreground mb-8 leading-tight tracking-tight">
+              {event.name}
+            </h1>
+            
+            <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed font-light">
+              {event.description}
+            </p>
 
-          {/* Event metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-            <div className="text-center">
-              <div className="text-3xl font-bold" style={{ color: brandColors.primary }}>
-                {metrics.speaker_count}
+            {/* Event date if available */}
+            {event.next_event_date && (
+              <div className="inline-flex items-center gap-3 bg-white/60 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+                <Calendar className="h-5 w-5" style={{ color: brandColors.primary }} />
+                <span className="font-medium text-lg">
+                  {new Date(event.next_event_date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
               </div>
-              <div className="text-sm text-muted-foreground">Expert Speakers</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold" style={{ color: brandColors.primary }}>
-                {metrics.total_views.toLocaleString()}
-              </div>
-              <div className="text-sm text-muted-foreground">Content Views</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold" style={{ color: brandColors.primary }}>
-                {metrics.total_shares}
-              </div>
-              <div className="text-sm text-muted-foreground">Social Shares</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold" style={{ color: brandColors.primary }}>
-                {Math.round(metrics.engagement_rate)}%
-              </div>
-              <div className="text-sm text-muted-foreground">Engagement</div>
-        </div>
-      </div>
-
-          {/* CTA Section */}
-          <div className="space-y-4">
-        {!emailSubmitted && (
-              <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                  <Input
-                    type="email"
-                  placeholder="Enter your email for full access"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  className="flex-1"
-                  disabled={loading.emailSubmission}
-                />
-                <Button 
-                  type="submit" 
-                  disabled={loading.emailSubmission || !email.trim()}
-                  style={{ backgroundColor: brandColors.primary }}
-                  className="text-white px-8"
-                >
-                  {loading.emailSubmission ? 'Getting Access...' : 'Get Access'}
-                  </Button>
-                </form>
-            )}
-
-            {emailSubmitted && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-w-md mx-auto">
-                <div className="flex items-center gap-2 text-green-800">
-                  <CheckCircle className="h-5 w-5" />
-                  <span className="font-medium">You're all set! Explore the content below.</span>
-                </div>
-              </div>
-            )}
-
-            {errors.emailSubmission && (
-              <p className="text-sm text-red-600 max-w-md mx-auto">{errors.emailSubmission}</p>
-            )}
-
-            {/* Primary CTA */}
-            {ctaConfig.url && ctaConfig.url !== '#' && (
-              <Button
-                onClick={handleCTAClick}
-                size="lg"
-                className="text-white px-12 py-3 text-lg"
-                style={{ backgroundColor: brandColors.secondary }}
-              >
-                {ctaConfig.text}
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
             )}
           </div>
-
-          {/* Social sharing */}
-          <div className="flex justify-center gap-4 mt-8">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleShare('linkedin')}
-              className="enhanced-button"
-            >
-              <Linkedin className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-              onClick={() => handleShare('twitter')}
-              className="enhanced-button"
-                  >
-              <Twitter className="h-4 w-4 mr-2" />
-              Tweet
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-              onClick={() => handleShare('copy')}
-              className="enhanced-button"
-                  >
-              <Copy className="h-4 w-4 mr-2" />
-              Copy Link
-                  </Button>
-                </div>
         </div>
       </section>
 
@@ -938,40 +845,169 @@ export default function PublicEvent(): JSX.Element {
         </div>
       </section>
 
-      {/* Event Details Section */}
-      {event.next_event_date && (
-        <section className="py-16 px-6 bg-muted/30">
-          <div className="container mx-auto max-w-4xl text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-4">Next Event</h2>
-            <div className="bg-white rounded-2xl p-8 shadow-card">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <Calendar className="h-5 w-5" style={{ color: brandColors.primary }} />
-                <span className="text-lg font-medium">
-                  {new Date(event.next_event_date).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </span>
-              </div>
-              <p className="text-muted-foreground mb-6">
-                Don't miss the next {event.name} - featuring even more industry insights and networking opportunities.
+      {/* Lead Generation CTA Section */}
+      <section 
+        className="relative py-20 px-6"
+        style={{ 
+          background: `linear-gradient(135deg, ${brandColors.primary}, ${brandColors.secondary})` 
+        }}
+      >
+        <div className="container mx-auto max-w-4xl text-center">
+          <div className="space-y-8">
+            {/* Compelling headline */}
+            <div className="space-y-4">
+              <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+                {event.next_event_date ? (
+                  <>Don't Miss {event.name}</>
+                ) : (
+                  <>Join the Next {event.name}</>
+                )}
+              </h2>
+              <p className="text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
+                {event.next_event_date ? (
+                  `Get exclusive early access to tickets and networking opportunities. Be part of the conversation that shapes the future.`
+                ) : (
+                  `Be the first to know when tickets go live. Join industry leaders and innovators for insights that will transform your business.`
+                )}
               </p>
-              {ctaConfig.url && ctaConfig.url !== '#' && (
-                  <Button
-                  onClick={handleCTAClick}
-                  size="lg"
-                  style={{ backgroundColor: brandColors.primary }}
-                  className="text-white"
-                >
-                  {ctaConfig.text}
-                  </Button>
-              )}
+            </div>
+
+            {/* Value propositions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-8">
+              <div className="flex flex-col items-center gap-3 text-white">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <Users className="h-6 w-6" />
                 </div>
+                <div className="text-center">
+                  <h3 className="font-semibold mb-1">Expert Network</h3>
+                  <p className="text-sm text-white/80">Connect with industry leaders</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-3 text-white">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <Star className="h-6 w-6" />
+                </div>
+                <div className="text-center">
+                  <h3 className="font-semibold mb-1">Early Bird Access</h3>
+                  <p className="text-sm text-white/80">Exclusive pricing & perks</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-3 text-white">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6" />
+                </div>
+                <div className="text-center">
+                  <h3 className="font-semibold mb-1">Game-Changing Insights</h3>
+                  <p className="text-sm text-white/80">Transform your business</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Email capture form */}
+            {!emailSubmitted ? (
+              <div className="space-y-6">
+                <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
+                  <Input
+                    type="email"
+                    id="email-signup"
+                    name="email"
+                    placeholder="Enter your email to secure your spot"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="flex-1 h-14 text-lg bg-white/95 border-0 placeholder:text-gray-500"
+                    disabled={loading.emailSubmission}
+                    autoComplete="email"
+                  />
+                  <Button 
+                    type="submit" 
+                    disabled={loading.emailSubmission || !email.trim()}
+                    className="bg-white text-black hover:bg-white/90 font-bold px-8 h-14 text-lg shadow-lg"
+                  >
+                    {loading.emailSubmission ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black" />
+                        Securing...
+                      </div>
+                    ) : (
+                      <>
+                        {event.next_event_date ? 'Get Early Access' : 'Join Waitlist'}
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                      </>
+                    )}
+                  </Button>
+                </form>
+
+                {errors.emailSubmission && (
+                  <p className="text-red-200 text-sm">{errors.emailSubmission}</p>
+                )}
+
+                {/* Trust indicators */}
+                <div className="flex items-center justify-center gap-8 text-white/70 text-sm">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>No spam, ever</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Exclusive updates</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Unsubscribe anytime</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
+                <div className="flex items-center justify-center gap-3 text-white mb-4">
+                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-6 w-6 text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">You're on the list! 🎉</h3>
+                    <p className="text-white/80">We'll notify you with exclusive updates and early access.</p>
+                  </div>
+                </div>
+                
+                {/* Social sharing for viral growth */}
+                <div className="space-y-4">
+                  <p className="text-white/90 text-sm">Share with your network:</p>
+                  <div className="flex justify-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleShare('linkedin')}
+                      className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                    >
+                      <Linkedin className="h-4 w-4 mr-2" />
+                      LinkedIn
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleShare('twitter')}
+                      className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                    >
+                      <Twitter className="h-4 w-4 mr-2" />
+                      Twitter
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleShare('copy')}
+                      className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Link
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="border-t border-border/40 py-8 px-6">
