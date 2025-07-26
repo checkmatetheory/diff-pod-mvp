@@ -139,9 +139,12 @@ class AttributionTracker {
         Object.assign(attributionData, utmData);
       }
 
+      // Remove speaker_id before database insert (table doesn't have this column)
+      const { speaker_id, ...dbAttributionData } = attributionData;
+
       const { error } = await supabase
         .from('attribution_tracking')
-        .insert(attributionData);
+        .insert(dbAttributionData);
 
       if (error) throw error;
 

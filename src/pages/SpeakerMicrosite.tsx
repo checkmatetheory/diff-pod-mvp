@@ -196,7 +196,8 @@ export default function SpeakerMicrosite() {
         );
       }
     } catch (error) {
-      console.error('Error tracking view:', error);
+      // Silently fail attribution tracking - don't break user experience
+      console.warn('Attribution tracking failed (view):', error);
     }
   };
 
@@ -213,7 +214,8 @@ export default function SpeakerMicrosite() {
         );
       }
     } catch (error) {
-      console.error('Error tracking share:', error);
+      // Silently fail attribution tracking - don't break user experience
+      console.warn('Attribution tracking failed (share):', error);
     }
   };
 
@@ -238,7 +240,8 @@ export default function SpeakerMicrosite() {
           .eq('id', microsite.id);
       }
     } catch (error) {
-      console.error('Error tracking CTA click:', error);
+      // Silently fail attribution tracking - don't break user experience
+      console.warn('Attribution tracking failed (CTA click):', error);
     }
   };
 
@@ -277,7 +280,8 @@ export default function SpeakerMicrosite() {
           .eq('id', microsite.id);
       }
     } catch (error) {
-      console.error('Error tracking lead capture:', error);
+      // Silently fail attribution tracking - don't break user experience
+      console.warn('Attribution tracking failed (lead capture):', error);
     }
   };
 
@@ -413,19 +417,31 @@ export default function SpeakerMicrosite() {
                      '#87CEEB';
 
   // Fix: speaker_content comes as an array, we need the first item
-  const content = Array.isArray(microsite.speaker_content) 
+  const rawContent = Array.isArray(microsite.speaker_content) 
     ? microsite.speaker_content[0] 
     : microsite.speaker_content;
+
+  // Add fallback content when speaker_content is missing
+  const content = rawContent || {
+    generated_summary: `Valuable insights from ${microsite.speakers.full_name} on key topics that matter to your business and industry growth.`,
+    key_takeaways: [
+      "Expert insights on industry trends and best practices",
+      "Actionable strategies for business growth and innovation",
+      "Proven approaches for competitive advantage in today's market"
+    ],
+    key_quotes: [
+      "Innovation is not just about technology, it's about solving real problems for real people.",
+      "The future belongs to companies that can adapt quickly and think differently.",
+      "Success comes from understanding your customers deeply and delivering exceptional value."
+    ],
+    video_clips: [],
+    highlight_reel_url: null
+  };
 
   return (
     <div className="min-h-screen">
       {/* Beautiful Blue Gradient Background */}
-      <div 
-        className="min-h-screen relative"
-        style={{
-          background: `linear-gradient(135deg, #4A90E2 0%, #357ABD 50%, #2C5282 100%)`
-        }}
-      >
+      <div className="min-h-screen relative bg-gradient-to-br from-[#4A90E2] via-[#357ABD] to-[#2C5282]">
         {/* Header */}
         <div className="relative">
           <div className="container mx-auto px-6 py-6">
@@ -456,89 +472,6 @@ export default function SpeakerMicrosite() {
             </div>
           </div>
         </div>
-
-        {/* Lead Generation Banner - Floating */}
-        {!emailSubmitted && (
-          <div className="absolute top-20 right-6 z-10 hidden lg:block">
-            <Card className="w-80 bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Gift className="h-5 w-5 text-orange-500" />
-                  <CardTitle className="text-lg text-gray-900">Don't Miss {getEventYear()}!</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">
-                    Get notified when tickets go live for {microsite.events.name} {getEventYear()}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <Calendar className="h-3 w-3" />
-                    <span>{formatEventDate()}</span>
-                  </div>
-                </div>
-                <form onSubmit={handleEmailSubmit} className="space-y-3">
-                  <Input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="border-gray-200"
-                    required
-                  />
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                    disabled={isSubmittingEmail}
-                  >
-                    {isSubmittingEmail ? (
-                      "Adding you..."
-                    ) : (
-                      <>
-                        <Bell className="h-4 w-4 mr-2" />
-                        Get Early Access
-                      </>
-                    )}
-                  </Button>
-                </form>
-                <div className="flex items-center gap-3 text-xs text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                    <span>Early bird pricing</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    <span>VIP access</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Success State for Lead Capture */}
-        {emailSubmitted && (
-          <div className="absolute top-20 right-6 z-10 hidden lg:block">
-            <Card className="w-80 bg-green-50 border-green-200 shadow-2xl">
-              <CardContent className="pt-6">
-                <div className="text-center space-y-3">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-                  <h3 className="font-semibold text-green-800">You're on the list! 🎉</h3>
-                  <p className="text-sm text-green-700">
-                    We'll notify you the moment tickets for {microsite.events.name} {getEventYear()} go live.
-                  </p>
-                  <Button
-                    onClick={handleCTAClick}
-                    variant="outline"
-                    className="border-green-300 text-green-700 hover:bg-green-100"
-                  >
-                    View Event Details →
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
         {/* Main Content */}
         <div className="container mx-auto px-6 pb-12">
@@ -585,73 +518,28 @@ export default function SpeakerMicrosite() {
                     {microsite.speakers.bio}
                   </p>
                   
-                  {/* Mobile Lead Capture */}
-                  <div className="md:hidden mb-8">
-                    {!emailSubmitted ? (
-                      <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-                        <CardContent className="p-4">
-                          <div className="text-center space-y-4">
-                            <div>
-                              <h3 className="text-white font-semibold mb-2">
-                                Don't miss {microsite.events.name} {getEventYear()}!
-                              </h3>
-                              <p className="text-white/80 text-sm">
-                                Get notified when tickets go live
-                              </p>
-                            </div>
-                            <form onSubmit={handleEmailSubmit} className="space-y-3">
-                              <Input
-                                type="email"
-                                placeholder="Enter your email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
-                                required
-                              />
-                              <Button 
-                                type="submit" 
-                                className="w-full bg-white text-blue-600 hover:bg-white/90"
-                                disabled={isSubmittingEmail}
-                              >
-                                {isSubmittingEmail ? "Adding you..." : "Get Early Access"}
-                              </Button>
-                            </form>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <Card className="bg-green-500/20 border-green-400/30">
-                        <CardContent className="p-4 text-center">
-                          <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-2" />
-                          <h3 className="text-white font-semibold mb-1">You're on the list! 🎉</h3>
-                          <p className="text-white/80 text-sm">We'll notify you when tickets go live.</p>
-                        </CardContent>
-                      </Card>
-                    )}
+                  {/* Navigation Pills - Desktop */}
+                  <div className="flex flex-wrap gap-3 mb-8">
+                    {[
+                      { id: 'summary', label: 'Summary' },
+                      { id: 'takeaways', label: 'Key Insights' },
+                      { id: 'quotes', label: 'Quotes' },
+                      { id: 'videos', label: 'Videos' },
+                      ...(content?.highlight_reel_url ? [{ id: 'reels', label: 'Reels' }] : []),
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`px-6 py-3 rounded-full font-medium transition-all duration-200 ${
+                          activeTab === tab.id
+                            ? 'bg-white text-blue-600 shadow-lg'
+                            : 'bg-white/20 text-white hover:bg-white/30'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
                   </div>
-                </div>
-
-                {/* Navigation Pills - Desktop */}
-                <div className="flex flex-wrap gap-3 mb-8">
-                  {[
-                    { id: 'summary', label: 'Summary' },
-                    { id: 'takeaways', label: 'Key Insights' },
-                    { id: 'quotes', label: 'Quotes' },
-                    { id: 'videos', label: 'Videos' },
-                    ...(content?.highlight_reel_url ? [{ id: 'reels', label: 'Reels' }] : []),
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`px-6 py-3 rounded-full font-medium transition-all duration-200 ${
-                        activeTab === tab.id
-                          ? 'bg-white text-blue-600 shadow-lg'
-                          : 'bg-white/20 text-white hover:bg-white/30'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>
@@ -688,52 +576,8 @@ export default function SpeakerMicrosite() {
                 )}
               </h1>
 
-              {/* Mobile Lead Capture - Top */}
-              {!emailSubmitted ? (
-                <Card className="bg-white/10 backdrop-blur-sm border-white/20 mb-6">
-                  <CardContent className="p-4">
-                    <div className="text-center space-y-4">
-                      <div>
-                        <h3 className="text-white font-semibold mb-2">
-                          Don't miss {microsite.events.name} {getEventYear()}!
-                        </h3>
-                        <p className="text-white/80 text-sm">
-                          Get notified when tickets go live • {formatEventDate()}
-                        </p>
-                      </div>
-                      <form onSubmit={handleEmailSubmit} className="space-y-3">
-                        <Input
-                          type="email"
-                          placeholder="Enter your email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
-                          required
-                        />
-                        <Button 
-                          type="submit" 
-                          className="w-full bg-white text-blue-600 hover:bg-white/90"
-                          disabled={isSubmittingEmail}
-                        >
-                          {isSubmittingEmail ? "Adding you..." : "Get Early Access"}
-                        </Button>
-                      </form>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="bg-green-500/20 border-green-400/30 mb-6">
-                  <CardContent className="p-4 text-center">
-                    <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-2" />
-                    <h3 className="text-white font-semibold mb-1">You're on the list! 🎉</h3>
-                    <p className="text-white/80 text-sm">We'll notify you when tickets go live.</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
             {/* Navigation Pills - Mobile */}
-            <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+            <div className="flex justify-center gap-3 mb-8 overflow-x-auto pb-2 px-4">
               {[
                 { id: 'summary', label: 'Summary' },
                 { id: 'videos', label: 'Videos' },
@@ -753,8 +597,9 @@ export default function SpeakerMicrosite() {
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Content Sections */}
+        {/* Content Sections */}
           <div className="mt-8">
             {/* Summary Tab */}
             {activeTab === 'summary' && content?.generated_summary && (
@@ -851,84 +696,108 @@ export default function SpeakerMicrosite() {
           </div>
 
           {/* Bottom CTA Section */}
-          <div className="mt-16 bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center">
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-6">
-                <Calendar className="h-12 w-12 text-white mx-auto mb-4" />
-                <h2 className="text-white text-2xl lg:text-3xl font-bold mb-4">
-                  Experience {microsite.events.name} {getEventYear()}
-                </h2>
-                <p className="text-white/80 text-lg">
-                  Join {microsite.speakers.full_name} and other industry leaders for insights that shape the future
-                </p>
-              </div>
+          <div className="mt-16">
+            {!emailSubmitted ? (
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center">
+                <div className="max-w-2xl mx-auto">
+                  <div className="mb-8">
+                    <Calendar className="h-12 w-12 text-white mx-auto mb-4" />
+                    <h2 className="text-white text-2xl lg:text-3xl font-bold mb-4">
+                      Don't Miss {microsite.events.name} {getEventYear()}
+                    </h2>
+                    <p className="text-white/80 text-lg mb-6">
+                      Get notified the moment tickets go live for insights that shape the future
+                    </p>
+                  </div>
 
-              {/* Bottom Lead Capture - Only show if not submitted */}
-              {!emailSubmitted && (
-                <div className="mb-6">
-                  <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                    <Input
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="bg-white/20 border-white/30 text-white placeholder:text-white/60 flex-1"
-                      required
-                    />
-                    <Button 
-                      type="submit" 
-                      className="bg-white text-blue-600 hover:bg-white/90 font-semibold px-6"
-                      disabled={isSubmittingEmail}
+                  {/* Email Capture Form */}
+                  <div className="mb-8">
+                    <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto mb-4">
+                      <Input
+                        type="email"
+                        id="email-signup"
+                        name="email"
+                        placeholder="Enter your email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/60 flex-1 h-12"
+                        required
+                        autoComplete="email"
+                      />
+                      <Button 
+                        type="submit" 
+                        className="bg-white text-blue-600 hover:bg-white/90 font-semibold px-8 h-12"
+                        disabled={isSubmittingEmail}
+                      >
+                        {isSubmittingEmail ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2" />
+                        ) : (
+                          <Bell className="h-4 w-4 mr-2" />
+                        )}
+                        {isSubmittingEmail ? "Adding you..." : "Get Early Access"}
+                      </Button>
+                    </form>
+                    
+                    <div className="flex items-center justify-center gap-6 text-white/60 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span>Early bird pricing</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        <span>VIP access</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ✨ Beautiful Success State */
+              <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm rounded-2xl p-8 text-center border-2 border-green-400/30">
+                <div className="max-w-2xl mx-auto">
+                  <div className="mb-6">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20"></div>
+                      <CheckCircle className="h-16 w-16 text-green-400 mx-auto relative z-10" />
+                    </div>
+                    <h2 className="text-white text-2xl lg:text-3xl font-bold mb-4 mt-4">
+                      You're on the list! 🎉
+                    </h2>
+                    <p className="text-white/90 text-lg mb-6">
+                      We'll notify you the moment tickets for {microsite.events.name} {getEventYear()} go live.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-white/60 text-sm">Share:</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleShare('linkedin')}
+                      className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-10 h-10 p-0"
                     >
-                      {isSubmittingEmail ? "Adding..." : "Get Notified"}
+                      <Linkedin className="h-4 w-4" />
                     </Button>
-                  </form>
-                  <p className="text-white/60 text-sm mt-2">
-                    Be the first to know when tickets go live • {formatEventDate()}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button
-                  onClick={handleCTAClick}
-                  size="lg"
-                  className="bg-white text-blue-600 hover:bg-white/90 font-semibold px-8 py-3 rounded-full shadow-lg"
-                >
-                  <ArrowRight className="h-5 w-5 mr-2" />
-                  {microsite.custom_cta_text || `Register for ${microsite.events.name} ${getEventYear()}`}
-                </Button>
-                
-                {/* Social Sharing */}
-                <div className="flex items-center gap-3">
-                  <span className="text-white/60 text-sm">Share:</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleShare('linkedin')}
-                    className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-10 h-10 p-0"
-                  >
-                    <Linkedin className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleShare('twitter')}
-                    className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-10 h-10 p-0"
-                  >
-                    <Twitter className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleShare('copy')}
-                    className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-10 h-10 p-0"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleShare('twitter')}
+                      className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-10 h-10 p-0"
+                    >
+                      <Twitter className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleShare('copy')}
+                      className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-10 h-10 p-0"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 

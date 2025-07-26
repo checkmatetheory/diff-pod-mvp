@@ -34,7 +34,10 @@ import {
   ExternalLink,
   BarChart3,
   FileText,
-  Clock
+  Clock,
+  Lock,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -112,6 +115,20 @@ export default function Settings() {
   const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [emailChangeLoading, setEmailChangeLoading] = useState(false);
+
+  // Password change modal state
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
 
   // Settings state
   const [settings, setSettings] = useState({
@@ -394,6 +411,69 @@ export default function Settings() {
     }
   };
 
+  const handlePasswordChange = async () => {
+    // Validation
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast.error("Please fill in all password fields");
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("New passwords don't match");
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters long");
+      return;
+    }
+
+    if (passwordData.currentPassword === passwordData.newPassword) {
+      toast.error("New password must be different from current password");
+      return;
+    }
+
+    setPasswordChangeLoading(true);
+    try {
+      // Use Supabase Auth to update password
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("Password updated successfully!");
+      setShowPasswordChangeModal(false);
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setShowPasswords({
+        current: false,
+        new: false,
+        confirm: false
+      });
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      
+      // Handle specific Supabase Auth errors
+      if (error.message?.includes('weak_password')) {
+        toast.error("Password is too weak. Please choose a stronger password.");
+      } else if (error.message?.includes('same_password')) {
+        toast.error("New password must be different from your current password.");
+      } else if (error.message?.includes('password_too_short')) {
+        toast.error("Password must be at least 6 characters long.");
+      } else {
+        toast.error("Failed to update password. Please try again.");
+      }
+    } finally {
+      setPasswordChangeLoading(false);
+    }
+  };
+
   const handleRestoreSpeaker = async (speaker: Speaker) => {
     try {
       const restoredName = speaker.full_name.replace('[DELETED] ', '');
@@ -639,6 +719,30 @@ export default function Settings() {
                                 Change Email
                               </Button>
                             </div>
+                          </div>
+                        </div>
+
+                        <Separator className="my-6" />
+                        
+                        <div>
+                          <Label htmlFor="password">Password</Label>
+                          <div className="flex items-center justify-between mt-2">
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                Password hidden for security
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Last changed: Never
+                              </p>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setShowPasswordChangeModal(true)}
+                            >
+                              <Lock className="h-4 w-4 mr-2" />
+                              Change Password
+                            </Button>
                           </div>
                         </div>
 
@@ -1179,11 +1283,13 @@ export default function Settings() {
               <Label htmlFor="new-email">New Email Address</Label>
               <Input
                 id="new-email"
+                name="email"
                 type="email"
                 placeholder="Enter your new email address"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 disabled={emailChangeLoading}
+                autoComplete="email"
               />
             </div>
 
@@ -1230,6 +1336,143 @@ export default function Settings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Password Change Modal */}
+      <Dialog open={showPasswordChangeModal} onOpenChange={setShowPasswordChangeModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Choose a strong password to keep your account secure.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="current-password">Current Password</Label>
+              <div className="relative">
+                <Input
+                  id="current-password"
+                  type={showPasswords.current ? "text" : "password"}
+                  placeholder="Enter your current password"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  disabled={passwordChangeLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                >
+                  {showPasswords.current ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="new-password">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showPasswords.new ? "text" : "password"}
+                  placeholder="Enter your new password"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  disabled={passwordChangeLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                >
+                  {showPasswords.new ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+ 
+             <div>
+               <Label htmlFor="confirm-password">Confirm New Password</Label>
+               <div className="relative">
+                 <Input
+                   id="confirm-password"
+                   type={showPasswords.confirm ? "text" : "password"}
+                   placeholder="Confirm your new password"
+                   value={passwordData.confirmPassword}
+                   onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                   disabled={passwordChangeLoading}
+                 />
+                 <Button
+                   type="button"
+                   variant="ghost"
+                   size="sm"
+                   className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                   onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                 >
+                   {showPasswords.confirm ? (
+                     <EyeOff className="h-4 w-4" />
+                   ) : (
+                     <Eye className="h-4 w-4" />
+                   )}
+                 </Button>
+               </div>
+             </div>
+ 
+             <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+               <div className="flex">
+                 <div className="flex-shrink-0">
+                   <Shield className="h-5 w-5 text-blue-400" />
+                 </div>
+                 <div className="ml-3">
+                   <h3 className="text-sm font-medium text-blue-800">
+                     Password Requirements
+                   </h3>
+                   <div className="mt-2 text-sm text-blue-700">
+                     <ul className="list-disc list-inside space-y-1">
+                       <li>At least 6 characters long</li>
+                       <li>Different from your current password</li>
+                       <li>Consider using a mix of letters, numbers, and symbols</li>
+                       <li>Avoid using personal information</li>
+                     </ul>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           </div>
+ 
+           <DialogFooter>
+             <Button 
+               onClick={handlePasswordChange}
+               disabled={passwordChangeLoading || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+               className="w-full"
+             >
+               {passwordChangeLoading ? (
+                 <>
+                   <Settings2 className="h-4 w-4 mr-2 animate-spin" />
+                   Updating...
+                 </>
+               ) : (
+                 <>
+                   <Lock className="h-4 w-4 mr-2" />
+                   Update Password
+                 </>
+               )}
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
+
     </SidebarProvider>
   );
 }

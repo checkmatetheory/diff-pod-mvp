@@ -31,7 +31,7 @@ import { useCreateEventModal } from "@/contexts/CreateEventModalContext";
 
 interface ContentItem {
   id: string;
-  type: 'photo' | 'reel';
+  type: 'reel';
   thumbnail_url: string;
   content_url?: string;
   title: string;
@@ -49,7 +49,6 @@ interface ContentItem {
 }
 
 function BrowseContent() {
-  const [activeTab, setActiveTab] = useState<'photos' | 'reels'>('photos');
   const [searchTerm, setSearchTerm] = useState('');
   const [content, setContent] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,16 +130,31 @@ function BrowseContent() {
 
       if (error) throw error;
       
-      // Add mock viral data for reels and fix type casting
-      const enrichedContent = (data || []).map(item => ({
-        ...item,
-        type: (item.type === 'photo' || item.type === 'reel') ? item.type : 'photo' as 'photo' | 'reel',
-        viralityScore: item.type === 'reel' ? Math.floor(Math.random() * 30) + 70 : undefined,
-        reasoning: item.type === 'reel' ? `This ${item.type} has strong potential due to its engaging content and timely topic discussion.` : undefined,
-        transcript: item.type === 'reel' ? `Sample transcript for ${item.title}...` : undefined,
-        suggestedCaption: item.type === 'reel' ? `🚀 Amazing insights from ${item.speaker_name}! #Innovation #${item.event_name.replace(/\s+/g, '')}` : undefined,
-        suggestedHashtags: item.type === 'reel' ? ['#Innovation', '#Leadership', '#TechTalk'] : undefined,
-      }));
+      // Helper function to generate deterministic virality score based on item ID
+      const generateViralityScore = (id: string): number => {
+        // Simple hash function to convert UUID to number
+        let hash = 0;
+        for (let i = 0; i < id.length; i++) {
+          const char = id.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash; // Convert to 32-bit integer
+        }
+        // Convert to range 70-100
+        return Math.abs(hash % 31) + 70;
+      };
+      
+      // Filter to only include reels and add viral data
+      const enrichedContent = (data || [])
+        .filter(item => item.type === 'reel')
+        .map(item => ({
+          ...item,
+          type: 'reel' as 'reel',
+          viralityScore: generateViralityScore(item.id),
+          reasoning: `This video has strong potential due to its engaging content and timely topic discussion.`,
+          transcript: `Sample transcript for ${item.title}...`,
+          suggestedCaption: `🚀 Amazing insights from ${item.speaker_name}! #Innovation #${item.event_name.replace(/\s+/g, '')}`,
+          suggestedHashtags: ['#Innovation', '#Leadership', '#TechTalk'],
+        }));
       
       setContent(enrichedContent);
     } catch (error) {
@@ -233,12 +247,11 @@ function BrowseContent() {
   };
 
   const filteredContent = content.filter(item => {
-    const matchesTab = activeTab === 'photos' ? item.type === 'photo' : item.type === 'reel';
     const matchesSearch = !searchTerm || 
       item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.speaker_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.event_name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesTab && matchesSearch;
+    return matchesSearch;
   });
 
   if (loading) {
@@ -269,7 +282,7 @@ function BrowseContent() {
     <>
       <div className="w-full">
         {/* Header */}
-        <div className="flex items-start justify-between mb-8">
+        <div className="mb-8">
           <div className="max-w-2xl">
             <h1 className="text-4xl font-bold text-text mb-4">Browse All Content</h1>
             <p className="text-lg text-textSecondary leading-relaxed">
@@ -277,35 +290,9 @@ function BrowseContent() {
               share key highlights using the search feature.
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primaryDark text-white px-6 py-2 text-base font-semibold shadow-button hover:shadow-button-hover transition-all duration-200">
-            View Gallery
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
         </div>
 
-        {/* Content Type Tabs */}
-        <div className="flex gap-4 mb-8">
-          <Button
-            onClick={() => setActiveTab('photos')}
-            className={`px-8 py-3 text-base font-semibold rounded-full transition-all duration-200 ${
-              activeTab === 'photos' 
-                ? 'bg-primary hover:bg-primaryDark text-white shadow-button-hover' 
-                : 'bg-white text-primary border-2 border-accent hover:border-primary hover:bg-accentLight'
-            }`}
-          >
-            Photos
-          </Button>
-          <Button
-            onClick={() => setActiveTab('reels')}
-            className={`px-8 py-3 text-base font-semibold rounded-full transition-all duration-200 ${
-              activeTab === 'reels' 
-                ? 'bg-primary hover:bg-primaryDark text-white shadow-button-hover' 
-                : 'bg-white text-primary border-2 border-accent hover:border-primary hover:bg-accentLight'
-            }`}
-          >
-            Reels
-          </Button>
-        </div>
+
 
         {/* Search Bar */}
         <div className="relative max-w-lg mb-12">
@@ -410,7 +397,7 @@ function BrowseContent() {
             <div className="w-24 h-24 rounded-lg bg-accentLight flex items-center justify-center mx-auto mb-6">
               <Search className="h-12 w-12 text-primary" />
             </div>
-            <h3 className="text-2xl font-bold text-text mb-3">No {activeTab} found</h3>
+            <h3 className="text-2xl font-bold text-text mb-3">No videos found</h3>
             <p className="text-lg text-textSecondary max-w-md mx-auto">
               Try adjusting your search terms to find the content you're looking for
             </p>

@@ -3,9 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Mail, 
   Lock, 
@@ -27,6 +29,11 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [api, setApi] = useState<CarouselApi>();
+  
+  // Forgot password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -52,6 +59,20 @@ export default function Auth() {
       clearInterval(autoplay);
     };
   }, [api]);
+
+  // Check for password reset mode from URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    
+    if (mode === 'reset') {
+      toast({
+        title: 'Password Reset',
+        description: 'Please enter your new password below.',
+      });
+      setIsLogin(true); // Ensure we're in login mode
+    }
+  }, [toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,8 +119,49 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordEmail) {
+      toast({
+        title: 'Email Required',
+        description: 'Please enter your email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setForgotPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+        redirectTo: `${window.location.origin}/auth?mode=reset`,
+      });
+
+      if (error) {
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Reset Email Sent',
+          description: 'Check your email for a password reset link.',
+        });
+        setShowForgotPassword(false);
+        setForgotPasswordEmail('');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    } finally {
+      setForgotPasswordLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
+    <div className="h-screen bg-background flex flex-col lg:flex-row overflow-hidden">
       {/* Desktop Carousel - Hidden on mobile, visible on desktop */}
       <div className="hidden lg:block lg:w-[60%] bg-gradient-to-br from-blue-50 to-sky-100 relative h-screen">
         <Carousel 
@@ -136,7 +198,7 @@ export default function Auth() {
       </div>
 
       {/* Auth Form - Full width on mobile, 40% on desktop */}
-      <div className="flex-1 lg:w-[40%] flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="flex-1 lg:w-[40%] h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 overflow-y-auto">
         <div className="w-full max-w-md">
           <Card className="border-0 shadow-lg bg-white">
             <CardHeader className="text-center pb-6 lg:pb-8">
@@ -192,12 +254,14 @@ export default function Auth() {
                     <Mail className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                     <Input
                       id="email"
+                      name="email"
                       type="email"
                       placeholder="Enter your email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10 sm:pl-12 py-2.5 sm:py-3 text-sm sm:text-base border-gray-200 focus:border-primary focus:ring-primary"
                       required
+                      autoComplete="email"
                     />
                   </div>
                 </div>
@@ -216,6 +280,18 @@ export default function Auth() {
                       required
                     />
                   </div>
+                  {/* Forgot Password Link - Only show on login */}
+                  {isLogin && (
+                    <div className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-xs text-primary hover:text-primary/80 transition-colors"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <Button
@@ -248,24 +324,60 @@ export default function Auth() {
                 </button>
               </div>
 
-              {/* Trust indicators - Hidden on mobile since they're in the header */}
-              <div className="hidden lg:block mt-8 pt-6 border-t border-gray-100">
-                <p className="text-sm text-gray-500 text-center mb-3">Trusted by leading conferences</p>
-                <div className="flex justify-center items-center gap-4 text-xs text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    <span>$1M+ Revenue</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    <span>500+ Events</span>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="forgot-email">Email Address</Label>
+              <div className="relative mt-2">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  id="forgot-email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  className="pl-10"
+                  disabled={forgotPasswordLoading}
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              onClick={handleForgotPassword}
+              disabled={forgotPasswordLoading || !forgotPasswordEmail}
+              className="w-full bg-primary hover:bg-primary/90"
+            >
+              {forgotPasswordLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Sending...
+                </>
+              ) : (
+                'Send Reset Link'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
