@@ -434,8 +434,20 @@ function FavoritesContent() {
                       return (
                         <Button
                           key={platform.id}
-                          variant={isSelected ? "default" : "outline"}
-                          className={`h-12 ${isSelected ? platform.color : ''}`}
+                          variant="outline" 
+                          className="h-12 transition-all"
+                          style={{
+                            backgroundColor: isSelected && platform.id === 'linkedin' ? '#2563eb' : 
+                                            isSelected && platform.id === 'twitter' ? '#000000' :
+                                            isSelected && platform.id === 'youtube' ? '#dc2626' :
+                                            isSelected && platform.id === 'instagram' ? '#a855f7' : 'transparent',
+                            color: isSelected ? '#ffffff' : 'inherit',
+                            borderColor: isSelected && platform.id === 'linkedin' ? '#2563eb' : 
+                                        isSelected && platform.id === 'twitter' ? '#000000' :
+                                        isSelected && platform.id === 'youtube' ? '#dc2626' :
+                                        isSelected && platform.id === 'instagram' ? '#a855f7' : '#e5e7eb',
+                            borderWidth: '2px'
+                          }}
                           onClick={() => {
                             if (isSelected) {
                               setSelectedPlatforms(prev => prev.filter(p => p !== platform.id));
