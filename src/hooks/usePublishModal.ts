@@ -135,15 +135,17 @@ export function usePublishModal() {
 
   /**
    * Handle successful publish
-   * Shows success toast and resets modal
+   * Shows success toast but keeps platform selections for multiple publishes
    */
   const handlePublishSuccess = useCallback((platforms: string[], contentTitle: string) => {
     toast({
       title: "Published successfully!",
       description: `"${contentTitle}" has been published to ${platforms.join(', ')}`,
     });
-    resetModal();
-  }, [toast, resetModal]);
+    // Don't reset modal - allow user to publish to other platforms
+    // Only reset submitting state
+    setIsSubmitting(false);
+  }, [toast]);
 
   /**
    * Handle publish error
