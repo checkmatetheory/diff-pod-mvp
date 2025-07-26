@@ -1016,7 +1016,7 @@ export default function PublicEvent(): JSX.Element {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Built with</span>
               <img 
-                src="/diffused logo back no bg.png" 
+                src="/diffused logo black no bg.png" 
                 alt="Diffused" 
                 className="h-5 w-auto"
               />
