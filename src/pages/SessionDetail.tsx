@@ -1758,8 +1758,12 @@ const SessionDetail = () => {
                         return (
                           <Button
                             key={platform.id}
-                            variant={isSelected ? "default" : "outline"}
-                            className={`h-12 ${isSelected ? `${platform.color} text-white` : ''}`}
+                            variant="outline"
+                            className={`h-12 transition-all ${
+                              isSelected 
+                                ? `!${platform.color} !text-white !border-transparent` 
+                                : 'hover:bg-muted/50'
+                            }`}
                             onClick={() => {
                               if (isSelected) {
                                 setSelectedPlatforms(prev => prev.filter(p => p !== platform.id));
