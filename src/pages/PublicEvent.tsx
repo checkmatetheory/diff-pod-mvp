@@ -427,9 +427,8 @@ export default function PublicEvent(): JSX.Element {
     if (!event?.id) return;
 
     try {
-      await attribution.trackView(event.id);
-      
-      // Also track in legacy system for backwards compatibility
+      // Track in legacy system for event-level analytics
+      // Note: Attribution tracking is only used for speaker microsites
       await supabase
         .from('diffusion_analytics')
         .insert({
@@ -445,15 +444,14 @@ export default function PublicEvent(): JSX.Element {
   }, [event?.id]);
 
   /**
-   * Track social sharing with attribution
+   * Track social sharing with legacy analytics
    */
   const trackShare = useCallback(async (platform: UTMSource): Promise<void> => {
     if (!event?.id) return;
 
     try {
-      await attribution.trackShare(event.id, platform);
-      
-      // Legacy tracking
+      // Track in legacy system for event-level analytics
+      // Note: Attribution tracking is only used for speaker microsites
       await supabase
         .from('diffusion_analytics')
         .insert({
@@ -508,17 +506,8 @@ export default function PublicEvent(): JSX.Element {
 
         if (leadError) throw leadError;
 
-        // Track conversion for attribution
-        await attribution.trackConversion(
-          event.id,
-          'email_capture',
-          50, // Default value for email captures
-          undefined, // No microsite ID for event page captures
-          undefined, // No speaker ID for event page captures
-          email
-        );
-
-        // Legacy analytics tracking
+        // Track email capture in legacy system for event-level analytics
+        // Note: Attribution tracking is only used for speaker microsites
         await supabase
           .from('diffusion_analytics')
           .insert({
@@ -589,22 +578,19 @@ export default function PublicEvent(): JSX.Element {
   }, [event, trackShare]);
 
   /**
-   * Handle CTA click with attribution tracking
+   * Handle CTA click without attribution tracking
    */
   const handleCTAClick = useCallback(async (): Promise<void> => {
     if (!event?.id || !ctaConfig.url || ctaConfig.url === '#') return;
 
     try {
-      // Track CTA click for attribution
-      await attribution.trackCTAClick(event.id, undefined, undefined, 100);
-      
-      // Open CTA URL
+      // Open CTA URL (no attribution tracking needed for event-level CTAs)
       window.open(ctaConfig.url, '_blank');
       
       toast.success('Redirecting to registration...');
     } catch (error) {
-      console.error('Error tracking CTA click:', error);
-      // Still open URL even if tracking fails
+      console.error('Error opening CTA URL:', error);
+      // Still open URL even if there's an error
       window.open(ctaConfig.url, '_blank');
     }
   }, [event?.id, ctaConfig.url]);
