@@ -897,7 +897,7 @@ export default function PublicEvent(): JSX.Element {
                     type="email"
                     id="email-signup"
                     name="email"
-                    placeholder="Enter your email to secure your spot"
+                    placeholder="Enter your email 🎁"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
