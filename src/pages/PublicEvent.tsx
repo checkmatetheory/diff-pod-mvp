@@ -1012,7 +1012,7 @@ export default function PublicEvent(): JSX.Element {
       {/* Footer */}
       <footer className="border-t border-border/40 py-8 px-6">
         <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center justify-center">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Built with</span>
               <img 
@@ -1020,14 +1020,6 @@ export default function PublicEvent(): JSX.Element {
                 alt="Diffused" 
                 className="h-5 w-auto"
               />
-            </div>
-            
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span>© 2024 Diffused</span>
-              <Separator orientation="vertical" className="h-4" />
-              <a href="/privacy" className="hover:text-foreground transition-colors">Privacy</a>
-              <Separator orientation="vertical" className="h-4" />
-              <a href="/terms" className="hover:text-foreground transition-colors">Terms</a>
             </div>
           </div>
       </div>
