@@ -50,6 +50,8 @@ import QuickEditSpeakerModal from "@/components/ui/QuickEditSpeakerModal";
 import AdvancedSpeakerModal from "@/components/ui/AdvancedSpeakerModal";
 import AddSpeakerModal from "@/components/ui/AddSpeakerModal";
 import SelectExistingSpeakerModal from "@/components/ui/SelectExistingSpeakerModal";
+import { PublishModal } from "@/components/ui/PublishModal";
+import { BaseContentItem } from "@/types/publish";
 
 // Mock data for preview
 const mockViralClips = [
@@ -120,12 +122,9 @@ const SessionDetail = () => {
   const [isSelectExistingModalOpen, setIsSelectExistingModalOpen] = useState(false);
   const [allSpeakers, setAllSpeakers] = useState<any[]>([]);
   
-  // New state for publish modal
-  const [selectedClip, setSelectedClip] = useState<any>(null);
+  // Publish modal state
+  const [selectedClip, setSelectedClip] = useState<BaseContentItem | null>(null);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [caption, setCaption] = useState('');
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
 
   // Mock preview mode toggle
   const [showPreview, setShowPreview] = useState(true); // Set to true to show preview by default
@@ -659,32 +658,41 @@ const SessionDetail = () => {
   };
 
   const handlePublishClip = (clip: any) => {
-    setSelectedClip(clip);
-    setCaption(clip.suggestedCaption);
+    // Convert clip to BaseContentItem format
+    const baseContent: BaseContentItem = {
+      id: clip.id,
+      title: clip.title,
+      type: 'reel',
+      thumbnail_url: clip.thumbnail,
+      duration: clip.duration,
+      viralityScore: clip.viralityScore,
+      reasoning: clip.reasoning,
+      suggestedCaption: clip.suggestedCaption,
+      suggestedHashtags: clip.suggestedHashtags,
+      speaker_name: clip.speakerName,
+      event_name: clip.eventName
+    };
+    setSelectedClip(baseContent);
     setIsPublishModalOpen(true);
   };
 
-  const handleDownloadClip = (clip: any) => {
+  const handleDownloadClip = (content: BaseContentItem) => {
     toast({
       title: "Download started",
-      description: `Downloading "${clip.title}"`,
+      description: `Downloading "${content.title}"`,
     });
   };
 
-  const handlePublish = () => {
+  const handlePublish = async (platforms: string[], caption: string) => {
+    // This will be called by the shared modal
     toast({
       title: "Published successfully!",
-      description: `"${selectedClip?.title}" has been published to ${selectedPlatforms.join(', ')}`,
+      description: `"${selectedClip?.title}" has been published to ${platforms.join(', ')}`,
     });
-    setIsPublishModalOpen(false);
+    // Modal will be closed by the shared hook
   };
 
-  const platforms = [
-    { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'bg-blue-600' },
-    { id: 'twitter', name: 'Twitter', icon: Twitter, color: 'bg-black' },
-    { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
-    { id: 'youtube', name: 'YouTube', icon: Youtube, color: 'bg-red-600' },
-  ];
+
 
   if (loading) {
     return (
@@ -1124,7 +1132,21 @@ const SessionDetail = () => {
                                       </Button>
                                       <Button 
                                         variant="outline" 
-                                        onClick={() => handleDownloadClip(clip)}
+                                        onClick={() => {
+                                          const baseContent: BaseContentItem = {
+                                            id: clip.id,
+                                            title: clip.title,
+                                            type: 'reel',
+                                            duration: clip.duration,
+                                            viralityScore: clip.viralityScore,
+                                            reasoning: clip.reasoning,
+                                            suggestedCaption: clip.suggestedCaption,
+                                            suggestedHashtags: clip.suggestedHashtags,
+                                            speaker_name: clip.speakerName,
+                                            event_name: clip.eventName
+                                          };
+                                          handleDownloadClip(baseContent);
+                                        }}
                                       >
                                         <Download className="h-4 w-4 mr-2" />
                                         Download
@@ -1689,171 +1711,15 @@ const SessionDetail = () => {
         </SidebarInset>
       </div>
 
-              {/* PUBLISH MODAL */}
-        <Dialog open={isPublishModalOpen} onOpenChange={setIsPublishModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold">Publish Your Video</DialogTitle>
-            </DialogHeader>
-
-            {selectedClip && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Video Preview */}
-                <div className="space-y-4">
-                  <div className="relative bg-black rounded-lg overflow-hidden aspect-[9/16] max-w-sm mx-auto">
-                    <img 
-                      src={selectedClip.thumbnail}
-                      alt={selectedClip.title}
-                      className="w-full h-full object-cover"
-                    />
-                    
-                    {/* Play/Pause Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Button
-                        variant="ghost"
-                        size="lg"
-                        className="bg-black/50 hover:bg-black/70 text-white rounded-full w-16 h-16"
-                        onClick={() => setIsPlaying(!isPlaying)}
-                      >
-                        {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-                      </Button>
-                    </div>
-
-                    {/* Video Info Overlay */}
-                    <div className="absolute top-4 left-4 right-4">
-                      <Badge className={getViralityColor(selectedClip.viralityScore)}>
-                        {getViralityRank(selectedClip.viralityScore)} Virality score ({selectedClip.viralityScore}/100)
-                      </Badge>
-                    </div>
-
-                    <div className="absolute bottom-4 left-4 right-4 text-white">
-                      <h3 className="font-bold text-lg mb-1">{selectedClip.title}</h3>
-                      <p className="text-sm opacity-80">
-                        {formatDuration(selectedClip.duration)} • {selectedClip.eventName}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Virality Reasoning */}
-                  <Card>
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold mb-2 text-sm text-muted-foreground">
-                        Why this clip has viral potential:
-                      </h4>
-                      <p className="text-sm leading-relaxed">{selectedClip.reasoning}</p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Publishing Form */}
-                <div className="space-y-6">
-                  {/* Platform Selection */}
-                  <div>
-                    <h3 className="font-semibold mb-3">Select Platforms</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {platforms.map((platform) => {
-                        const Icon = platform.icon;
-                        const isSelected = selectedPlatforms.includes(platform.id);
-                        
-                        return (
-                          <Button
-                            key={platform.id}
-                            variant="outline" 
-                            className="h-12 transition-all"
-                            style={{
-                              backgroundColor: isSelected && platform.id === 'linkedin' ? '#2563eb' : 
-                                              isSelected && platform.id === 'twitter' ? '#000000' :
-                                              isSelected && platform.id === 'youtube' ? '#dc2626' :
-                                              isSelected && platform.id === 'instagram' ? '#a855f7' : 'transparent',
-                              color: isSelected ? '#ffffff' : 'inherit',
-                              borderColor: isSelected && platform.id === 'linkedin' ? '#2563eb' : 
-                                          isSelected && platform.id === 'twitter' ? '#000000' :
-                                          isSelected && platform.id === 'youtube' ? '#dc2626' :
-                                          isSelected && platform.id === 'instagram' ? '#a855f7' : '#e5e7eb',
-                              borderWidth: '2px'
-                            }}
-                            onClick={() => {
-                              if (isSelected) {
-                                setSelectedPlatforms(prev => prev.filter(p => p !== platform.id));
-                              } else {
-                                setSelectedPlatforms(prev => [...prev, platform.id]);
-                              }
-                            }}
-                          >
-                            <Icon className="h-5 w-5 mr-2" />
-                            {platform.name}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Will post to 1 account per platform
-                    </p>
-                  </div>
-
-                  {/* Caption Editor */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold">Caption</h3>
-                      <Button variant="ghost" size="sm">
-                        <Edit3 className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                    </div>
-                    <Textarea
-                      value={caption}
-                      onChange={(e) => setCaption(e.target.value)}
-                      placeholder="Write your caption..."
-                      className="min-h-[120px] resize-none"
-                    />
-                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                      <span>AI-optimized for engagement</span>
-                      <span>{caption.length} characters</span>
-                    </div>
-                  </div>
-
-                  {/* Hashtags */}
-                  <div>
-                    <h4 className="font-medium mb-2 text-sm">Suggested Hashtags</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedClip.suggestedHashtags.map((hashtag: string, index: number) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {hashtag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="space-y-3 pt-4 border-t">
-                    <Button 
-                      className="w-full bg-black hover:bg-gray-800 text-white"
-                      onClick={handlePublish}
-                      disabled={selectedPlatforms.length === 0}
-                    >
-                      Publish now
-                    </Button>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => toast({ title: "Scheduled!", description: "Your video will be published at the optimal time" })}
-                        disabled={selectedPlatforms.length === 0}
-                      >
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Schedule
-                      </Button>
-                      <Button variant="outline" onClick={() => handleDownloadClip(selectedClip)}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* PUBLISH MODAL */}
+        <PublishModal
+          isOpen={isPublishModalOpen}
+          onClose={() => setIsPublishModalOpen(false)}
+          content={selectedClip}
+          onPublish={handlePublish}
+          onDownload={handleDownloadClip}
+          title="Publish Your Video"
+        />
 
       {/* Add the modals before the closing tags */}
       <QuickEditSpeakerModal
