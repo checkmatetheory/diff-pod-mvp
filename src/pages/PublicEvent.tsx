@@ -1015,11 +1015,18 @@ export default function PublicEvent(): JSX.Element {
           <div className="flex items-center justify-center">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Built with</span>
-              <img 
-                src="/diffused%20logo%20black%20no%20bg.png" 
-                alt="Diffused" 
-                className="h-5 w-auto"
-              />
+              <a 
+                href="https://www.diffused.app/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:opacity-80 transition-opacity"
+              >
+                <img 
+                  src="/diffused%20logo%20black%20no%20bg.png" 
+                  alt="Diffused" 
+                  className="h-8 w-auto"
+                />
+              </a>
             </div>
           </div>
       </div>
