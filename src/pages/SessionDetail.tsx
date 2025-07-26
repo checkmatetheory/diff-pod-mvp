@@ -1758,18 +1758,20 @@ const SessionDetail = () => {
                         return (
                           <Button
                             key={platform.id}
-                            variant="outline"
-                            className={`h-12 transition-all border-2 ${
-                              isSelected 
-                                ? platform.id === 'linkedin' 
-                                  ? 'bg-blue-600 text-white border-blue-600' 
-                                  : platform.id === 'twitter'
-                                  ? 'bg-black text-white border-black'
-                                  : platform.id === 'youtube' 
-                                  ? 'bg-red-600 text-white border-red-600'
-                                  : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-500'
-                                : 'hover:bg-muted/50 border-border'
-                            }`}
+                            variant="outline" 
+                            className="h-12 transition-all"
+                            style={{
+                              backgroundColor: isSelected && platform.id === 'linkedin' ? '#2563eb' : 
+                                              isSelected && platform.id === 'twitter' ? '#000000' :
+                                              isSelected && platform.id === 'youtube' ? '#dc2626' :
+                                              isSelected && platform.id === 'instagram' ? '#a855f7' : 'transparent',
+                              color: isSelected ? '#ffffff' : 'inherit',
+                              borderColor: isSelected && platform.id === 'linkedin' ? '#2563eb' : 
+                                          isSelected && platform.id === 'twitter' ? '#000000' :
+                                          isSelected && platform.id === 'youtube' ? '#dc2626' :
+                                          isSelected && platform.id === 'instagram' ? '#a855f7' : '#e5e7eb',
+                              borderWidth: '2px'
+                            }}
                             onClick={() => {
                               if (isSelected) {
                                 setSelectedPlatforms(prev => prev.filter(p => p !== platform.id));
