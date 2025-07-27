@@ -129,6 +129,7 @@ function FavoritesContent() {
         ...favorite,
         content_items: favorite.content_items ? {
           ...favorite.content_items,
+          type: 'reel' as 'reel', // Fix TypeScript error by explicitly typing as 'reel'
           viralityScore: favorite.content_items.type === 'reel' ? generateConsistentViralityScore(favorite.content_items.id) : undefined,
           reasoning: favorite.content_items.type === 'reel' ? `This content has strong potential due to its engaging content and timely topic discussion.` : undefined,
           transcript: favorite.content_items.type === 'reel' ? `Sample transcript for ${favorite.content_items.title}...` : undefined,
@@ -210,10 +211,13 @@ function FavoritesContent() {
         {favorites.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {favorites.map((favorite) => (
-              <Card key={favorite.id} className="hover:shadow-lg transition-all duration-300 overflow-hidden group">
+              <Card key={favorite.id} className="hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer">
                 <CardContent className="p-0">
                   {/* Content Image/Thumbnail */}
-                  <div className="relative aspect-[4/5] bg-gradient-to-br from-blueLight via-accentLight to-accent flex items-center justify-center">
+                  <div 
+                    className="relative aspect-[4/5] bg-gradient-to-br from-blueLight via-accentLight to-accent flex items-center justify-center"
+                    onClick={() => favorite.content_items?.type === 'reel' && handlePublishClip(favorite)}
+                  >
                     <div className="w-20 h-20 bg-white/40 rounded-full flex items-center justify-center backdrop-blur-sm">
                       <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center">
                         <div className="w-5 h-5 bg-white/80 rounded-full"></div>
@@ -248,35 +252,18 @@ function FavoritesContent() {
                       </div>
                     )}
 
-                    {/* Action buttons overlay */}
+                    {/* Action buttons overlay - Only Heart button now */}
                     <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       {/* Remove from favorites button */}
                       <button
-                        onClick={() => removeFavorite(favorite.content_item_id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFavorite(favorite.content_item_id);
+                        }}
                         className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-md border border-white/40 hover:bg-black/70 transition-colors duration-200"
                       >
                         <Heart className="h-4 w-4 text-red-500 fill-red-500" />
                       </button>
-
-                      {/* Publish button for reels */}
-                      {favorite.content_items?.type === 'reel' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePublishClip(favorite);
-                          }}
-                          className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-md border border-white/40 hover:bg-black/70 transition-colors duration-200"
-                        >
-                          <Share2 className="h-3 w-3 text-white" />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Content type badge */}
-                    <div className="absolute bottom-3 right-3">
-                      <span className="px-2 py-1 text-xs font-medium bg-black/50 text-white rounded-full backdrop-blur-md border border-white/40">
-                        {favorite.content_items?.type === 'reel' ? 'Reel' : 'Photo'}
-                      </span>
                     </div>
                   </div>
 
