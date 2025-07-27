@@ -234,11 +234,22 @@ export default function Settings() {
   const loadDeletionDetails = async (speakerId: string) => {
     setLoadingDeletionDetails(true);
     try {
-      // Get session count
-      const { data: sessions, count: sessionCount } = await supabase
-        .from('user_sessions')
-        .select('id', { count: 'exact' })
-        .contains('speaker_ids', [speakerId]);
+      // Get session count using the proper junction table approach
+      // First get microsites for this speaker, then count their sessions
+      const { data: microsites } = await supabase
+        .from('speaker_microsites')
+        .select('id')
+        .eq('speaker_id', speakerId);
+      
+      let sessionCount = 0;
+      if (microsites && microsites.length > 0) {
+        const micrositeIds = microsites.map(m => m.id);
+        const { count } = await supabase
+          .from('speaker_microsite_sessions')
+          .select('*', { count: 'exact', head: true })
+          .in('microsite_id', micrositeIds);
+        sessionCount = count || 0;
+      }
 
       // Get analytics/views count (mock data for now)
       const analyticsCount = Math.floor(Math.random() * 500) + 50;

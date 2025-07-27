@@ -250,12 +250,7 @@ const SpeakerContentUpload = () => {
             event_id: selectedEventId,
             processing_status: 'uploaded',
             content_type: 'video_audio',
-            session_data: { 
-              speaker_ids: selectedSpeakerIds,
-              speaker_names: selectedSpeakerIds.map(id => 
-                speakers.find(s => s.id === id)?.full_name || ''
-              ).filter(Boolean)
-            }
+            session_data: {}  // No longer store speaker data here - using junction table instead
           })
           .select()
           .single();
@@ -468,11 +463,7 @@ const SpeakerContentUpload = () => {
           processing_status: 'uploaded',
           content_type: 'video_audio',
           session_data: { 
-            source_url: urlInput,
-            speaker_ids: selectedSpeakerIds,
-            speaker_names: selectedSpeakerIds.map(id => 
-              speakers.find(s => s.id === id)?.full_name || ''
-            ).filter(Boolean)
+            source_url: urlInput  // Keep source_url but remove speaker data - using junction table instead
           }
         })
         .select()

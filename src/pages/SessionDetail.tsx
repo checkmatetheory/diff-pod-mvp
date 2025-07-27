@@ -421,11 +421,6 @@ const SessionDetail = () => {
   const getExistingSpeakerIds = () => {
     const eventSpeakerIds = [];
     
-    // From session_data speaker_ids (legacy)
-    if (session?.session_data?.speaker_ids) {
-      eventSpeakerIds.push(...session.session_data.speaker_ids);
-    }
-    
     // From fetched speakers (current microsites for this event)
     speakers.forEach(s => {
       if (s.speakers?.id) {
@@ -1417,22 +1412,21 @@ const SessionDetail = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {/* Show speakers from fetched microsites (PRIORITY: always show these first) */}
-                        {speakers.length > 0 ? (
+                        {speakers && speakers.length > 0 ? (
                           speakers.map((micrositeData, index) => (
                             <SpeakerManagementCard
-                              key={micrositeData.speakers?.id || index}
+                              key={micrositeData.id}
                               speaker={{
-                                id: micrositeData.speakers?.id || `unknown-${index}`,
-                                full_name: micrositeData.speakers?.full_name || 'Unknown Speaker',
-                                email: micrositeData.speakers?.email || '',
-                                company: micrositeData.speakers?.company || '',
-                                job_title: micrositeData.speakers?.job_title || '',
-                                bio: micrositeData.speakers?.bio || '',
-                                linkedin_url: micrositeData.speakers?.linkedin_url || '',
-                                headshot_url: micrositeData.speakers?.headshot_url || null,
-                                slug: micrositeData.speakers?.slug || '',
-                                created_at: micrositeData.speakers?.created_at || ''
+                                id: micrositeData.speakers.id,
+                                full_name: micrositeData.speakers.full_name,
+                                email: micrositeData.speakers.email,
+                                company: micrositeData.speakers.company,
+                                job_title: micrositeData.speakers.job_title,
+                                bio: micrositeData.speakers.bio,
+                                linkedin_url: micrositeData.speakers.linkedin_url,
+                                headshot_url: micrositeData.speakers.headshot_url,
+                                slug: micrositeData.speakers.slug,
+                                created_at: micrositeData.speakers.created_at
                               }}
                               onEdit={handleEditSpeaker}
                               onAdvanced={handleAdvancedSpeaker}
@@ -1442,60 +1436,6 @@ const SessionDetail = () => {
                               compact={true}
                             />
                           ))
-                        ) : 
-                        /* FALLBACK: Handle multiple speakers from new format */
-                        session.session_data?.speaker_names && session.session_data.speaker_names.length > 0 ? (
-                          session.session_data.speaker_names.map((speakerName: string, index: number) => {
-                            const speakerId = session.session_data?.speaker_ids?.[index];
-                            const speakerData = speakers.find(s => s.speakers?.id === speakerId)?.speakers;
-                            
-                            return (
-                              <SpeakerManagementCard
-                                key={index}
-                                speaker={{
-                                  id: speakerId || `temp-${index}`,
-                                  full_name: speakerName,
-                                  email: speakerData?.email || '',
-                                  company: speakerData?.company || '',
-                                  job_title: speakerData?.job_title || '',
-                                  bio: speakerData?.bio || '',
-                                  linkedin_url: speakerData?.linkedin_url || '',
-                                  headshot_url: speakerData?.headshot_url || null,
-                                  slug: speakerData?.slug || '',
-                                  created_at: speakerData?.created_at || ''
-                                }}
-                                onEdit={handleEditSpeaker}
-                                onAdvanced={handleAdvancedSpeaker}
-                                onDelete={handleDeleteSpeaker}
-                                onRemove={handleRemoveSpeaker}
-                                onViewMicrosite={handleViewMicrosite}
-                                compact={true}
-                              />
-                            );
-                          })
-                        ) : 
-                        /* FALLBACK: Handle legacy single speaker format */
-                        session.session_data?.speaker_name ? (
-                          <SpeakerManagementCard
-                            speaker={{
-                              id: speaker?.id || 'legacy',
-                              full_name: session.session_data.speaker_name,
-                              email: speaker?.email || '',
-                              company: speaker?.company || '',
-                              job_title: speaker?.job_title || '',
-                              bio: speaker?.bio || '',
-                              linkedin_url: speaker?.linkedin_url || '',
-                              headshot_url: speaker?.headshot_url || null,
-                              slug: speaker?.slug || '',
-                              created_at: speaker?.created_at || ''
-                            }}
-                            onEdit={handleEditSpeaker}
-                            onAdvanced={handleAdvancedSpeaker}
-                            onDelete={handleDeleteSpeaker}
-                            onRemove={handleRemoveSpeaker}
-                            onViewMicrosite={handleViewMicrosite}
-                            compact={true}
-                          />
                         ) : (
                           <div className="text-sm text-muted-foreground text-center py-4">
                             No speakers assigned to this session.

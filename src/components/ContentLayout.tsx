@@ -13,7 +13,6 @@ interface Session {
   category?: string;
   content_type?: string;
   duration_seconds?: number;
-  speaker_names?: string[];
   tags?: string[];
   thumbnail_url?: string;
   created_at: string;
@@ -109,12 +108,6 @@ const ContentRow = ({ title, sessions, className }: ContentRowProps) => {
                   <Badge variant="outline" className="text-xs px-2 py-0">
                     {formatCategory(session.category)}
                   </Badge>
-                )}
-                {session.speaker_names && session.speaker_names.length > 0 && (
-                  <span className="truncate">
-                    {session.speaker_names.slice(0, 2).join(", ")}
-                    {session.speaker_names.length > 2 && " +more"}
-                  </span>
                 )}
               </div>
 

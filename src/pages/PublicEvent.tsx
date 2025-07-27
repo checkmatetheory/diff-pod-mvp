@@ -876,7 +876,7 @@ export default function PublicEvent(): JSX.Element {
                 <div className="text-center">
                   <h3 className="font-semibold mb-1">Early Bird Access</h3>
                   <p className="text-sm text-white/80">Exclusive pricing & perks</p>
-                </div>
+              </div>
               </div>
               <div className="flex flex-col items-center gap-3 text-white">
                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
@@ -1007,11 +1007,11 @@ export default function PublicEvent(): JSX.Element {
                 rel="noopener noreferrer"
                 className="hover:opacity-80 transition-opacity"
               >
-                <img 
+              <img 
                   src="/diffused%20logo%20black%20no%20bg.png" 
                 alt="Diffused" 
                   className="h-8 w-auto"
-                />
+              />
               </a>
             </div>
           </div>
