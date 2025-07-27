@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "@/components/Header";
@@ -22,7 +23,10 @@ import {
   Twitter,
   Instagram,
   Youtube,
-  Edit3
+  Edit3,
+  FileVideo,
+  Upload,
+  Plus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +52,8 @@ function BrowseContent() {
   
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { openModal } = useCreateEventModal();
 
   // Helper functions for viral clips (from SessionDetail)
   const formatDuration = (seconds: number) => {
@@ -285,7 +291,10 @@ function BrowseContent() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredContent.map((item) => (
             <div key={item.id} className="group cursor-pointer">
-              <div className="relative aspect-[4/5] rounded-lg overflow-hidden bg-card shadow-card hover:shadow-card-hover transition-all duration-500 hover:scale-[1.02] hover:-translate-y-2">
+              <div 
+                className="relative aspect-[4/5] rounded-lg overflow-hidden bg-card shadow-card hover:shadow-card-hover transition-all duration-500 hover:scale-[1.02] hover:-translate-y-2"
+                onClick={() => item.type === 'reel' && handlePublishClip(item)}
+              >
                 {/* Placeholder image with enhanced gradient background */}
                 <div className="w-full h-full bg-gradient-to-br from-blueLight via-accentLight to-accent flex items-center justify-center">
                   <div className="w-20 h-20 bg-white/40 rounded-full flex items-center justify-center backdrop-blur-sm">
@@ -304,14 +313,14 @@ function BrowseContent() {
                   </div>
                 )}
 
-                                 {/* Virality Score Badge for reels */}
-                 {item.type === 'reel' && item.viralityScore && (
-                   <div className="absolute top-3 left-3">
-                     <Badge className={`${getViralityColor(item.viralityScore)} font-semibold shadow-lg backdrop-blur-sm !bg-opacity-100 hover:!bg-opacity-100`}>
-                       {getViralityRank(item.viralityScore)} ({item.viralityScore}/100)
-                     </Badge>
-                   </div>
-                 )}
+                {/* Virality Score Badge for reels */}
+                {item.type === 'reel' && item.viralityScore && (
+                  <div className="absolute top-3 left-3">
+                    <Badge className={`${getViralityColor(item.viralityScore)} font-semibold shadow-lg backdrop-blur-sm !bg-opacity-100 hover:!bg-opacity-100`}>
+                      {getViralityRank(item.viralityScore)} ({item.viralityScore}/100)
+                    </Badge>
+                  </div>
+                )}
 
                 {/* Duration Badge for reels */}
                 {item.type === 'reel' && item.duration && (
@@ -323,7 +332,7 @@ function BrowseContent() {
                   </div>
                 )}
 
-                {/* Action buttons overlay */}
+                {/* Action buttons overlay - Only Heart button now */}
                 <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   {/* Heart/Like button */}
                   <button
@@ -341,19 +350,6 @@ function BrowseContent() {
                       }`}
                     />
                   </button>
-
-                  {/* Publish button for reels */}
-                  {item.type === 'reel' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePublishClip(item);
-                      }}
-                      className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-md border border-white/40 hover:bg-black/70 transition-colors duration-200"
-                    >
-                      <Share2 className="h-4 w-4 text-white" />
-                    </button>
-                  )}
                 </div>
 
                 {/* Content info overlay on hover */}
@@ -367,16 +363,37 @@ function BrowseContent() {
           ))}
         </div>
 
-        {/* Enhanced Empty State */}
+        {/* Get Started Empty State */}
         {filteredContent.length === 0 && !loading && (
           <div className="text-center py-20">
-            <div className="w-24 h-24 rounded-lg bg-accentLight flex items-center justify-center mx-auto mb-6">
-              <Search className="h-12 w-12 text-primary" />
-            </div>
-            <h3 className="text-2xl font-bold text-text mb-3">No videos found</h3>
-            <p className="text-lg text-textSecondary max-w-md mx-auto">
-              Try adjusting your search terms to find the content you're looking for
-            </p>
+            <Card className="max-w-lg mx-auto border-0 backdrop-blur-md bg-white/50 shadow-xl border border-white/40">
+              <CardContent className="p-12">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto mb-8">
+                  <FileVideo className="h-10 w-10 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Your Content Library is Empty</h3>
+                <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
+                  Start by creating an event or uploading a session recording. We'll automatically generate shareable video clips for you.
+                </p>
+                <div className="space-y-3">
+                  <Button 
+                    onClick={() => openModal()} 
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    Create New Event
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/upload')}
+                    className="w-full border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 font-medium py-3 px-6 rounded-lg transition-colors duration-200"
+                  >
+                    <Upload className="h-5 w-5 mr-2" />
+                    Upload Session Recording
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>
@@ -395,12 +412,10 @@ function BrowseContent() {
 }
 
 export default function Browse() {
-  const { openModal } = useCreateEventModal();
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar onCreateEvent={openModal} />
+        <AppSidebar />
         <SidebarInset className="flex-1">
           <Header />
           <main className="flex-1 p-6">

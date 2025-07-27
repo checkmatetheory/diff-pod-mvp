@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ConversionData {
   id: string;
@@ -41,11 +44,138 @@ interface PendingApproval {
   priority: 'high' | 'medium' | 'low';
 }
 
+interface UserEvent {
+  id: string;
+  name: string;
+  description: string;
+  subdomain: string;
+  is_active: boolean;
+  next_event_date: string;
+  created_at: string;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   
-  // ROI-focused stats that event organizers care about
-  const stats = [
+  // Check if this is the demo test user
+  const isDemoUser = user?.email === 'testlast@pod.com';
+  
+  // State for real user data
+  const [dataLoading, setDataLoading] = useState(false);
+  const [userEvents, setUserEvents] = useState<UserEvent[]>([]);
+  const [realMetrics, setRealMetrics] = useState({
+    total_revenue: 0,
+    tickets_sold: 0,
+    qualified_leads: 0,
+    roi_multiplier: 0
+  });
+  const [realConversions, setRealConversions] = useState<ConversionData[]>([]);
+  const [realPendingApprovals, setRealPendingApprovals] = useState<PendingApproval[]>([]);
+
+  useEffect(() => {
+    if (!user) return; // Don't do anything if no user yet
+
+    if (isDemoUser) {
+      // Demo user - no data fetching needed
+      setDataLoading(false);
+    } else {
+      // Real user - fetch their data
+      setDataLoading(true);
+      fetchRealUserData();
+    }
+  }, [user, isDemoUser]);
+
+  const fetchRealUserData = async () => {
+    if (!user) return;
+
+    try {
+      // Fetch user's events
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (eventsError) throw eventsError;
+      setUserEvents(eventsData || []);
+
+      // Fetch real analytics data across all user events
+      if (eventsData && eventsData.length > 0) {
+        const eventIds = eventsData.map(e => e.id);
+        
+        const { data: analyticsData, error: analyticsError } = await supabase
+          .from('diffusion_analytics')
+          .select('*')
+          .in('event_id', eventIds);
+
+        if (analyticsError) throw analyticsError;
+
+        // Process real metrics
+        const processedMetrics = processRealMetrics(analyticsData || []);
+        setRealMetrics(processedMetrics);
+
+        // Fetch recent conversions from attribution tracking
+        const { data: attributionData, error: attributionError } = await supabase
+          .from('attribution_tracking')
+          .select('*')
+          .in('event_id', eventIds)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (attributionError) throw attributionError;
+        
+        // Process attribution data into conversions format
+        const conversions = (attributionData || []).map(attr => ({
+          id: attr.id,
+          speaker_name: 'Speaker', // Would need to join with speakers table
+          event_name: 'Event', // Would need to join with events table
+          conversion_type: attr.conversion_type === 'lead_capture' ? 'email_capture' : 'ticket_sale' as any,
+          value: attr.conversion_type === 'lead_capture' ? 25 : 299,
+          timestamp: attr.created_at,
+          microsite_url: attr.microsite_id || ''
+        }));
+        
+        setRealConversions(conversions);
+      }
+
+    } catch (error) {
+      console.error('Error fetching real user data:', error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  const processRealMetrics = (analyticsData: any[]) => {
+    const total_leads = analyticsData
+      .filter(d => d.metric_type === 'email_capture')
+      .reduce((sum, d) => sum + d.metric_value, 0);
+    
+    const total_shares = analyticsData
+      .filter(d => d.metric_type === 'share')
+      .reduce((sum, d) => sum + d.metric_value, 0);
+    
+    const total_views = analyticsData
+      .filter(d => d.metric_type === 'recap_view')
+      .reduce((sum, d) => sum + d.metric_value, 0);
+    
+    const tickets_sold = analyticsData
+      .filter(d => d.metric_type === 'ticket_sale')
+      .reduce((sum, d) => sum + d.metric_value, 0);
+
+    // Calculate estimated revenue (you'd need actual revenue tracking)
+    const estimated_revenue = tickets_sold * 299; // Assuming $299 average ticket price
+    
+    return {
+      total_revenue: estimated_revenue,
+      tickets_sold,
+      qualified_leads: total_leads,
+      roi_multiplier: total_views > 0 ? (estimated_revenue / (total_views * 10)) : 0 // Rough ROI calc
+    };
+  };
+
+  // Mock data for demo user only
+  const mockStats = [
     {
       title: 'Total Revenue Attributed',
       value: '$847K',
@@ -84,15 +214,55 @@ const Dashboard = () => {
     }
   ];
 
-  // Mock active events data (focusing on revenue attribution)
-  const activeEvents = [
+  // Real data for regular users
+  const realStats = [
+    {
+      title: 'Total Revenue Attributed',
+      value: realMetrics.total_revenue > 0 ? `$${(realMetrics.total_revenue / 1000).toFixed(1)}K` : '$0',
+      change: realMetrics.total_revenue > 0 ? 'From your events' : 'Upload sessions to start tracking',
+      icon: DollarSign,
+      color: realMetrics.total_revenue > 0 ? 'text-green-600' : 'text-gray-600',
+      trend: realMetrics.total_revenue > 0 ? 'up' : 'neutral',
+      subtitle: 'From speaker microsites'
+    },
+    {
+      title: 'Tickets Sold',
+      value: realMetrics.tickets_sold.toString(),
+      change: realMetrics.tickets_sold > 0 ? 'Real conversions tracked' : 'Create events to track sales',
+      icon: Calendar,
+      color: realMetrics.tickets_sold > 0 ? 'text-blue-600' : 'text-gray-600',
+      trend: realMetrics.tickets_sold > 0 ? 'up' : 'neutral',
+      subtitle: 'Event registrations'
+    },
+    {
+      title: 'Qualified Leads',
+      value: realMetrics.qualified_leads > 0 ? `${(realMetrics.qualified_leads / 1000).toFixed(1)}K` : realMetrics.qualified_leads.toString(),
+      change: realMetrics.qualified_leads > 0 ? 'Growing your audience' : 'Set up speaker microsites',
+      icon: Users,
+      color: realMetrics.qualified_leads > 0 ? 'text-purple-600' : 'text-gray-600',
+      trend: realMetrics.qualified_leads > 0 ? 'up' : 'neutral',
+      subtitle: 'Email captures & signups'
+    },
+    {
+      title: 'Speaker Network ROI',
+      value: realMetrics.roi_multiplier > 0 ? `${realMetrics.roi_multiplier.toFixed(1)}x` : '0x',
+      change: realMetrics.roi_multiplier > 0 ? 'Positive ROI achieved' : 'Need conversion data',
+      icon: TrendingUp,
+      color: realMetrics.roi_multiplier > 0 ? 'text-orange-600' : 'text-gray-600',
+      trend: realMetrics.roi_multiplier > 0 ? 'up' : 'neutral',
+      subtitle: 'Revenue per $ invested'
+    }
+  ];
+
+  // Use mock data for demo user, real data for others
+  const stats = isDemoUser ? mockStats : realStats;
+
+  // Mock active events for demo user
+  const mockActiveEvents = [
     {
       id: '1',
       name: 'FinTech Innovation Summit 2024',
       description: 'Generating revenue through speaker network effects',
-      brand_logo_url: null,
-      category: 'Financial Technology',
-      status: 'live',
       analytics: {
         revenue_attributed: 247000,
         tickets_sold: 892,
@@ -101,13 +271,28 @@ const Dashboard = () => {
         conversion_rate: 8.2,
         top_performing_speaker: 'Sarah Chen'
       },
-      next_event_date: '2025-03-15',
-      registration_url: 'https://fintech2025.com'
+      next_event_date: '2025-03-15'
     }
   ];
 
-  // Recent conversions (dopamine hits for the organizer)
-  const recentConversions: ConversionData[] = [
+  // Use real user events for non-demo users
+  const activeEvents = isDemoUser ? mockActiveEvents : userEvents.map(event => ({
+    id: event.id,
+    name: event.name,
+    description: event.description,
+    analytics: {
+      revenue_attributed: realMetrics.total_revenue,
+      tickets_sold: realMetrics.tickets_sold,
+      qualified_leads: realMetrics.qualified_leads,
+      speaker_count: 0, // Would need to calculate from speakers table
+      conversion_rate: realMetrics.qualified_leads > 0 ? (realMetrics.tickets_sold / realMetrics.qualified_leads * 100) : 0,
+      top_performing_speaker: 'N/A' // Would need to calculate from analytics
+    },
+    next_event_date: event.next_event_date
+  }));
+
+  // Mock conversions for demo user
+  const mockRecentConversions: ConversionData[] = [
     {
       id: '1',
       speaker_name: 'Sarah Chen',
@@ -131,14 +316,16 @@ const Dashboard = () => {
       speaker_name: 'Dr. Priya Sharma',
       event_name: 'Tech Summit 2024',
       conversion_type: 'email_capture',
-      value: 25, // estimated value per email
+      value: 25,
       timestamp: '2024-01-15T12:45:00Z',
       microsite_url: '/speaker/priya-sharma'
     }
   ];
 
-  // Content pending approval (giving organizers control)
-  const pendingApprovals: PendingApproval[] = [
+  const recentConversions = isDemoUser ? mockRecentConversions : realConversions;
+
+  // Mock pending approvals for demo user
+  const mockPendingApprovals: PendingApproval[] = [
     {
       id: '1',
       speaker_name: 'Alex Thompson',
@@ -156,6 +343,8 @@ const Dashboard = () => {
       priority: 'medium'
     }
   ];
+
+  const pendingApprovals = isDemoUser ? mockPendingApprovals : realPendingApprovals;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -182,6 +371,17 @@ const Dashboard = () => {
       default: return 'text-gray-600';
     }
   };
+
+  if (authLoading || dataLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-center">
+          <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -233,11 +433,15 @@ const Dashboard = () => {
             {/* Revenue Attribution Visual */}
             <div className="absolute top-6 right-6 bg-white/15 backdrop-blur-md rounded-2xl p-6 border border-white/20">
               <div className="text-center">
-                <div className="text-3xl font-bold text-white mb-1">${(847).toLocaleString()}K</div>
+                <div className="text-3xl font-bold text-white mb-1">
+                  ${isDemoUser ? (847).toLocaleString() : Math.floor(realMetrics.total_revenue / 1000)}K
+                </div>
                 <div className="text-white/80 text-sm">This Month</div>
                 <div className="flex items-center justify-center mt-2 text-white/90">
                   <TrendingUp className="h-4 w-4 mr-1" />
-                  <span className="text-sm">+47% vs last month</span>
+                  <span className="text-sm">
+                    {isDemoUser ? '+47% vs last month' : realMetrics.total_revenue > 0 ? 'Growing' : 'Start your first event'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -249,22 +453,24 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-8">
             <div className="backdrop-blur-sm bg-white/40 p-4 rounded-xl border border-white/30">
               <h2 className="text-2xl font-semibold text-gray-800">Revenue Impact Overview</h2>
-              <p className="text-gray-600">Real-time attribution from your speaker network</p>
+              <p className="text-gray-600">
+                {isDemoUser ? 'Real-time attribution from your speaker network' : 'Track revenue as your events grow'}
+              </p>
             </div>
             <Badge className="backdrop-blur-sm bg-white/60 border border-white/40 text-gray-700">
               <Eye className="h-4 w-4 mr-2" />
-              Live Tracking
+              {isDemoUser ? 'Live Tracking' : realMetrics.total_revenue > 0 ? 'Tracking Active' : 'Ready to Track'}
             </Badge>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat) => (
-              <Card key={stat.title} className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+              <Card key={stat.title} className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-sky-300/60 transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-3">
-                        <div className={`p-2 rounded-lg ${stat.title.includes('Revenue') ? 'bg-green-100/80' : 'bg-gray-100/80'} backdrop-blur-sm`}>
+                        <div className={`p-2 rounded-lg ${stat.title.includes('Revenue') && (isDemoUser || realMetrics.total_revenue > 0) ? 'bg-green-100/80' : 'bg-gray-100/80'} backdrop-blur-sm`}>
                           <stat.icon className={`h-5 w-5 ${stat.color}`} />
                         </div>
                         <p className="text-sm font-medium text-gray-700">
@@ -272,7 +478,7 @@ const Dashboard = () => {
                         </p>
                       </div>
                       <p className="text-3xl font-bold mb-1 text-gray-800">{stat.value}</p>
-                      <p className={`text-sm font-medium ${stat.title.includes('Revenue') ? 'text-green-600' : 'text-blue-600'}`}>
+                      <p className={`text-sm font-medium ${stat.color.includes('green') ? 'text-green-600' : stat.color.includes('blue') ? 'text-blue-600' : stat.color.includes('purple') ? 'text-purple-600' : stat.color.includes('orange') ? 'text-orange-600' : 'text-gray-500'}`}>
                         {stat.change}
                       </p>
                       <p className="text-xs text-gray-600 mt-1">{stat.subtitle}</p>
@@ -291,42 +497,67 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-6">
               <div className="backdrop-blur-sm bg-white/40 p-4 rounded-xl border border-white/30">
                 <h2 className="text-xl font-semibold text-gray-800">🎉 Recent Conversions</h2>
-                <p className="text-sm text-gray-600">Your speakers are generating revenue right now</p>
+                <p className="text-sm text-gray-600">
+                  {isDemoUser ? 'Your speakers are generating revenue right now' : recentConversions.length > 0 ? 'Real conversions from your events' : 'Conversions will appear here once you have active events'}
+                </p>
               </div>
-              <Button variant="outline" size="sm" className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70">
-                View All
-              </Button>
+              {(isDemoUser || recentConversions.length > 0) && (
+                <Button variant="outline" size="sm" className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70">
+                  View All
+                </Button>
+              )}
             </div>
             
             <div className="space-y-3">
-              {recentConversions.map((conversion) => {
-                const IconComponent = getConversionIcon(conversion.conversion_type);
-                const iconColor = getConversionColor(conversion.conversion_type);
-                
-                return (
-                  <Card key={conversion.id} className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-full bg-green-100/80 backdrop-blur-sm">
-                            <IconComponent className={`h-4 w-4 ${iconColor}`} />
+              {recentConversions.length > 0 ? (
+                recentConversions.map((conversion) => {
+                  const IconComponent = getConversionIcon(conversion.conversion_type);
+                  const iconColor = getConversionColor(conversion.conversion_type);
+                  
+                  return (
+                    <Card key={conversion.id} className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-green-100/80 backdrop-blur-sm">
+                              <IconComponent className={`h-4 w-4 ${iconColor}`} />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm text-gray-800">{conversion.speaker_name}</p>
+                              <p className="text-xs text-gray-600">{conversion.event_name}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold text-sm text-gray-800">{conversion.speaker_name}</p>
-                            <p className="text-xs text-gray-600">{conversion.event_name}</p>
+                          <div className="text-right">
+                            <p className="font-bold text-green-600">{formatCurrency(conversion.value)}</p>
+                            <p className="text-xs text-gray-600">
+                              {new Date(conversion.timestamp).toLocaleTimeString()}
+                            </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-green-600">{formatCurrency(conversion.value)}</p>
-                          <p className="text-xs text-gray-600">
-                            {new Date(conversion.timestamp).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              ) : (
+                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30">
+                  <CardContent className="p-8 text-center">
+                    <div className="w-16 h-16 rounded-full bg-gray-100/80 backdrop-blur-sm flex items-center justify-center mx-auto mb-4">
+                      <DollarSign className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">No conversions yet</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Upload sessions and create speaker microsites to start tracking revenue
+                    </p>
+                    <Button 
+                      size="sm" 
+                      onClick={() => navigate('/upload')}
+                      className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm"
+                    >
+                      Upload First Session
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
 
@@ -335,41 +566,59 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-6">
               <div className="backdrop-blur-sm bg-white/40 p-4 rounded-xl border border-white/30">
                 <h2 className="text-xl font-semibold text-gray-800">⏳ Pending Your Approval</h2>
-                <p className="text-sm text-gray-600">Review before speaker distribution</p>
+                <p className="text-sm text-gray-600">
+                  {isDemoUser ? 'Review before speaker distribution' : pendingApprovals.length > 0 ? 'Content awaiting your approval' : 'Speaker content awaiting your approval will appear here'}
+                </p>
               </div>
-              <Badge className="bg-orange-100/80 text-orange-700 backdrop-blur-sm border border-orange-200/50">
-                {pendingApprovals.length} pending
-              </Badge>
+              {pendingApprovals.length > 0 && (
+                <Badge className="bg-orange-100/80 text-orange-700 backdrop-blur-sm border border-orange-200/50">
+                  {pendingApprovals.length} pending
+                </Badge>
+              )}
             </div>
             
             <div className="space-y-3">
-              {pendingApprovals.map((approval) => (
-                <Card key={approval.id} className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-full bg-orange-100/80 backdrop-blur-sm">
-                          <AlertCircle className="h-4 w-4 text-orange-600" />
+              {pendingApprovals.length > 0 ? (
+                pendingApprovals.map((approval) => (
+                  <Card key={approval.id} className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-full bg-orange-100/80 backdrop-blur-sm">
+                            <AlertCircle className="h-4 w-4 text-orange-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm text-gray-800">{approval.speaker_name}</p>
+                            <p className="text-xs text-gray-600">
+                              {approval.content_type.replace('_', ' ')} • {approval.event_name}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-sm text-gray-800">{approval.speaker_name}</p>
-                          <p className="text-xs text-gray-600">
-                            {approval.content_type.replace('_', ' ')} • {approval.event_name}
-                          </p>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" className="h-8 px-3 backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70">
+                            Review
+                          </Button>
+                          <Button size="sm" className="h-8 px-3 bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm">
+                            Approve
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="h-8 px-3 backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70">
-                          Review
-                        </Button>
-                        <Button size="sm" className="h-8 px-3 bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm">
-                          Approve
-                        </Button>
-                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30">
+                  <CardContent className="p-8 text-center">
+                    <div className="w-16 h-16 rounded-full bg-gray-100/80 backdrop-blur-sm flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle className="h-8 w-8 text-gray-400" />
                     </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">All caught up!</h3>
+                    <p className="text-sm text-gray-600">
+                      No pending approvals. Speaker content will appear here when uploaded.
+                    </p>
                   </CardContent>
                 </Card>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -379,114 +628,157 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-8">
             <div className="backdrop-blur-sm bg-white/40 p-4 rounded-xl border border-white/30">
               <h2 className="text-2xl font-semibold text-gray-800">Active Events</h2>
-              <p className="text-gray-600">Live revenue attribution from speaker microsites</p>
+              <p className="text-gray-600">
+                {isDemoUser ? 'Live revenue attribution from speaker microsites' : activeEvents.length > 0 ? 'Your active events and their performance' : 'Your events will appear here once created'}
+              </p>
             </div>
             <Button variant="outline" onClick={() => navigate('/events')} className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70">
-              Manage All Events
+              {activeEvents.length > 0 ? 'Manage All Events' : 'Create First Event'}
               <ArrowUpRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
 
           <div className="grid grid-cols-1 gap-6">
-            {activeEvents.map((event) => (
-              <Card key={event.id} className="border-0 backdrop-blur-md bg-white/50 shadow-xl border border-white/40 hover:shadow-2xl hover:bg-white/60 transition-all duration-300">
-                <CardContent className="p-8">
-                  <div className="flex items-start justify-between mb-6">
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-semibold text-gray-800">{event.name}</h3>
-                        <Badge className="bg-green-100/80 text-green-800 backdrop-blur-sm border border-green-200/50">Live</Badge>
+            {activeEvents.length > 0 ? (
+              activeEvents.map((event) => (
+                <Card key={event.id} className="border-0 backdrop-blur-md bg-white/50 shadow-xl border border-white/40 hover:shadow-2xl hover:bg-sky-300/60 transition-all duration-300">
+                  <CardContent className="p-8">
+                    <div className="flex items-start justify-between mb-6">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-semibold text-gray-800">{event.name}</h3>
+                          <Badge className="bg-green-100/80 text-green-800 backdrop-blur-sm border border-green-200/50">
+                            {isDemoUser || event.analytics.revenue_attributed > 0 ? 'Live' : 'Active'}
+                          </Badge>
+                        </div>
+                        <p className="text-gray-600 mb-4">{event.description}</p>
+                        
+                        {/* Revenue metrics grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="text-center p-4 bg-green-100/80 backdrop-blur-sm rounded-xl border border-green-200/50">
+                            <p className="text-2xl font-bold text-green-700">
+                              {formatCurrency(event.analytics.revenue_attributed)}
+                            </p>
+                            <p className="text-xs text-green-600">Revenue</p>
+                          </div>
+                          <div className="text-center p-4 backdrop-blur-sm bg-white/60 rounded-xl border border-white/40">
+                            <p className="text-2xl font-bold text-blue-600">
+                              {event.analytics.tickets_sold.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-600">Tickets</p>
+                          </div>
+                          <div className="text-center p-4 backdrop-blur-sm bg-white/60 rounded-xl border border-white/40">
+                            <p className="text-2xl font-bold text-purple-600">
+                              {event.analytics.qualified_leads.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-600">Leads</p>
+                          </div>
+                          <div className="text-center p-4 backdrop-blur-sm bg-white/60 rounded-xl border border-white/40">
+                            <p className="text-2xl font-bold text-orange-600">
+                              {event.analytics.conversion_rate.toFixed(1)}%
+                            </p>
+                            <p className="text-xs text-gray-600">CVR</p>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-gray-600 mb-4">{event.description}</p>
                       
-                      {/* Revenue metrics grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center p-4 bg-green-100/80 backdrop-blur-sm rounded-xl border border-green-200/50">
-                          <p className="text-2xl font-bold text-green-700">
-                            {formatCurrency(event.analytics.revenue_attributed)}
-                          </p>
-                          <p className="text-xs text-green-600">Revenue</p>
-                        </div>
-                        <div className="text-center p-4 backdrop-blur-sm bg-white/60 rounded-xl border border-white/40">
-                          <p className="text-2xl font-bold text-blue-600">
-                            {event.analytics.tickets_sold.toLocaleString()}
-                          </p>
-                          <p className="text-xs text-gray-600">Tickets</p>
-                        </div>
-                        <div className="text-center p-4 backdrop-blur-sm bg-white/60 rounded-xl border border-white/40">
-                          <p className="text-2xl font-bold text-purple-600">
-                            {event.analytics.qualified_leads.toLocaleString()}
-                          </p>
-                          <p className="text-xs text-gray-600">Leads</p>
-                        </div>
-                        <div className="text-center p-4 backdrop-blur-sm bg-white/60 rounded-xl border border-white/40">
-                          <p className="text-2xl font-bold text-orange-600">
-                            {event.analytics.conversion_rate}%
-                          </p>
-                          <p className="text-xs text-gray-600">CVR</p>
-                        </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70">
+                          View Analytics
+                        </Button>
+                        <Button size="sm" className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm" onClick={() => navigate(`/events/${event.id}/manage`)}>
+                          Manage Event
+                        </Button>
                       </div>
                     </div>
                     
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="backdrop-blur-sm bg-white/50 border border-white/40 hover:bg-white/70">
-                        View Analytics
-                      </Button>
-                      <Button size="sm" className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm">
-                        Manage Event
-                      </Button>
+                    <div className="flex items-center justify-between text-sm text-gray-600 border-t border-white/30 pt-4">
+                      <span>Top performer: <strong className="text-gray-800">{event.analytics.top_performing_speaker}</strong></span>
+                      <span>{event.analytics.speaker_count} active speakers</span>
+                      <span>Next event: {event.next_event_date ? new Date(event.next_event_date).toLocaleDateString() : 'TBD'}</span>
                     </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card className="border-0 backdrop-blur-md bg-white/50 shadow-xl border border-white/40">
+                <CardContent className="p-12 text-center">
+                  <div className="w-20 h-20 rounded-full bg-gray-100/80 backdrop-blur-sm flex items-center justify-center mx-auto mb-6">
+                    <Calendar className="h-10 w-10 text-gray-400" />
                   </div>
-                  
-                  <div className="flex items-center justify-between text-sm text-gray-600 border-t border-white/30 pt-4">
-                    <span>Top performer: <strong className="text-gray-800">{event.analytics.top_performing_speaker}</strong></span>
-                    <span>{event.analytics.speaker_count} active speakers</span>
-                    <span>Next event: {new Date(event.next_event_date).toLocaleDateString()}</span>
-                  </div>
+                  <h3 className="text-2xl font-semibold text-gray-800 mb-3">No events yet</h3>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    Create your first event to start tracking revenue attribution from speaker microsites
+                  </p>
+                  <Button 
+                    size="lg" 
+                    onClick={() => navigate('/events')}
+                    className="bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    Create First Event
+                  </Button>
                 </CardContent>
               </Card>
-            ))}
+            )}
           </div>
         </div>
 
         {/* Revenue-Focused Quick Actions */}
         <div>
           <div className="backdrop-blur-sm bg-white/40 p-4 rounded-xl border border-white/30 mb-8 inline-block">
-            <h2 className="text-2xl font-semibold text-gray-800">Revenue Optimization</h2>
+            <h2 className="text-2xl font-semibold text-gray-800">
+              {isDemoUser ? 'Revenue Optimization' : activeEvents.length > 0 ? 'Optimize Performance' : 'Get Started'}
+            </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 cursor-pointer hover:shadow-xl hover:bg-white/60 transition-all duration-300" onClick={() => navigate('/events')}>
+            <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 cursor-pointer hover:shadow-xl hover:bg-sky-300/60 transition-all duration-300" onClick={() => navigate('/events')}>
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-green-100/80 backdrop-blur-sm flex items-center justify-center mx-auto mb-4">
                   <Plus className="h-8 w-8 text-green-600" />
                 </div>
                 <h3 className="font-semibold mb-2 text-gray-800">Launch New Event</h3>
                 <p className="text-sm text-gray-600">
-                  Set up speaker microsites to maximize next year's ticket sales
+                  {isDemoUser 
+                    ? 'Set up speaker microsites to maximize next year\'s ticket sales'
+                    : activeEvents.length > 0 
+                    ? 'Create another event to expand your revenue channels'
+                    : 'Create your first event to start revenue tracking'
+                  }
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 cursor-pointer hover:shadow-xl hover:bg-white/60 transition-all duration-300" onClick={() => navigate('/analytics')}>
+            <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 cursor-pointer hover:shadow-xl hover:bg-sky-300/60 transition-all duration-300" onClick={() => navigate('/analytics')}>
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-blue-100/80 backdrop-blur-sm flex items-center justify-center mx-auto mb-4">
                   <BarChart3 className="h-8 w-8 text-blue-600" />
                 </div>
                 <h3 className="font-semibold mb-2 text-gray-800">Revenue Analytics</h3>
                 <p className="text-sm text-gray-600">
-                  Deep dive into speaker performance and attribution metrics
+                  {isDemoUser
+                    ? 'Deep dive into speaker performance and attribution metrics'
+                    : realMetrics.total_revenue > 0
+                    ? 'Analyze your revenue attribution and optimize performance'
+                    : 'View detailed analytics once you have event data'
+                  }
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 cursor-pointer hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+            <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 cursor-pointer hover:shadow-xl hover:bg-sky-300/60 transition-all duration-300" onClick={() => navigate('/upload')}>
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-purple-100/80 backdrop-blur-sm flex items-center justify-center mx-auto mb-4">
                   <Share2 className="h-8 w-8 text-purple-600" />
                 </div>
                 <h3 className="font-semibold mb-2 text-gray-800">Speaker Network</h3>
                 <p className="text-sm text-gray-600">
-                  Manage speaker incentives and track viral distribution
+                  {isDemoUser
+                    ? 'Manage speaker incentives and track viral distribution'
+                    : userEvents.length > 0
+                    ? 'Upload more sessions to expand your speaker network'
+                    : 'Upload sessions to build your speaker network'
+                  }
                 </p>
               </CardContent>
             </Card>

@@ -695,12 +695,12 @@ export default function PublicEvent(): JSX.Element {
           {/* Event title and description */}
           <div className="space-y-8">
             <h1 className="text-6xl md:text-7xl font-bold text-foreground mb-8 leading-tight tracking-tight">
-              {event.name}
-            </h1>
-            
+            {event.name}
+          </h1>
+          
             <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed font-light">
-              {event.description}
-            </p>
+            {event.description}
+          </p>
 
             {/* Event date if available */}
             {event.next_event_date && (
@@ -716,7 +716,7 @@ export default function PublicEvent(): JSX.Element {
                 </span>
               </div>
             )}
-          </div>
+                </div>
         </div>
       </section>
 
@@ -838,7 +838,7 @@ export default function PublicEvent(): JSX.Element {
           background: `linear-gradient(135deg, ${brandColors.primary}, ${brandColors.secondary})` 
         }}
       >
-        <div className="container mx-auto max-w-4xl text-center">
+          <div className="container mx-auto max-w-4xl text-center">
           <div className="space-y-8">
             {/* Compelling headline */}
             <div className="space-y-4">
@@ -905,7 +905,7 @@ export default function PublicEvent(): JSX.Element {
                     disabled={loading.emailSubmission}
                     autoComplete="email"
                   />
-                  <Button 
+                  <Button
                     type="submit" 
                     disabled={loading.emailSubmission || !email.trim()}
                     className="bg-white text-black hover:bg-white/90 font-bold px-8 h-14 text-lg shadow-lg"
@@ -933,11 +933,11 @@ export default function PublicEvent(): JSX.Element {
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4" />
                     <span>No spam, ever</span>
-                  </div>
+                </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4" />
                     <span>Exclusive updates</span>
-                  </div>
+          </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4" />
                     <span>Unsubscribe anytime</span>
@@ -1009,7 +1009,7 @@ export default function PublicEvent(): JSX.Element {
               >
                 <img 
                   src="/diffused%20logo%20black%20no%20bg.png" 
-                  alt="Diffused" 
+                alt="Diffused" 
                   className="h-8 w-auto"
                 />
               </a>

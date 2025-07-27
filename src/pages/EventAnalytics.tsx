@@ -58,14 +58,20 @@ export default function EventAnalytics() {
   const { eventId } = useParams();
   const [event, setEvent] = useState<Event | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const [dataLoading, setDataLoading] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+
+  // Check if this is the demo user
+  const isDemoUser = user?.email === 'testlast@pod.com';
 
   useEffect(() => {
+    if (!user) return; // Don't do anything if no user yet
+    
     if (eventId) {
+      setDataLoading(true);
       fetchEventData();
     }
-  }, [eventId]);
+  }, [eventId, user]);
 
   const fetchEventData = async () => {
     try {
@@ -94,11 +100,42 @@ export default function EventAnalytics() {
     } catch (error) {
       console.error('Error fetching event data:', error);
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
   };
 
   const processAnalyticsData = (rawData: any[]): AnalyticsData => {
+    // For demo user, return mock data regardless of rawData
+    if (isDemoUser) {
+      return {
+        total_leads: 28,
+        total_shares: 0,
+        total_views: 1,
+        total_registrations: 0,
+        viral_coefficient: 0.00,
+        conversion_rate: 3.6,
+        daily_stats: Array.from({ length: 30 }, (_, i) => ({
+          date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toLocaleDateString(),
+          views: Math.floor(Math.random() * 50) + 10,
+          leads: Math.floor(Math.random() * 10) + 2,
+          shares: Math.floor(Math.random() * 15) + 5,
+        })),
+        platform_breakdown: [
+          { name: 'LinkedIn', value: 45 },
+          { name: 'Twitter', value: 30 },
+          { name: 'Email', value: 15 },
+          { name: 'Direct', value: 10 },
+        ],
+        content_performance: [
+          { name: 'Podcast Recaps', views: 120, leads: 18, shares: 25 },
+          { name: 'Blog Posts', views: 85, leads: 12, shares: 15 },
+          { name: 'Social Posts', views: 200, leads: 8, shares: 35 },
+          { name: 'Executive Summaries', views: 65, leads: 15, shares: 10 },
+        ],
+      };
+    }
+
+    // For regular users, process real data
     const total_leads = rawData
       .filter(d => d.metric_type === 'email_capture')
       .reduce((sum, d) => sum + d.metric_value, 0);
@@ -118,28 +155,7 @@ export default function EventAnalytics() {
     const viral_coefficient = total_shares / Math.max(total_views, 1);
     const conversion_rate = (total_leads / Math.max(total_views, 1)) * 100;
 
-    // Generate sample daily stats (in real app, this would come from actual data)
-    const daily_stats = Array.from({ length: 30 }, (_, i) => ({
-      date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toLocaleDateString(),
-      views: Math.floor(Math.random() * 50) + 10,
-      leads: Math.floor(Math.random() * 10) + 2,
-      shares: Math.floor(Math.random() * 15) + 5,
-    }));
-
-    const platform_breakdown = [
-      { name: 'LinkedIn', value: 45 },
-      { name: 'Twitter', value: 30 },
-      { name: 'Email', value: 15 },
-      { name: 'Direct', value: 10 },
-    ];
-
-    const content_performance = [
-      { name: 'Podcast Recaps', views: 120, leads: 18, shares: 25 },
-      { name: 'Blog Posts', views: 85, leads: 12, shares: 15 },
-      { name: 'Social Posts', views: 200, leads: 8, shares: 35 },
-      { name: 'Executive Summaries', views: 65, leads: 15, shares: 10 },
-    ];
-
+    // For real users, return mostly empty data initially
     return {
       total_leads,
       total_shares,
@@ -147,18 +163,91 @@ export default function EventAnalytics() {
       total_registrations,
       viral_coefficient,
       conversion_rate,
-      daily_stats,
-      platform_breakdown,
-      content_performance,
+      daily_stats: [], // Empty for real users
+      platform_breakdown: [], // Empty for real users
+      content_performance: [], // Empty for real users
     };
   };
 
-  const exportData = () => {
-    // In a real app, this would generate and download a CSV
-    toast.success("Data export started");
+  const generateCSVContent = (): string => {
+    if (!analytics || !event) return '';
+
+    const lines: string[] = [];
+    
+    // Header
+    lines.push(`Event Analytics Report: ${event.name}`);
+    lines.push(`Generated on: ${new Date().toLocaleDateString()}`);
+    lines.push('');
+    
+    // Summary metrics
+    lines.push('SUMMARY METRICS');
+    lines.push('Metric,Value');
+    lines.push(`Total Views,${analytics.total_views}`);
+    lines.push(`Leads Generated,${analytics.total_leads}`);
+    lines.push(`Total Shares,${analytics.total_shares}`);
+    lines.push(`Registrations,${analytics.total_registrations}`);
+    lines.push(`Conversion Rate,${analytics.conversion_rate.toFixed(2)}%`);
+    lines.push(`Viral Coefficient,${analytics.viral_coefficient.toFixed(4)}`);
+    lines.push('');
+    
+    // Daily stats
+    lines.push('DAILY ACTIVITY');
+    lines.push('Date,Views,Leads,Shares');
+    analytics.daily_stats.forEach(day => {
+      lines.push(`${day.date},${day.views},${day.leads},${day.shares}`);
+    });
+    lines.push('');
+    
+    // Platform breakdown
+    lines.push('PLATFORM BREAKDOWN');
+    lines.push('Platform,Percentage');
+    analytics.platform_breakdown.forEach(platform => {
+      lines.push(`${platform.name},${platform.value}%`);
+    });
+    lines.push('');
+    
+    // Content performance
+    lines.push('CONTENT PERFORMANCE');
+    lines.push('Content Type,Views,Leads,Shares');
+    analytics.content_performance.forEach(content => {
+      lines.push(`${content.name},${content.views},${content.leads},${content.shares}`);
+    });
+    
+    return lines.join('\n');
   };
 
-  if (loading) {
+  const exportData = () => {
+    if (!analytics || !event) {
+      toast.error("No data available to export");
+      return;
+    }
+
+    try {
+      // Generate CSV content
+      const csvContent = generateCSVContent();
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${event.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_analytics_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success("Analytics data exported successfully!");
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error("Failed to export data");
+    }
+  };
+
+  if (authLoading || dataLoading) {
     return (
       <div className="container mx-auto p-6">
         <div className="animate-pulse space-y-4">
@@ -215,7 +304,7 @@ export default function EventAnalytics() {
           <CardContent>
             <div className="text-2xl font-bold">{analytics?.total_views || 0}</div>
             <p className="text-xs text-muted-foreground">
-              +12% from last month
+              {isDemoUser ? '+12% from last month' : 'No data yet'}
             </p>
           </CardContent>
         </Card>
@@ -254,7 +343,7 @@ export default function EventAnalytics() {
           <CardContent>
             <div className="text-2xl font-bold">{analytics?.total_registrations || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Next event signups
+              {isDemoUser ? 'Next event signups' : 'No registrations yet'}
             </p>
           </CardContent>
         </Card>
