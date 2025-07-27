@@ -10,9 +10,14 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, 
 import { TrendingUp, TrendingDown, DollarSign, Users, Eye, Share2, Download, ExternalLink, Star, Target, Zap, Award } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useCreateEventModal } from "@/contexts/CreateEventModalContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Analytics = () => {
   const { openModal } = useCreateEventModal();
+  const { user } = useAuth();
+  
+  // Check if this is the demo user
+  const isDemoUser = user?.email === 'testlast@pod.com';
 
   // CSV export utility functions
   const convertToCSV = (data: any[], headers: string[]) => {
@@ -179,7 +184,7 @@ const Analytics = () => {
   };
 
   // Updated stats for speaker-driven platform
-  const stats = [
+  const stats = isDemoUser ? [
     {
       title: 'Revenue Attributed',
       value: '$287,500',
@@ -216,29 +221,73 @@ const Analytics = () => {
       color: 'text-orange-600',
       subtitle: 'Microsite to ticket'
     }
+  ] : [
+    {
+      title: 'Revenue Attributed',
+      value: '$0',
+      change: 'Start your first event',
+      trend: 'neutral',
+      icon: DollarSign,
+      color: 'text-gray-600',
+      subtitle: 'Via speaker microsites'
+    },
+    {
+      title: 'Speaker Reach',
+      value: '0',
+      change: 'Upload content to track',
+      trend: 'neutral',
+      icon: Users,
+      color: 'text-gray-600',
+      subtitle: 'Total microsite views'
+    },
+    {
+      title: 'Network Effect',
+      value: '0x',
+      change: 'Build your network',
+      trend: 'neutral',
+      icon: Share2,
+      color: 'text-gray-600',
+      subtitle: 'Viral coefficient'
+    },
+    {
+      title: 'Conversion Rate',
+      value: '0%',
+      change: 'Create speaker microsites',
+      trend: 'neutral',
+      icon: Target,
+      color: 'text-gray-600',
+      subtitle: 'Microsite to ticket'
+    }
   ];
 
   // Speaker attribution data for revenue growth
-  const revenueAttributionData = [
+  const revenueAttributionData = isDemoUser ? [
     { month: 'Jan', speakerRevenue: 45000, organicRevenue: 15000, totalSpeakers: 8 },
     { month: 'Feb', speakerRevenue: 62000, organicRevenue: 18000, totalSpeakers: 12 },
     { month: 'Mar', speakerRevenue: 78000, organicRevenue: 22000, totalSpeakers: 16 },
     { month: 'Apr', speakerRevenue: 95000, organicRevenue: 25000, totalSpeakers: 20 },
     { month: 'May', speakerRevenue: 125000, organicRevenue: 28000, totalSpeakers: 24 },
     { month: 'Jun', speakerRevenue: 142000, organicRevenue: 30000, totalSpeakers: 28 },
+  ] : [
+    { month: 'Jan', speakerRevenue: 0, organicRevenue: 0, totalSpeakers: 0 },
+    { month: 'Feb', speakerRevenue: 0, organicRevenue: 0, totalSpeakers: 0 },
+    { month: 'Mar', speakerRevenue: 0, organicRevenue: 0, totalSpeakers: 0 },
+    { month: 'Apr', speakerRevenue: 0, organicRevenue: 0, totalSpeakers: 0 },
+    { month: 'May', speakerRevenue: 0, organicRevenue: 0, totalSpeakers: 0 },
+    { month: 'Jun', speakerRevenue: 0, organicRevenue: 0, totalSpeakers: 0 },
   ];
 
   // Network effect breakdown
-  const networkData = [
+  const networkData = isDemoUser ? [
     { name: 'LinkedIn', value: 35, color: '#4FC3F7' },
     { name: 'Instagram', value: 22, color: '#FF7043' },
     { name: 'TikTok', value: 18, color: '#AB47BC' },
     { name: 'Twitter/X', value: 15, color: '#536471' },
     { name: 'WhatsApp', value: 10, color: '#25D366' },
-  ];
+  ] : [];
 
   // Top performing speakers with actual attribution
-  const topSpeakers = [
+  const topSpeakers = isDemoUser ? [
     {
       name: 'Sarah Chen',
       title: 'AI Ethics in Healthcare',
@@ -287,7 +336,7 @@ const Analytics = () => {
       networkGrowth: '+87%',
       eventName: 'Climate Innovation Summit'
     }
-  ];
+  ] : [];
 
   return (
     <>
@@ -435,37 +484,47 @@ const Analytics = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-6 pt-0">
-                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                      <ResponsiveContainer width="100%" height={320}>
-                        <PieChart margin={{ top: 20, right: 60, bottom: 20, left: 60 }}>
-                          <Pie
-                            data={networkData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={100}
-                            fill="#8884d8"
-                            dataKey="value"
-                            stroke="white"
-                            strokeWidth={2}
-                          >
-                            {networkData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip 
-                            contentStyle={{
-                              backgroundColor: 'white',
-                              border: '1px solid #E5E7EB',
-                              borderRadius: '8px',
-                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                            }}
-                            formatter={(value) => [`${value}%`, 'Share']}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
+                    {networkData.length > 0 ? (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                        <ResponsiveContainer width="100%" height={320}>
+                          <PieChart margin={{ top: 20, right: 60, bottom: 20, left: 60 }}>
+                            <Pie
+                              data={networkData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              outerRadius={100}
+                              fill="#8884d8"
+                              dataKey="value"
+                              stroke="white"
+                              strokeWidth={2}
+                            >
+                              {networkData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              contentStyle={{
+                                backgroundColor: 'white',
+                                border: '1px solid #E5E7EB',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                              }}
+                              formatter={(value) => [`${value}%`, 'Share']}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div className="text-center py-16">
+                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                          <Share2 className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-700 mb-2">No network activity yet</h3>
+                        <p className="text-gray-500">Start sharing speaker content to see network effect data here.</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -482,67 +541,84 @@ const Analytics = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 pt-0">
-                  <div className="space-y-4">
-                    {topSpeakers.map((speaker, index) => (
-                      <div key={speaker.name} className="flex items-center justify-between p-6 rounded-xl bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-md">
-                        <div className="flex items-center gap-6">
-                          <div className="relative">
-                            <div className="flex-shrink-0 w-12 h-12 rounded-xl text-white flex items-center justify-center font-bold text-xl shadow-lg" style={{backgroundColor: '#4F8CFF', color: '#ffffff'}}>
-                              {index + 1}
-                            </div>
-                            {index === 0 && (
-                              <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
-                                <Star className="h-3 w-3 text-white fill-current" />
+                  {topSpeakers.length > 0 ? (
+                    <div className="space-y-4">
+                      {topSpeakers.map((speaker, index) => (
+                        <div key={speaker.name} className="flex items-center justify-between p-6 rounded-xl bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-md">
+                          <div className="flex items-center gap-6">
+                            <div className="relative">
+                              <div className="flex-shrink-0 w-12 h-12 rounded-xl text-white flex items-center justify-center font-bold text-xl shadow-lg" style={{backgroundColor: '#4F8CFF', color: '#ffffff'}}>
+                                {index + 1}
                               </div>
-                            )}
+                              {index === 0 && (
+                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                                  <Star className="h-3 w-3 text-white fill-current" />
+                                </div>
+                              )}
+                            </div>
+                            <Avatar className="h-16 w-16 border-4 border-white shadow-md">
+                              <AvatarImage src={speaker.avatar} alt={speaker.name} />
+                              <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold text-lg">
+                                {speaker.name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <h3 className="font-bold text-xl text-gray-900">{speaker.name}</h3>
+                              <p className="text-gray-600 font-medium">{speaker.title}</p>
+                              <div className="flex items-center gap-4 mt-2">
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+                                  {speaker.company}
+                                </Badge>
+                                <Badge variant="outline" className="text-purple-700 border-purple-300">
+                                  {speaker.eventName}
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
-                          <Avatar className="h-16 w-16 border-4 border-white shadow-md">
-                            <AvatarImage src={speaker.avatar} alt={speaker.name} />
-                            <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold text-lg">
-                              {speaker.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <h3 className="font-bold text-xl text-gray-900">{speaker.name}</h3>
-                            <p className="text-gray-600 font-medium">{speaker.title}</p>
-                            <div className="flex items-center gap-4 mt-2">
-                              <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-200">
-                                {speaker.company}
-                              </Badge>
-                              <Badge variant="outline" className="text-purple-700 border-purple-300">
-                                {speaker.eventName}
-                              </Badge>
+                          <div className="flex items-center gap-8">
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-gray-900">{speaker.micrositeViews.toLocaleString()}</p>
+                              <p className="text-sm text-gray-600">Microsite Views</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-green-600">${speaker.revenue.toLocaleString()}</p>
+                              <p className="text-sm text-gray-600">Revenue Attributed</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-purple-600">{speaker.shares}</p>
+                              <p className="text-sm text-gray-600">Network Shares</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-blue-600">{speaker.conversionRate}%</p>
+                              <p className="text-sm text-gray-600">Conversion Rate</p>
+                            </div>
+                            <div className="text-center">
+                              <div className="flex items-center gap-1 justify-center">
+                                <TrendingUp className="h-4 w-4 text-green-600" />
+                                <p className="text-lg font-bold text-green-600">{speaker.networkGrowth}</p>
+                              </div>
+                              <p className="text-sm text-gray-600">Network Growth</p>
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-8">
-                          <div className="text-center">
-                            <p className="text-2xl font-bold text-gray-900">{speaker.micrositeViews.toLocaleString()}</p>
-                            <p className="text-sm text-gray-600">Microsite Views</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-2xl font-bold text-green-600">${speaker.revenue.toLocaleString()}</p>
-                            <p className="text-sm text-gray-600">Revenue Attributed</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-2xl font-bold text-purple-600">{speaker.shares}</p>
-                            <p className="text-sm text-gray-600">Network Shares</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-2xl font-bold text-blue-600">{speaker.conversionRate}%</p>
-                            <p className="text-sm text-gray-600">Conversion Rate</p>
-                          </div>
-                          <div className="text-center">
-                            <div className="flex items-center gap-1 justify-center">
-                              <TrendingUp className="h-4 w-4 text-green-600" />
-                              <p className="text-lg font-bold text-green-600">{speaker.networkGrowth}</p>
-                            </div>
-                            <p className="text-sm text-gray-600">Network Growth</p>
-                          </div>
-                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                        <Users className="h-8 w-8 text-gray-400" />
                       </div>
-                    ))}
-                  </div>
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No speakers yet</h3>
+                      <p className="text-gray-500 mb-6">Create an event and upload speaker content to see performance analytics here.</p>
+                      <Button 
+                        onClick={openModal}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Star className="h-4 w-4 mr-2" />
+                        Create Your First Event
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -550,28 +626,36 @@ const Analytics = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <Card className="bg-white border border-gray-200 shadow-md hover:shadow-lg hover:bg-gray-50 transition-all duration-300">
                   <CardContent className="p-6 text-center">
-                    <div className="text-4xl font-bold text-blue-600 mb-2">28</div>
+                    <div className={`text-4xl font-bold mb-2 ${isDemoUser ? 'text-blue-600' : 'text-gray-400'}`}>
+                      {isDemoUser ? '28' : '0'}
+                    </div>
                     <p className="text-gray-600 font-medium">Active Speaker Microsites</p>
                   </CardContent>
                 </Card>
                 
                 <Card className="bg-white border border-gray-200 shadow-md hover:shadow-lg hover:bg-gray-50 transition-all duration-300">
                   <CardContent className="p-6 text-center">
-                    <div className="text-4xl font-bold text-purple-600 mb-2">89%</div>
+                    <div className={`text-4xl font-bold mb-2 ${isDemoUser ? 'text-purple-600' : 'text-gray-400'}`}>
+                      {isDemoUser ? '89%' : '0%'}
+                    </div>
                     <p className="text-gray-600 font-medium">Speaker Engagement Rate</p>
                   </CardContent>
                 </Card>
                 
                 <Card className="bg-white border border-gray-200 shadow-md hover:shadow-lg hover:bg-gray-50 transition-all duration-300">
                   <CardContent className="p-6 text-center">
-                    <div className="text-4xl font-bold text-green-600 mb-2">1,247</div>
+                    <div className={`text-4xl font-bold mb-2 ${isDemoUser ? 'text-green-600' : 'text-gray-400'}`}>
+                      {isDemoUser ? '1,247' : '0'}
+                    </div>
                     <p className="text-gray-600 font-medium">Total Leads Captured</p>
                   </CardContent>
                 </Card>
 
                 <Card className="bg-white border border-gray-200 shadow-md hover:shadow-lg hover:bg-gray-50 transition-all duration-300">
                   <CardContent className="p-6 text-center">
-                    <div className="text-4xl font-bold text-orange-600 mb-2">7.2x</div>
+                    <div className={`text-4xl font-bold mb-2 ${isDemoUser ? 'text-orange-600' : 'text-gray-400'}`}>
+                      {isDemoUser ? '7.2x' : '0x'}
+                    </div>
                     <p className="text-gray-600 font-medium">Average ROI Multiplier</p>
                   </CardContent>
                 </Card>
