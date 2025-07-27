@@ -217,31 +217,9 @@ const SessionDetail = () => {
         }
       }
 
-      // APPROACH 2: Fallback to all event speakers (ensures Remove Speaker option works)
-      console.log('Junction table failed, falling back to all event speakers');
-      console.log('Link error:', linkError);
-      
-      const { data: allEventMicrosites, error: eventError } = await (supabase as any)
-        .from('speaker_microsites')
-        .select(`
-          *,
-          speakers (
-            id, full_name, email, company, job_title, bio, headshot_url, slug
-          ),
-          events (
-            id, name, subdomain
-          )
-        `)
-        .eq('event_id', session.event_id);
-
-      if (eventError) {
-        console.error('❌ Event speakers query failed:', eventError);
-        setSpeakers([]);
-        return;
-      }
-
-      console.log('✅ Fallback: Fetched all event speakers:', allEventMicrosites);
-      setSpeakers(allEventMicrosites || []);
+      // APPROACH 2: If no links found, this session has no speakers assigned yet
+      console.log('No speaker links found for this session - this is correct for a new session');
+      setSpeakers([]);
       
     } catch (error) {
       console.error('❌ fetchAllSpeakers failed completely:', error);
@@ -1711,7 +1689,7 @@ const SessionDetail = () => {
         </SidebarInset>
       </div>
 
-        {/* PUBLISH MODAL */}
+              {/* PUBLISH MODAL */}
         <PublishModal
           isOpen={isPublishModalOpen}
           onClose={() => setIsPublishModalOpen(false)}

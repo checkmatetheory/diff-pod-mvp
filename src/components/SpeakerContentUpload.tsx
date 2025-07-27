@@ -310,65 +310,93 @@ const SpeakerContentUpload = () => {
       const selectedEvent = events.find(e => e.id === selectedEventId);
       if (!selectedEvent) return;
 
+      console.log(`🚀 Linking ${selectedSpeakerIds.length} speakers to session ${sessionId}`);
+
       // Create microsites for each selected speaker
       for (const speakerId of selectedSpeakerIds) {
         const selectedSpeaker = speakers.find(s => s.id === speakerId);
-        if (!selectedSpeaker) continue;
-
-        const micrositeUrl = `studio.diffused.app/event/${selectedEvent.subdomain}/speaker/${selectedSpeaker.slug}`;
-
-        // Create speaker microsite
-        const { data: microsite, error: micrositeError } = await supabase
-          .from('speaker_microsites')
-          .insert({
-            event_id: selectedEventId,
-            speaker_id: speakerId,
-            microsite_url: micrositeUrl,
-            custom_cta_text: `Get Early Access to ${selectedEvent.name} ${new Date().getFullYear() + 1}`,
-            approval_status: 'approved', // Auto-approve for now
-            is_live: true,
-            created_by: user!.id
-          })
-          .select()
-          .single();
-
-        if (micrositeError) {
-          console.error('Speaker microsite creation error:', micrositeError);
-          continue; // Continue with other speakers
+        if (!selectedSpeaker) {
+          console.warn(`Speaker not found: ${speakerId}`);
+          continue;
         }
 
-        // Create junction table entry to link microsite to session
+        // Check if microsite already exists for this speaker + event combination
+        const { data: existingMicrosite } = await supabase
+          .from('speaker_microsites')
+          .select('id')
+          .eq('speaker_id', speakerId)
+          .eq('event_id', selectedEventId)
+          .single();
+
+        let micrositeId = existingMicrosite?.id;
+
+        if (!existingMicrosite) {
+          // Create new microsite only if it doesn't exist
+          const micrositeUrl = `studio.diffused.app/event/${selectedEvent.subdomain}/speaker/${selectedSpeaker.slug}`;
+
+          const { data: microsite, error: micrositeError } = await supabase
+            .from('speaker_microsites')
+            .insert({
+              event_id: selectedEventId,
+              speaker_id: speakerId,
+              microsite_url: micrositeUrl,
+              custom_cta_text: `Get Early Access to ${selectedEvent.name} ${new Date().getFullYear() + 1}`,
+              approval_status: 'approved',
+              is_live: true,
+              created_by: user!.id
+            })
+            .select()
+            .single();
+
+          if (micrositeError) {
+            console.error(`❌ Error creating microsite for ${selectedSpeaker.full_name}:`, micrositeError);
+            continue;
+          }
+
+          micrositeId = microsite.id;
+          console.log(`✅ Created new microsite for ${selectedSpeaker.full_name}`);
+        } else {
+          console.log(`✅ Using existing microsite for ${selectedSpeaker.full_name}`);
+        }
+
+        // Always create junction table entry to link microsite to session
         const { error: junctionError } = await supabase
           .from('speaker_microsite_sessions')
-          .insert({
-            microsite_id: microsite.id,
+          .upsert({
+            microsite_id: micrositeId,
             session_id: sessionId,
             created_by: user!.id
+          }, {
+            onConflict: 'microsite_id, session_id'
           });
 
         if (junctionError) {
-          console.error('Junction table creation error:', junctionError);
-          // Continue - microsite was created successfully
+          console.error(`❌ Error linking ${selectedSpeaker.full_name} to session:`, junctionError);
+          continue;
         }
 
-        // Create speaker content record
-        const { error: contentError } = await supabase
-          .from('speaker_content')
-          .insert({
-            microsite_id: microsite.id,
-            processing_status: 'pending',
-            generated_summary: 'Content is being processed...',
-            key_quotes: [],
-            key_takeaways: [],
-            social_captions: {},
-            video_clips: [],
-            prompt_version: 'v1.0',
-            ai_model_used: 'gpt-4o'
-          });
+        console.log(`✅ Linked ${selectedSpeaker.full_name} to session ${sessionId}`);
 
-        if (contentError) {
-          console.error('Speaker content creation error:', contentError);
-          // Don't throw here - microsite was created successfully
+        // Create speaker content record only for new microsites
+        if (!existingMicrosite) {
+          const { error: contentError } = await supabase
+            .from('speaker_content')
+            .insert({
+              microsite_id: micrositeId,
+              processing_status: 'pending',
+              generated_summary: 'Content is being processed...',
+              key_quotes: [],
+              key_takeaways: [],
+              social_captions: {},
+              video_clips: [],
+              prompt_version: 'v1.0',
+              ai_model_used: 'gpt-4o'
+            });
+
+          if (contentError) {
+            console.error('Speaker content creation error:', contentError);
+            // Don't throw here - microsite was created successfully
+          }
         }
       }
 
@@ -388,10 +416,10 @@ const SpeakerContentUpload = () => {
       }, 1500);
 
     } catch (error: any) {
-      console.error('Error creating microsites:', error);
+      console.error('❌ Error creating microsites:', error);
       toast({
-        title: "Processing started",
-        description: "Video uploaded successfully and processing has begun.",
+        title: "Error linking speakers",
+        description: "Video was uploaded but there was an issue linking speakers. You can add them manually from the session page.",
         variant: "destructive",
       });
     }
