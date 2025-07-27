@@ -420,7 +420,7 @@ const EventManage = () => {
 
               {/* Event Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-sky-300/60 transition-all duration-300">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -434,7 +434,7 @@ const EventManage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-sky-300/60 transition-all duration-300">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -448,7 +448,7 @@ const EventManage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-sky-300/60 transition-all duration-300">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -462,7 +462,7 @@ const EventManage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                <Card className="border-0 backdrop-blur-md bg-white/50 shadow-lg border border-white/30 hover:shadow-xl hover:bg-sky-300/60 transition-all duration-300">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -555,7 +555,7 @@ const EventManage = () => {
                           </div>
                         ) : (
                           filteredSessions.map((session) => (
-                            <Card key={session.id} className="border-0 backdrop-blur-md bg-white/40 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                            <Card key={session.id} className="border-0 backdrop-blur-md bg-white/40 shadow-lg border border-white/30 hover:shadow-xl hover:bg-sky-300/60 transition-all duration-300">
                               <CardContent className="p-6">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-4">
@@ -647,7 +647,7 @@ const EventManage = () => {
                           </div>
                         ) : (
                           speakers.map((speakerMicrosite) => (
-                            <Card key={speakerMicrosite.id} className="border-0 backdrop-blur-md bg-white/40 shadow-lg border border-white/30 hover:shadow-xl hover:bg-white/60 transition-all duration-300">
+                            <Card key={speakerMicrosite.id} className="border-0 backdrop-blur-md bg-white/40 shadow-lg border border-white/30 hover:shadow-xl hover:bg-sky-300/60 transition-all duration-300">
                               <CardContent className="p-6">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-4">
