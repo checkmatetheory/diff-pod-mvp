@@ -198,27 +198,8 @@ function BrowseContent() {
           suggestedHashtags: ['#Innovation', '#Leadership', '#TechTalk'],
         }));
       } else {
-        // Real data for real users - query user-specific content
-        const { data, error } = await supabase
-          .from('content_items')
-          .select('*')
-          .eq('user_id', user?.id) // Only get this user's content
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        
-        // Process real user data (will be empty for new users)
-        enrichedContent = (data || [])
-          .filter(item => item.type === 'reel')
-          .map(item => ({
-            ...item,
-            type: 'reel' as 'reel',
-            viralityScore: generateViralityScore(item.id),
-            reasoning: `This video has strong potential due to its engaging content and timely topic discussion.`,
-            transcript: `Sample transcript for ${item.title}...`,
-            suggestedCaption: `🚀 Amazing insights from ${item.speaker_name}! #Innovation #${item.event_name.replace(/\s+/g, '')}`,
-            suggestedHashtags: ['#Innovation', '#Leadership', '#TechTalk'],
-          }));
+        // Real data for real users - new users will have empty content
+        enrichedContent = [];
       }
       
       setContent(enrichedContent);
