@@ -38,6 +38,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useSessionData } from "@/hooks/useSessionData";
+import { useSessionSpeakers } from "@/hooks/useSessionSpeakers";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "@/components/Header";
@@ -104,16 +106,16 @@ const SessionDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isEditing, setIsEditing] = useState(false);
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [speaker, setSpeaker] = useState<any>(null);
-  const [speakers, setSpeakers] = useState<any[]>([]);
-  const [event, setEvent] = useState<any>(null);
   
-  // New state for speaker management
+  // Use custom hooks for data fetching
+  const { session, loading, refreshing, refreshSession } = useSessionData(id);
+  const { speakers, speaker, event, fetchAllSpeakers, setSpeakers } = useSessionSpeakers(session, id);
+  
+  // Local component state (not extracted to hooks)
+  const [isEditing, setIsEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  
+  // Speaker management state
   const [selectedSpeakerForEdit, setSelectedSpeakerForEdit] = useState<any>(null);
   const [selectedSpeakerForAdvanced, setSelectedSpeakerForAdvanced] = useState<any>(null);
   const [isQuickEditOpen, setIsQuickEditOpen] = useState(false);
@@ -127,105 +129,7 @@ const SessionDetail = () => {
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
   // Mock preview mode toggle
-  const [showPreview, setShowPreview] = useState(true); // Set to true to show preview by default
-
-  const fetchSpeaker = async (speakerId: string) => {
-    if (!speakerId) {
-      setSpeaker(null);
-      return;
-    }
-    
-    try {
-      const { data, error } = await supabase
-        .from("speakers")
-        .select("id, full_name, email, company, job_title, bio, headshot_url, slug")
-        .eq("id", speakerId)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching speaker:', error);
-        setSpeaker(null);
-        return;
-      }
-      
-      setSpeaker(data);
-    } catch (error) {
-      console.error('Error fetching speaker:', error);
-      setSpeaker(null);
-    }
-  };
-
-  const fetchEvent = async (eventId: string) => {
-    if (!eventId) {
-      setEvent(null);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from("events")
-        .select("subdomain")
-        .eq("id", eventId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching event subdomain:', error);
-        setEvent(null);
-        return;
-      }
-
-      setEvent(data);
-    } catch (error) {
-      console.error('Error fetching event subdomain:', error);
-      setEvent(null);
-    }
-  };
-
-  const fetchAllSpeakers = async () => {
-    if (!session?.event_id || !id) return;
-    
-    try {
-      // APPROACH 1: Try junction table method first (most accurate)
-      console.log('Attempting junction table query for session:', id);
-      
-      const { data: sessionLinks, error: linkError } = await (supabase as any)
-        .from('speaker_microsite_sessions')
-        .select('microsite_id')
-        .eq('session_id', id);
-
-      if (!linkError && sessionLinks && sessionLinks.length > 0) {
-        console.log('Found session links:', sessionLinks);
-        const micrositeIds = sessionLinks.map(link => link.microsite_id);
-
-        const { data: microsites, error: micrositeError } = await (supabase as any)
-          .from('speaker_microsites')
-          .select(`
-            *,
-            speakers (
-              id, full_name, email, company, job_title, bio, headshot_url, slug
-            ),
-            events (
-              id, name, subdomain
-            )
-          `)
-          .in('id', micrositeIds);
-
-        if (!micrositeError && microsites && microsites.length > 0) {
-          console.log('✅ Successfully fetched speakers from junction table:', microsites);
-          setSpeakers(microsites);
-          return;
-        }
-      }
-
-      // APPROACH 2: If no links found, this session has no speakers assigned yet
-      console.log('No speaker links found for this session - this is correct for a new session');
-      setSpeakers([]);
-      
-    } catch (error) {
-      console.error('❌ fetchAllSpeakers failed completely:', error);
-      setSpeakers([]);
-    }
-  };
+  const [showPreview, setShowPreview] = useState(true);
 
   // Speaker management handlers
   const handleEditSpeaker = (speaker: any) => {
@@ -531,88 +435,6 @@ const SessionDetail = () => {
     
     return eventSpeakerIds.filter(Boolean);
   };
-
-  const refreshSession = async () => {
-    setRefreshing(true);
-    try {
-      const { data, error } = await supabase
-        .from("user_sessions")
-        .select("*")
-        .eq("id", id)
-        .single();
-      
-      if (error) {
-        console.error('Error refreshing session:', error);
-        return;
-      }
-      
-      setSession(data);
-      
-      if (data?.processing_status === 'complete') {
-        toast({
-          title: "Processing complete!",
-          description: "Your content has been processed and is ready to view.",
-        });
-      }
-    } catch (error) {
-      console.error('Error refreshing session:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
-      
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("user_sessions")
-          .select("*")
-          .eq("id", id)
-          .single();
-        
-        if (error) {
-          console.error('Error fetching session:', error);
-          return;
-        }
-        
-        setSession(data);
-      } catch (error) {
-        console.error('Error fetching session:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id]);
-
-  // Fetch speaker data when session loads
-  useEffect(() => {
-    if (session?.session_data?.speaker_id) {
-      fetchSpeaker(session.session_data.speaker_id);
-    }
-    // Also fetch all speakers for the event
-    if (session?.event_id) {
-      fetchAllSpeakers();
-      fetchEvent(session.event_id);
-    }
-  }, [session]);
-
-  // Auto-refresh when processing - with better performance
-  useEffect(() => {
-    if (!session || session.processing_status === 'complete' || session.processing_status === 'error') {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      refreshSession();
-    }, 10000); // Check every 10 seconds
-
-    return () => clearInterval(interval);
-  }, [session?.processing_status, id]);
 
   // Helper functions for viral clips
   const formatDuration = (seconds: number) => {
