@@ -393,10 +393,16 @@ const Analytics = () => {
                         <div className="flex items-center gap-1">
                           {stat.trend === 'up' ? (
                             <TrendingUp className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4 text-red-600" />
-                          )}
-                          <span className={`text-sm font-medium ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                          ) : stat.trend === 'down' ? (
+                            <TrendingDown className="h-4 w-4 text-blue-600" />
+                          ) : null}
+                          <span className={`text-sm font-medium ${
+                            stat.trend === 'up' 
+                              ? 'text-green-600' 
+                              : stat.trend === 'down' 
+                                ? 'text-blue-600' 
+                                : 'text-blue-600'
+                          }`}>
                             {stat.change}
                           </span>
                         </div>
