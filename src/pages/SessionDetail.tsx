@@ -1,41 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  ArrowLeft, 
-  Clock, 
-  Download, 
-  ExternalLink, 
-  Share2, 
-  Copy, 
-  FileText, 
-  Video, 
-  Loader2, 
-  RefreshCw, 
-  Trash2, 
-  MessageSquare,
-  Edit,
-  Save,
-  X,
-  Play,
-  Pause,
-  Calendar,
-  Linkedin,
-  Twitter,
-  Instagram,
-  Youtube,
-  Edit3,
-  Globe,
-  Users
-} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useSessionData } from "@/hooks/useSessionData";
@@ -43,63 +9,17 @@ import { useSessionSpeakers } from "@/hooks/useSessionSpeakers";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "@/components/Header";
-import { AudioPlayer } from "@/components/ui/audio-player";
 import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import SpeakerManagementCard from "@/components/ui/SpeakerManagementCard";
 import QuickEditSpeakerModal from "@/components/ui/QuickEditSpeakerModal";
 import AdvancedSpeakerModal from "@/components/ui/AdvancedSpeakerModal";
 import AddSpeakerModal from "@/components/ui/AddSpeakerModal";
 import SelectExistingSpeakerModal from "@/components/ui/SelectExistingSpeakerModal";
-import { PublishModal } from "@/components/ui/PublishModal";
-import { BaseContentItem } from "@/types/publish";
 
-// Mock data for preview
-const mockViralClips = [
-  {
-    id: '1',
-    title: 'The Rise of Women\'s Sports Investment',
-    duration: 75, // 1:15
-    viralityScore: 88,
-    reasoning: 'This video discusses a timely and relevant topic—women\'s sports investment—which is gaining traction and interest. The speaker\'s enthusiasm and optimism about the future of women\'s sports can resonate with viewers, encouraging shares and discussions. The mention of record-breaking transfer fees adds a compelling hook, while the call for investment and patience creates a sense of community and shared purpose. However, the pacing and depth of the content may limit its appeal to a broader audience, preventing a perfect score.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    thumbnail: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=600&fit=crop',
-    transcript: 'and uh the good news is success begets more success and i think right now you\'re seeing this sweep you know throughout the world and and at the end of the day everyone realizes especially these athletes you know none of these women are looking for a handout they all understand that the broader business needs to justify those revenues and those salaries and so they\'ve been incredibly patient...',
-    suggestedCaption: '🏆 Women\'s sports are leveling up! Ready for the future 💪🏽 #WomensSports #InvestInHer',
-    suggestedHashtags: ['#WomensSports', '#InvestInHer', '#SportsInvestment', '#FutureOfSports'],
-    eventName: 'Web Summit Qatar 2025',
-    speakerName: 'Sarah Chen'
-  },
-  {
-    id: '2',
-    title: 'Listening to Your Inner Voice: The Journey of an Entrepreneur',
-    duration: 53,
-    viralityScore: 85,
-    reasoning: 'This video has strong emotional resonance, as it shares a personal journey of self-discovery and entrepreneurship. The relatable theme of listening to one\'s inner voice can inspire viewers, especially those interested in personal development and business. The storytelling aspect, combined with a motivational message, enhances its shareability. However, the pacing could be slightly faster to maintain high engagement throughout the entire duration.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    thumbnail: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=600&fit=crop',
-    transcript: 'I listened to that voice inside of me that was like, you don\'t actually wanna be here. You don\'t actually wanna be doing this. You know, that was in 2004. So here we are a couple decades later, and I\'ve never heard that voice since. The only voice that I hear, and I realize how blessed I am to live this professionally. I\'ve only had a voice encouraging me to keep doing more, to be motivated...',
-    suggestedCaption: '💭 What if your inner voice could lead you to success? This entrepreneur\'s journey will inspire you 🚀 #Entrepreneurship #InnerVoice',
-    suggestedHashtags: ['#Entrepreneurship', '#InnerVoice', '#PersonalDevelopment', '#StartupLife'],
-    eventName: 'TechConf 2025',
-    speakerName: 'Alex Rivera'
-  },
-  {
-    id: '3',
-    title: 'The Evolution of Content Consumption in the Digital Age',
-    duration: 180, // 3:00
-    viralityScore: 92,
-    reasoning: 'This clip captures a transformative insight about how digital platforms are reshaping content consumption patterns. The speaker\'s expertise and the trending nature of this topic make it highly shareable among marketing professionals and content creators. The actionable insights provided create immediate value for viewers, driving engagement and shares.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=600&fit=crop',
-    transcript: 'What if your favorite athletes lived together? The reality show featuring professional athletes which most successful collaboration between traditional media and digital platforms. This represents the future of content consumption where audiences demand authentic, behind-the-scenes access to their heroes...',
-    suggestedCaption: '🔮 The future of content is here! How digital platforms are changing everything we know about media consumption 📱✨ #DigitalTransformation #ContentStrategy',
-    suggestedHashtags: ['#DigitalTransformation', '#ContentStrategy', '#MediaEvolution', '#FutureOfMedia'],
-    eventName: 'Digital Marketing Summit 2025',
-    speakerName: 'Dr. Maya Patel'
-  }
-];
+// New extracted components
+import { SessionLoadingSkeleton } from "@/components/session/SessionLoadingSkeleton";
+import { SessionHeader } from "@/components/session/SessionHeader";
+import { SessionContent } from "@/components/session/SessionContent";
+import { SessionSidebar } from "@/components/session/SessionSidebar";
 
 const SessionDetail = () => {
   const { id } = useParams();
@@ -123,10 +43,6 @@ const SessionDetail = () => {
   const [isAddSpeakerModalOpen, setIsAddSpeakerModalOpen] = useState(false);
   const [isSelectExistingModalOpen, setIsSelectExistingModalOpen] = useState(false);
   const [allSpeakers, setAllSpeakers] = useState<any[]>([]);
-  
-  // Publish modal state
-  const [selectedClip, setSelectedClip] = useState<BaseContentItem | null>(null);
-  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
   // Mock preview mode toggle
   const [showPreview, setShowPreview] = useState(true);
@@ -431,200 +347,49 @@ const SessionDetail = () => {
     return eventSpeakerIds.filter(Boolean);
   };
 
-  // Helper functions for viral clips
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const handleCopy = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: `${type} content copied successfully`,
+    });
   };
 
-  const getViralityColor = (score: number) => {
-    if (score >= 90) return 'bg-green-500 text-white';
-    if (score >= 80) return 'bg-blue-500 text-white';
-    if (score >= 70) return 'bg-yellow-500 text-black';
-    return 'bg-gray-500 text-white';
-  };
-
-  const getViralityRank = (score: number) => {
-    if (score >= 90) return '#1';
-    if (score >= 80) return '#2';
-    if (score >= 70) return '#3';
-    return `#${Math.floor(score / 10)}`;
-  };
-
-  const handlePublishClip = (clip: any) => {
-    // Convert clip to BaseContentItem format
-    const baseContent: BaseContentItem = {
-      id: clip.id,
-      title: clip.title,
-      type: 'reel',
-      thumbnail_url: clip.thumbnail,
-      duration: clip.duration,
-      viralityScore: clip.viralityScore,
-      reasoning: clip.reasoning,
-      suggestedCaption: clip.suggestedCaption,
-      suggestedHashtags: clip.suggestedHashtags,
-      speaker_name: clip.speakerName,
-      event_name: clip.eventName
-    };
-    setSelectedClip(baseContent);
-    setIsPublishModalOpen(true);
-  };
-
-  const handleDownloadClip = (content: BaseContentItem) => {
+  const handleDownload = (format: string) => {
     toast({
       title: "Download started",
-      description: `Downloading "${content.title}"`,
+      description: `Downloading ${session.session_name || session.generated_title} as ${format}`,
     });
   };
 
-  const handlePublish = async (platforms: string[], caption: string) => {
-    // This will be called by the shared modal
-    toast({
-      title: "Published successfully!",
-      description: `"${selectedClip?.title}" has been published to ${platforms.join(', ')}`,
-    });
-    // Modal will be closed by the shared hook
+  const handleBackClick = () => {
+    if (session?.event_id) {
+      navigate(`/events/${session.event_id}/manage`);
+    } else {
+      navigate('/dashboard');
+    }
   };
 
+  const handlePreviewPublicPage = () => {
+    // Get event subdomain from speakers data or direct event fetch
+    const eventSubdomain = speakers[0]?.events?.subdomain || event?.subdomain;
+    if (eventSubdomain) {
+      window.open(`/event/${eventSubdomain}`, '_blank');
+    } else {
+      toast({
+        title: "Event page not available",
+        description: "The public event page is being prepared and will be available soon.",
+        variant: "destructive",
+      });
+    }
+  };
 
-
+  // Loading state
   if (loading) {
-    return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
-          <AppSidebar />
-          <SidebarInset className="flex-1">
-            <Header />
-            <main className="flex-1">
-              <div className="container mx-auto px-6 py-8">
-                {/* Header Section Skeleton */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="h-9 w-40 bg-gray-200 rounded-md animate-pulse"></div>
-                </div>
-
-                <div className="flex flex-col lg:flex-row gap-8">
-                  {/* Main Content Skeleton */}
-                  <div className="flex-1 space-y-6">
-                    {/* Session Info Card Skeleton */}
-                    <div className="bg-white rounded-lg border p-6 space-y-4 shadow-card">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 space-y-3">
-                          <div className="h-8 bg-gray-200 rounded w-2/3 animate-pulse"></div>
-                          <div className="flex gap-4">
-                            <div className="h-5 w-16 bg-gray-200 rounded animate-pulse"></div>
-                            <div className="h-5 w-24 bg-gray-200 rounded animate-pulse"></div>
-                          </div>
-                          <div className="flex gap-2">
-                            <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse"></div>
-                            <div className="h-6 w-28 bg-gray-200 rounded-full animate-pulse"></div>
-                          </div>
-                        </div>
-                        <div className="h-9 w-24 bg-gray-200 rounded-md animate-pulse"></div>
-                      </div>
-                    </div>
-
-                    {/* Tabs Skeleton */}
-                    <div className="bg-white rounded-lg border shadow-card">
-                      {/* Tab Headers */}
-                      <div className="flex border-b p-1 space-x-1">
-                        {['Videos', 'Summary', 'Blog', 'Social', 'Quotes', 'Transcript'].map((tab, i) => (
-                          <div key={i} className="h-9 w-20 bg-gray-200 rounded animate-pulse"></div>
-                        ))}
-                      </div>
-                      
-                      {/* Tab Content */}
-                      <div className="p-6 space-y-6">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-2">
-                            <div className="h-6 bg-gray-200 rounded w-48 animate-pulse"></div>
-                            <div className="h-4 bg-gray-200 rounded w-64 animate-pulse"></div>
-                          </div>
-                          <div className="h-9 w-28 bg-gray-200 rounded-md animate-pulse"></div>
-                        </div>
-                        
-                        {/* Content Cards Skeleton */}
-                        <div className="space-y-6">
-                          {[1, 2].map((i) => (
-                            <div key={i} className="flex gap-6 p-6 border rounded-lg">
-                              {/* Video Thumbnail Skeleton */}
-                              <div className="w-48 h-72 bg-gray-200 rounded-lg animate-pulse flex-shrink-0"></div>
-                              
-                              {/* Content Skeleton */}
-                              <div className="flex-1 space-y-4">
-                                <div className="h-6 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                                <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-                                <div className="space-y-2">
-                                  <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-                                  <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
-                                  <div className="h-4 bg-gray-200 rounded w-4/5 animate-pulse"></div>
-                                </div>
-                                <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
-                                <div className="flex gap-3 mt-6">
-                                  <div className="h-10 bg-gray-200 rounded flex-1 animate-pulse"></div>
-                                  <div className="h-10 w-28 bg-gray-200 rounded animate-pulse"></div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Sidebar Skeleton */}
-                  <div className="w-full lg:w-80 space-y-6">
-                    {/* Quick Actions Card */}
-                    <div className="bg-white rounded-lg border p-6 shadow-card space-y-4">
-                      <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
-                      <div className="space-y-3">
-                        <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-                      </div>
-                    </div>
-
-                    {/* Public Recap Card */}
-                    <div className="bg-white rounded-lg border p-6 shadow-card space-y-4">
-                      <div className="h-6 bg-gray-200 rounded w-28 animate-pulse"></div>
-                      <div className="space-y-3">
-                        <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-                        <div className="flex gap-2">
-                          <div className="h-10 bg-gray-200 rounded flex-1 animate-pulse"></div>
-                          <div className="h-10 w-12 bg-gray-200 rounded animate-pulse"></div>
-                        </div>
-                        <div className="h-9 bg-gray-200 rounded animate-pulse"></div>
-                      </div>
-                    </div>
-
-                    {/* Speakers Card */}
-                    <div className="bg-white rounded-lg border p-6 shadow-card space-y-4">
-                      <div className="space-y-2">
-                        <div className="h-6 bg-gray-200 rounded w-40 animate-pulse"></div>
-                        <div className="h-3 bg-gray-200 rounded w-48 animate-pulse"></div>
-                      </div>
-                      <div className="space-y-3">
-                        {[1, 2].map((i) => (
-                          <div key={i} className="flex items-center gap-3 p-3 border rounded-lg">
-                            <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
-                            <div className="flex-1 space-y-2">
-                              <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                              <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-                            </div>
-                            <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </main>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-    );
+    return <SessionLoadingSkeleton />;
   }
 
+  // Not found state
   if (!session) {
     return (
       <SidebarProvider>
@@ -638,13 +403,7 @@ const SessionDetail = () => {
                   <div className="text-center">
                     <h2 className="text-2xl font-semibold text-destructive mb-2">Session not found</h2>
                     <p className="text-muted-foreground mb-4">The session you're looking for doesn't exist or you don't have access to it.</p>
-                    <Button onClick={() => {
-                      if (session?.event_id) {
-                        navigate(`/events/${session.event_id}/manage`);
-                      } else {
-                        navigate('/dashboard');
-                      }
-                    }}>
+                    <Button onClick={handleBackClick}>
                       <ArrowLeft className="h-4 w-4 mr-2" />
                       {session?.event_id ? 'Back to Event Management' : 'Back to Dashboard'}
                     </Button>
@@ -675,59 +434,6 @@ const SessionDetail = () => {
     hasKeyQuotes: !!session.session_data?.key_quotes,
     sessionDataKeys: session.session_data ? Object.keys(session.session_data) : 'No session_data'
   });
-  
-  const getStatusBadge = () => {
-    switch (session.processing_status) {
-      case 'processing':
-      case 'uploaded':
-        return (
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            Processing...
-          </Badge>
-        );
-      case 'complete':
-        return (
-          <Badge variant="secondary" className="bg-green-100 text-green-800">
-            Complete
-          </Badge>
-        );
-      case 'error':
-        return (
-          <Badge variant="destructive">
-            Error
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="secondary">
-            {session.processing_status}
-          </Badge>
-        );
-    }
-  };
-
-  const handleCopy = (text: string, type: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied to clipboard",
-      description: `${type} content copied successfully`,
-    });
-  };
-
-  const handleDownload = (format: string) => {
-    toast({
-      title: "Download started",
-      description: `Downloading ${session.session_name || session.generated_title} as ${format}`,
-    });
-  };
-
-  const handlePublishRecap = () => {
-    toast({
-      title: "Published successfully",
-      description: "Your session recap is now live and shareable",
-    });
-  };
 
   return (
     <SidebarProvider>
@@ -737,731 +443,46 @@ const SessionDetail = () => {
           <Header />
           <main className="flex-1">
             <div className="container mx-auto px-6 py-8 animate-fade-in">
-              {/* Header Section */}
-              <div className="flex items-center gap-4 mb-6">
-                <Button 
-                  variant="ghost" 
-                  onClick={() => {
-                    if (session?.event_id) {
-                      navigate(`/events/${session.event_id}/manage`);
-                    } else {
-                      navigate('/dashboard');
-                    }
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  {session?.event_id ? 'Back to Event Management' : 'Back to Dashboard'}
-                </Button>
-              </div>
+              <SessionHeader
+                session={session}
+                showPreview={showPreview}
+                onBackClick={handleBackClick}
+                onTogglePreview={() => setShowPreview(!showPreview)}
+              />
 
               <div className="flex flex-col lg:flex-row gap-8">
-                {/* Main Content */}
-                <div className="flex-1">
-                  {/* Session Info Card */}
-                  <Card className="shadow-card mb-6">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-2xl mb-2">{session.session_name || session.generated_title || 'Session'}</CardTitle>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              {session.audio_duration ? `${Math.floor(session.audio_duration / 60)} min` : 'N/A'}
-                            </div>
-                            <span>{session.created_at ? new Date(session.created_at).toLocaleDateString() : ''}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            {getStatusBadge()}
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                              Preview Mode
-                            </Badge>
-                          </div>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setShowPreview(!showPreview)}
-                        >
-                          {showPreview ? 'Hide Preview' : 'Show Preview'}
-                        </Button>
-                      </div>
-                    </CardHeader>
-                  </Card>
+                <SessionContent
+                  session={session}
+                  showPreview={showPreview}
+                  isProcessing={isProcessing}
+                  hasError={hasError}
+                  isEditing={isEditing}
+                  refreshing={refreshing}
+                  onRefreshSession={refreshSession}
+                  onCopy={handleCopy}
+                  onDownload={handleDownload}
+                />
 
-                  {isProcessing && (
-                    <Alert className="mb-6 border-blue-200 bg-blue-50">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <AlertTitle>🧠 AI is finding your most viral moments...</AlertTitle>
-                      <AlertDescription>
-                        Your content is being processed with AI. This usually takes 30-60 seconds. 
-                        The page will automatically update when processing is complete.
-                        <div className="mt-2 text-sm text-muted-foreground">
-                          Status: {session.processing_status} • Last updated: {new Date().toLocaleTimeString()}
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {hasError && (
-                    <Alert variant="destructive" className="mb-6">
-                      <AlertTitle>Processing Error</AlertTitle>
-                      <AlertDescription>
-                        There was an error processing your content. Please try refreshing or contact support.
-                        <div className="mt-3">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={refreshSession}
-                            disabled={refreshing}
-                          >
-                            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                            {refreshing ? 'Refreshing...' : 'Retry'}
-                          </Button>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Content Tabs */}
-                  <Tabs defaultValue="videos" className="w-full">
-                    <TabsList className="grid w-full grid-cols-6">
-                      <TabsTrigger value="videos">Videos</TabsTrigger>
-                      <TabsTrigger value="summary">Summary</TabsTrigger>
-                      <TabsTrigger value="blog">Blog</TabsTrigger>
-                      <TabsTrigger value="social">Social</TabsTrigger>
-                      <TabsTrigger value="quotes">Quotes</TabsTrigger>
-                      <TabsTrigger value="transcript">Transcript</TabsTrigger>
-                    </TabsList>
-
-                    {/* UPDATED VIDEOS TAB */}
-                    <TabsContent value="videos" className="mt-6">
-                      <div className="space-y-6">
-                        {showPreview ? (
-                          <>
-                            {/* Header */}
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h3 className="text-xl font-bold">Your Viral Clips ({mockViralClips.length})</h3>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  Generated from {session.session_name || 'your session'} • Ready to publish
-                                </p>
-                              </div>
-                              <Button variant="outline">
-                                <Download className="h-4 w-4 mr-2" />
-                                Download All
-                              </Button>
-                            </div>
-
-                            {/* Clips Grid */}
-                            <div className="space-y-6">
-                              {mockViralClips.map((clip, index) => (
-                                <div key={clip.id} className="flex gap-6 p-6 border rounded-lg hover:shadow-md transition-shadow bg-white">
-                                  {/* Video Thumbnail */}
-                                  <div className="relative flex-shrink-0">
-                                    <div className="w-48 h-72 bg-black rounded-lg overflow-hidden relative cursor-pointer"
-                                         onClick={() => handlePublishClip(clip)}>
-                                      <img 
-                                        src={clip.thumbnail} 
-                                        alt={clip.title}
-                                        className="w-full h-full object-cover"
-                                      />
-                                      
-                                      {/* Play Button Overlay */}
-                                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
-                                        <div className="bg-white/20 rounded-full p-3">
-                                          <Play className="h-8 w-8 text-white" />
-                                        </div>
-                                      </div>
-
-                                      {/* Duration Badge */}
-                                      <div className="absolute bottom-3 right-3">
-                                        <Badge variant="secondary" className="bg-black/70 text-white">
-                                          <Clock className="h-3 w-3 mr-1" />
-                                          {formatDuration(clip.duration)}
-                                        </Badge>
-                                      </div>
-
-                                      {/* Virality Score Badge */}
-                                      <div className="absolute top-3 left-3">
-                                        <Badge className={getViralityColor(clip.viralityScore)}>
-                                          {getViralityRank(clip.viralityScore)} Virality score ({clip.viralityScore}/100)
-                                        </Badge>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Content */}
-                                  <div className="flex-1 flex flex-col">
-                                    <div className="flex-1">
-                                      {/* Title and Event */}
-                                      <h3 className="text-xl font-bold mb-2 leading-tight">{clip.title}</h3>
-                                      <p className="text-sm text-muted-foreground mb-4">
-                                        Generated from <span className="font-medium">{clip.eventName}</span>
-                                      </p>
-
-                                      {/* Virality Reasoning */}
-                                      <div className="mb-6">
-                                        <p className="text-sm leading-relaxed text-gray-700">
-                                          {clip.reasoning}
-                                        </p>
-                                      </div>
-
-                                      {/* Transcript Preview */}
-                                      <div className="mb-6">
-                                        <h4 className="font-medium text-sm mb-2">Transcript</h4>
-                                        <p className="text-sm text-gray-600 line-clamp-3">
-                                          {clip.transcript}
-                                        </p>
-                                      </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex gap-3">
-                                      <Button 
-                                        className="flex-1 bg-black hover:bg-gray-800 text-white"
-                                        onClick={() => handlePublishClip(clip)}
-                                      >
-                                        <Share2 className="h-4 w-4 mr-2" />
-                                        Publish
-                                      </Button>
-                                      <Button 
-                                        variant="outline" 
-                                        onClick={() => {
-                                          const baseContent: BaseContentItem = {
-                                            id: clip.id,
-                                            title: clip.title,
-                                            type: 'reel',
-                                            duration: clip.duration,
-                                            viralityScore: clip.viralityScore,
-                                            reasoning: clip.reasoning,
-                                            suggestedCaption: clip.suggestedCaption,
-                                            suggestedHashtags: clip.suggestedHashtags,
-                                            speaker_name: clip.speakerName,
-                                            event_name: clip.eventName
-                                          };
-                                          handleDownloadClip(baseContent);
-                                        }}
-                                      >
-                                        <Download className="h-4 w-4 mr-2" />
-                                        Download
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
-                            <div className="text-center space-y-3">
-                              <Video className="h-12 w-12 mx-auto opacity-50" />
-                              <p>No video content uploaded yet.</p>
-                              <p className="text-sm">Video content will appear here once uploaded and processed.</p>
-                              <Button 
-                                variant="outline" 
-                                onClick={() => setShowPreview(true)}
-                                className="mt-4"
-                              >
-                                Show Preview Mode
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="summary" className="mt-6">
-                      <Card className="shadow-card">
-                        <CardHeader>
-                          <CardTitle>Executive Summary</CardTitle>
-                          <CardDescription>AI-generated summary of key discussion points</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {isProcessing ? (
-                            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                              <div className="text-center space-y-3">
-                                <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-                                <p>AI is analyzing your content and generating a professional summary...</p>
-                                <p className="text-sm">This usually takes 30-60 seconds</p>
-                              </div>
-                            </div>
-                          ) : hasError ? (
-                            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                              <div className="text-center space-y-3">
-                                <p>There was an error generating the summary.</p>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={refreshSession}
-                                  disabled={refreshing}
-                                >
-                                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                                  Retry
-                                </Button>
-                              </div>
-                            </div>
-                          ) : isEditing ? (
-                            <Textarea 
-                              value={session.generated_summary || session.transcript_summary || 'No summary available.'}
-                              className="min-h-[200px] resize-none"
-                              placeholder="Edit summary..."
-                            />
-                          ) : (
-                            <div className="prose max-w-none">
-                              <p className="text-foreground leading-relaxed">
-                                {session.generated_summary || session.transcript_summary || 'No summary available yet. The content is being processed.'}
-                              </p>
-                            </div>
-                          )}
-                          {!isProcessing && !hasError && (
-                            <div className="flex gap-2 mt-4">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleCopy(session.generated_summary || session.transcript_summary || 'No summary available.', "Summary")}
-                                disabled={!session.generated_summary && !session.transcript_summary}
-                              >
-                                <Copy className="h-4 w-4 mr-2" />
-                                Copy
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleDownload("PDF")}
-                                disabled={!session.generated_summary && !session.transcript_summary}
-                              >
-                                <Download className="h-4 w-4 mr-2" />
-                                PDF
-                              </Button>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    <TabsContent value="blog" className="mt-6">
-                      <Card className="shadow-card">
-                        <CardHeader>
-                          <CardTitle>Blog Article</CardTitle>
-                          <CardDescription>Ready-to-publish blog post</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {isProcessing ? (
-                            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                              <div className="text-center space-y-3">
-                                <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-                                <p>AI is generating your blog content...</p>
-                                <p className="text-sm">Creating professional article with insights</p>
-                              </div>
-                            </div>
-                          ) : hasError ? (
-                            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                              <div className="text-center space-y-3">
-                                <p>There was an error generating the blog content.</p>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={refreshSession}
-                                  disabled={refreshing}
-                                >
-                                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                                  Retry
-                                </Button>
-                              </div>
-                            </div>
-                          ) : isEditing ? (
-                            <Textarea 
-                              value={session.session_data?.blog_content || 'No blog content available.'}
-                              className="min-h-[400px] resize-none font-mono text-sm"
-                              placeholder="Edit blog content..."
-                            />
-                          ) : (
-                            <div className="prose max-w-none">
-                              <div className="whitespace-pre-wrap text-foreground">
-                                {session.session_data?.blog_content || 'No blog content available yet. The content is being processed.'}
-                              </div>
-                            </div>
-                          )}
-                          {!isProcessing && !hasError && (
-                            <div className="flex gap-2 mt-4">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleCopy(session.session_data?.blog_content || 'No blog content available.', "Blog")}
-                                disabled={!session.session_data?.blog_content}
-                              >
-                                <Copy className="h-4 w-4 mr-2" />
-                                Copy HTML
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleDownload("Markdown")}
-                                disabled={!session.session_data?.blog_content}
-                              >
-                                <FileText className="h-4 w-4 mr-2" />
-                                Markdown
-                              </Button>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    <TabsContent value="social" className="mt-6">
-                      <div className="space-y-6">
-                        <Card className="shadow-card">
-                          <CardHeader>
-                            <CardTitle>Twitter Thread</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            {isProcessing ? (
-                              <div className="flex items-center justify-center min-h-[150px] text-muted-foreground">
-                                <div className="text-center space-y-3">
-                                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                                  <p>Generating Twitter content...</p>
-                                </div>
-                              </div>
-                            ) : hasError ? (
-                              <div className="flex items-center justify-center min-h-[150px] text-muted-foreground">
-                                <div className="text-center space-y-3">
-                                  <p>Error generating Twitter content.</p>
-                                  <Button variant="outline" size="sm" onClick={refreshSession} disabled={refreshing}>
-                                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                                    Retry
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="bg-muted/30 p-4 rounded-lg">
-                                <p className="whitespace-pre-wrap">{session.session_data?.social_posts?.twitter || 'No Twitter content available yet.'}</p>
-                              </div>
-                            )}
-                            {!isProcessing && !hasError && (
-                              <div className="flex gap-2 mt-4">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleCopy(session.session_data?.social_posts?.twitter || 'No Twitter content available.', "Twitter thread")}
-                                  disabled={!session.session_data?.social_posts?.twitter}
-                                >
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  Copy
-                                </Button>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-
-                        <Card className="shadow-card">
-                          <CardHeader>
-                            <CardTitle>LinkedIn Post</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            {isProcessing ? (
-                              <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                                <div className="text-center space-y-3">
-                                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                                  <p>Generating LinkedIn content...</p>
-                                </div>
-                              </div>
-                            ) : hasError ? (
-                              <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                                <div className="text-center space-y-3">
-                                  <p>Error generating LinkedIn content.</p>
-                                  <Button variant="outline" size="sm" onClick={refreshSession} disabled={refreshing}>
-                                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                                    Retry
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="bg-muted/30 p-4 rounded-lg">
-                                <p className="whitespace-pre-wrap">{session.session_data?.social_posts?.linkedin || 'No LinkedIn content available yet.'}</p>
-                              </div>
-                            )}
-                            {!isProcessing && !hasError && (
-                              <div className="flex gap-2 mt-4">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleCopy(session.session_data?.social_posts?.linkedin || 'No LinkedIn content available.', "LinkedIn post")}
-                                  disabled={!session.session_data?.social_posts?.linkedin}
-                                >
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  Copy
-                                </Button>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="quotes" className="mt-6">
-                      <div className="space-y-4">
-                        {isProcessing ? (
-                          <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                            <div className="text-center space-y-3">
-                              <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-                              <p>Extracting key quotes...</p>
-                              <p className="text-sm">Finding the most impactful statements</p>
-                            </div>
-                          </div>
-                        ) : hasError ? (
-                          <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                            <div className="text-center space-y-3">
-                              <p>Error extracting quotes.</p>
-                              <Button variant="outline" size="sm" onClick={refreshSession} disabled={refreshing}>
-                                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                                Retry
-                              </Button>
-                            </div>
-                          </div>
-                        ) : session.session_data?.key_quotes && session.session_data.key_quotes.length > 0 ? (
-                          session.session_data.key_quotes.map((quote, index) => (
-                            <Card key={index} className="shadow-card">
-                              <CardContent className="p-6">
-                                <blockquote className="text-lg italic mb-4">
-                                  "{quote}"
-                                </blockquote>
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="font-semibold">Key Insight {index + 1}</p>
-                                    <p className="text-sm text-muted-foreground">Extracted from content</p>
-                                  </div>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => handleCopy(quote, "Quote")}
-                                  >
-                                    <Copy className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))
-                        ) : (
-                          <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                            <div className="text-center space-y-3">
-                              <MessageSquare className="h-12 w-12 mx-auto opacity-50" />
-                              <p>No key quotes available yet.</p>
-                              <p className="text-sm">Quotes will appear here once processing is complete.</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="transcript" className="mt-6">
-                      <Card className="shadow-card">
-                        <CardHeader>
-                          <CardTitle>Full Transcript</CardTitle>
-                          <CardDescription>Complete session transcript with timestamps</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {isProcessing ? (
-                            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                              <div className="text-center space-y-3">
-                                <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-                                <p>Processing transcript...</p>
-                                <p className="text-sm">Extracting text content</p>
-                              </div>
-                            </div>
-                          ) : hasError ? (
-                            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
-                              <div className="text-center space-y-3">
-                                <p>Error processing transcript.</p>
-                                <Button variant="outline" size="sm" onClick={refreshSession} disabled={refreshing}>
-                                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                                  Retry
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="bg-muted/30 p-4 rounded-lg max-h-96 overflow-y-auto">
-                              <pre className="whitespace-pre-wrap text-sm">
-                                {session.session_data?.extracted_text || session.transcript_summary || 'No transcript content available yet.'}
-                              </pre>
-                            </div>
-                          )}
-                          {!isProcessing && !hasError && (
-                            <div className="flex gap-2 mt-4">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleCopy(session.session_data?.extracted_text || session.transcript_summary || 'No transcript content available.', "Transcript")}
-                                disabled={!session.session_data?.extracted_text && !session.transcript_summary}
-                              >
-                                <Copy className="h-4 w-4 mr-2" />
-                                Copy
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleDownload("TXT")}
-                                disabled={!session.session_data?.extracted_text && !session.transcript_summary}
-                              >
-                                <Download className="h-4 w-4 mr-2" />
-                                Download
-                              </Button>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-
-                {/* Sidebar */}
-                <div className="w-full lg:w-80 space-y-6">
-                  {/* Quick Actions */}
-                  <Card className="shadow-card">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Quick Actions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={handleAddExistingSpeaker}
-                      >
-                        <Users className="h-4 w-4 mr-2" />
-                        Add Existing Speaker
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={handleAddNewSpeaker}
-                      >
-                        <Users className="h-4 w-4 mr-2" />
-                        Add New Speaker
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  {/* Public URL */}
-                  <Card className="shadow-card">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Public Event Page</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <Label htmlFor="public-url">Shareable URL</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="public-url"
-                            value={(() => {
-                              const eventSubdomain = speakers[0]?.events?.subdomain || event?.subdomain;
-                              return eventSubdomain 
-                                ? `${window.location.origin}/event/${eventSubdomain}`
-                                : 'Event page URL will be available once event is configured.';
-                            })()}
-                            readOnly
-                            className="flex-1"
-                          />
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              const eventSubdomain = speakers[0]?.events?.subdomain || event?.subdomain;
-                              const url = eventSubdomain 
-                                ? `${window.location.origin}/event/${eventSubdomain}`
-                                : 'Event page URL will be available once event is configured.';
-                              handleCopy(url, "URL");
-                            }}
-                            disabled={!speakers[0]?.events?.subdomain && !event?.subdomain}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="w-full"
-                          onClick={() => {
-                            // Get event subdomain from speakers data or direct event fetch
-                            const eventSubdomain = speakers[0]?.events?.subdomain || event?.subdomain;
-                            if (eventSubdomain) {
-                              window.open(`/event/${eventSubdomain}`, '_blank');
-                            } else {
-                              toast({
-                                title: "Event page not available",
-                                description: "The public event page is being prepared and will be available soon.",
-                                variant: "destructive",
-                              });
-                            }
-                          }}
-                          disabled={!speakers[0]?.events?.subdomain && !event?.subdomain}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Preview Public Page
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Speakers & Microsites */}
-                  <Card className="shadow-card">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Speakers & Microsites</CardTitle>
-                      <CardDescription className="text-xs">
-                        Each speaker gets their own lead generation microsite
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {speakers && speakers.length > 0 ? (
-                          speakers.map((micrositeData, index) => (
-                            <SpeakerManagementCard
-                              key={micrositeData.id}
-                              speaker={{
-                                id: micrositeData.speakers.id,
-                                full_name: micrositeData.speakers.full_name,
-                                email: micrositeData.speakers.email,
-                                company: micrositeData.speakers.company,
-                                job_title: micrositeData.speakers.job_title,
-                                bio: micrositeData.speakers.bio,
-                                linkedin_url: micrositeData.speakers.linkedin_url,
-                                headshot_url: micrositeData.speakers.headshot_url,
-                                slug: micrositeData.speakers.slug,
-                                created_at: micrositeData.speakers.created_at
-                              }}
-                              onEdit={handleEditSpeaker}
-                              onAdvanced={handleAdvancedSpeaker}
-                              onDelete={handleDeleteSpeaker}
-                              onRemove={handleRemoveSpeaker}
-                              onViewMicrosite={handleViewMicrosite}
-                              compact={true}
-                            />
-                          ))
-                        ) : (
-                          <div className="text-sm text-muted-foreground text-center py-4">
-                            No speakers assigned to this session.
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                <SessionSidebar
+                  speakers={speakers}
+                  event={event}
+                  onAddExistingSpeaker={handleAddExistingSpeaker}
+                  onAddNewSpeaker={handleAddNewSpeaker}
+                  onEditSpeaker={handleEditSpeaker}
+                  onAdvancedSpeaker={handleAdvancedSpeaker}
+                  onDeleteSpeaker={handleDeleteSpeaker}
+                  onRemoveSpeaker={handleRemoveSpeaker}
+                  onViewMicrosite={handleViewMicrosite}
+                  onCopyUrl={handleCopy}
+                  onPreviewPublicPage={handlePreviewPublicPage}
+                />
               </div>
             </div>
           </main>
         </SidebarInset>
       </div>
 
-              {/* PUBLISH MODAL */}
-        <PublishModal
-          isOpen={isPublishModalOpen}
-          onClose={() => setIsPublishModalOpen(false)}
-          content={selectedClip}
-          onPublish={handlePublish}
-          onDownload={handleDownloadClip}
-          title="Publish Your Video"
-        />
-
-      {/* Add the modals before the closing tags */}
+      {/* Add the modals */}
       <QuickEditSpeakerModal
         speaker={selectedSpeakerForEdit}
         isOpen={isQuickEditOpen}
