@@ -429,7 +429,7 @@ function BrowseContent() {
 
         {/* Get Started Empty State */}
         {filteredContent.length === 0 && !loading && (
-          <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex items-center justify-center min-h-[40vh]">
             <Card className="max-w-lg mx-auto border-0 backdrop-blur-md bg-white/50 shadow-xl border border-white/40 text-center">
               <CardContent className="p-12">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto mb-8">
