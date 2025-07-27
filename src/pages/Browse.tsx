@@ -24,7 +24,6 @@ import {
   Instagram,
   Youtube,
   Edit3,
-  FileVideo,
   Upload,
   Plus
 } from "lucide-react";
@@ -190,7 +189,7 @@ function BrowseContent() {
         
         // Add virality data to mock content
         enrichedContent = mockData.map(item => ({
-          ...item,
+        ...item,
           viralityScore: generateViralityScore(item.id),
           reasoning: `This video has strong potential due to its engaging content and timely topic discussion.`,
           transcript: `Sample transcript for ${item.title}...`,
@@ -338,18 +337,18 @@ function BrowseContent() {
           </div>
         </div>
 
-
-
-        {/* Search Bar */}
-        <div className="relative max-w-lg mb-12">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-textSecondary" />
-          <Input
-            placeholder="Search by speaker, event, or keyword..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-12 py-3 text-base border-accent bg-white shadow-sm rounded-full focus:ring-2 focus:ring-primary focus:border-primary"
-          />
-        </div>
+        {/* Search Bar - Only show when there's content */}
+        {filteredContent.length > 0 && (
+          <div className="relative max-w-lg mb-12">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-textSecondary" />
+            <Input
+              placeholder="Search by speaker, event, or keyword..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 py-3 text-base border-accent bg-white shadow-sm rounded-full focus:ring-2 focus:ring-primary focus:border-primary"
+            />
+          </div>
+        )}
 
         {/* Visual Content Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -377,14 +376,14 @@ function BrowseContent() {
                   </div>
                 )}
 
-                {/* Virality Score Badge for reels */}
-                {item.type === 'reel' && item.viralityScore && (
-                  <div className="absolute top-3 left-3">
-                    <Badge className={`${getViralityColor(item.viralityScore)} font-semibold shadow-lg backdrop-blur-sm !bg-opacity-100 hover:!bg-opacity-100`}>
-                      {getViralityRank(item.viralityScore)} ({item.viralityScore}/100)
-                    </Badge>
-                  </div>
-                )}
+                                 {/* Virality Score Badge for reels */}
+                 {item.type === 'reel' && item.viralityScore && (
+                   <div className="absolute top-3 left-3">
+                     <Badge className={`${getViralityColor(item.viralityScore)} font-semibold shadow-lg backdrop-blur-sm !bg-opacity-100 hover:!bg-opacity-100`}>
+                       {getViralityRank(item.viralityScore)} ({item.viralityScore}/100)
+                     </Badge>
+                   </div>
+                 )}
 
                 {/* Duration Badge for reels */}
                 {item.type === 'reel' && item.duration && (
@@ -429,12 +428,9 @@ function BrowseContent() {
 
         {/* Get Started Empty State */}
         {filteredContent.length === 0 && !loading && (
-          <div className="flex items-center justify-center min-h-[20vh]">
+          <div className="flex items-center justify-center min-h-[60vh]">
             <Card className="max-w-lg mx-auto border-0 backdrop-blur-md bg-white/50 shadow-xl border border-white/40 text-center">
-              <CardContent className="p-6">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto mb-8">
-                  <FileVideo className="h-10 w-10 text-white" />
-                </div>
+              <CardContent className="p-12">
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Your Content Library is Empty</h3>
                 <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
                   Start by creating an event or uploading a session recording. We'll automatically generate shareable video clips for you.
@@ -442,31 +438,25 @@ function BrowseContent() {
                 <div className="space-y-3">
                   <Button 
                     onClick={() => openModal()} 
-                    className="w-full"
-                    style={{
-                      backgroundColor: '#3B82F6',
-                      color: 'white',
-                      fontWeight: '500',
-                      padding: '12px 24px'
-                    }}
+                    className="w-full bg-primary hover:bg-primaryDark text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 shadow-button hover:shadow-button-hover"
                     size="lg"
                   >
                     <Plus className="h-5 w-5 mr-2" />
                     Create New Event
                   </Button>
-                  <Button 
-                    variant="outline" 
+                    <Button 
+                      variant="outline" 
                     onClick={() => navigate('/upload')}
                     className="w-full border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 font-medium py-3 px-6 rounded-lg transition-colors duration-200"
                   >
                     <Upload className="h-5 w-5 mr-2" />
                     Upload Session Recording
-                  </Button>
+                    </Button>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        )}
+            </div>
+          )}
       </div>
 
       {/* PUBLISH MODAL */}
