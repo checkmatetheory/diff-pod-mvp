@@ -461,7 +461,14 @@ function BrowseContent() {
                 <div className="space-y-3">
                   <Button 
                     onClick={() => openModal()} 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200"
+                    className="w-full"
+                    style={{
+                      backgroundColor: '#3B82F6',
+                      color: 'white',
+                      fontWeight: '500',
+                      padding: '12px 24px'
+                    }}
+                    size="lg"
                   >
                     <Plus className="h-5 w-5 mr-2" />
                     Create New Event
