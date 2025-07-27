@@ -354,7 +354,7 @@ export default function Events() {
 
                 {/* Events List */}
                 {filteredEvents.map((event) => (
-                  <Card key={event.id} className="border-0 backdrop-blur-md bg-white/50 shadow-xl border border-white/40 hover:shadow-2xl hover:bg-sky-600/60 transition-all duration-300">
+                  <Card key={event.id} className="border-0 backdrop-blur-md bg-white/50 shadow-xl border border-white/40 hover:shadow-2xl hover:bg-sky-300/60 transition-all duration-300">
                     <CardContent className="p-8">
                       
                       {/* Event Header */}
