@@ -55,6 +55,9 @@ function BrowseContent() {
   const navigate = useNavigate();
   const { openModal } = useCreateEventModal();
 
+  // Check if this is the demo user
+  const isDemoUser = user?.email === 'testlast@pod.com';
+
   // Helper functions for viral clips (from SessionDetail)
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -105,13 +108,6 @@ function BrowseContent() {
 
   const fetchContent = async () => {
     try {
-      const { data, error } = await supabase
-        .from('content_items')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
       // Helper function to generate deterministic virality score based on item ID
       const generateViralityScore = (id: string): number => {
         // Simple hash function to convert UUID to number
@@ -124,19 +120,106 @@ function BrowseContent() {
         // Convert to range 70-100
         return Math.abs(hash % 31) + 70;
       };
+
+      let enrichedContent: ContentItem[] = [];
       
-      // Filter to only include reels and add viral data
-      const enrichedContent = (data || [])
-        .filter(item => item.type === 'reel')
-        .map(item => ({
+      if (isDemoUser) {
+        // Mock data for demo user
+        const mockData = [
+          {
+            id: '1',
+            title: 'AI Revolution in FinTech',
+            speaker_name: 'Sarah Chen',
+            event_name: 'FinTech Summit 2024',
+            type: 'reel' as const,
+            duration: 45,
+            thumbnail_url: '/placeholder.svg',
+            content_url: '/placeholder-video.mp4',
+          },
+          {
+            id: '2',
+            title: 'The Future of Web3',
+            speaker_name: 'Marcus Rodriguez',
+            event_name: 'Tech Innovation Expo',
+            type: 'reel' as const,
+            duration: 62,
+            thumbnail_url: '/placeholder.svg',
+            content_url: '/placeholder-video.mp4',
+          },
+          {
+            id: '3',
+            title: 'Sustainable Energy Solutions',
+            speaker_name: 'Dr. Emily Watson',
+            event_name: 'Climate Tech Summit',
+            type: 'reel' as const,
+            duration: 38,
+            thumbnail_url: '/placeholder.svg',
+            content_url: '/placeholder-video.mp4',
+          },
+          {
+            id: '4',
+            title: 'Quantum Computing Breakthroughs',
+            speaker_name: 'James Park',
+            event_name: 'Quantum Innovation Day',
+            type: 'reel' as const,
+            duration: 55,
+            thumbnail_url: '/placeholder.svg',
+            content_url: '/placeholder-video.mp4',
+          },
+          {
+            id: '5',
+            title: 'Healthcare AI Ethics',
+            speaker_name: 'Dr. Lisa Zhang',
+            event_name: 'HealthTech Conference',
+            type: 'reel' as const,
+            duration: 41,
+            thumbnail_url: '/placeholder.svg',
+            content_url: '/placeholder-video.mp4',
+          },
+          {
+            id: '6',
+            title: 'Blockchain in Supply Chain',
+            speaker_name: 'Alex Thompson',
+            event_name: 'Supply Chain Innovation',
+            type: 'reel' as const,
+            duration: 48,
+            thumbnail_url: '/placeholder.svg',
+            content_url: '/placeholder-video.mp4',
+          }
+        ];
+        
+        // Add virality data to mock content
+        enrichedContent = mockData.map(item => ({
           ...item,
-          type: 'reel' as 'reel',
           viralityScore: generateViralityScore(item.id),
           reasoning: `This video has strong potential due to its engaging content and timely topic discussion.`,
           transcript: `Sample transcript for ${item.title}...`,
           suggestedCaption: `🚀 Amazing insights from ${item.speaker_name}! #Innovation #${item.event_name.replace(/\s+/g, '')}`,
           suggestedHashtags: ['#Innovation', '#Leadership', '#TechTalk'],
         }));
+      } else {
+        // Real data for real users - query user-specific content
+        const { data, error } = await supabase
+          .from('content_items')
+          .select('*')
+          .eq('user_id', user?.id) // Only get this user's content
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        // Process real user data (will be empty for new users)
+        enrichedContent = (data || [])
+          .filter(item => item.type === 'reel')
+          .map(item => ({
+            ...item,
+            type: 'reel' as 'reel',
+            viralityScore: generateViralityScore(item.id),
+            reasoning: `This video has strong potential due to its engaging content and timely topic discussion.`,
+            transcript: `Sample transcript for ${item.title}...`,
+            suggestedCaption: `🚀 Amazing insights from ${item.speaker_name}! #Innovation #${item.event_name.replace(/\s+/g, '')}`,
+            suggestedHashtags: ['#Innovation', '#Leadership', '#TechTalk'],
+          }));
+      }
       
       setContent(enrichedContent);
     } catch (error) {
