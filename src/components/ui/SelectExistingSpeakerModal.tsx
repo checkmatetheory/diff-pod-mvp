@@ -65,13 +65,19 @@ export default function SelectExistingSpeakerModal({
   const loadSpeakers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Build the query conditionally to avoid malformed SQL
+      let query = supabase
         .from('speakers')
         .select('*')
         .eq('created_by', user!.id)
-        .not('full_name', 'like', '[DELETED]%') // Exclude archived speakers
-        .not('id', 'in', `(${excludeSpeakerIds.length > 0 ? excludeSpeakerIds.join(',') : 'null'})`) // Exclude speakers already in session
-        .order('created_at', { ascending: false });
+        .not('full_name', 'like', '[DELETED]%'); // Exclude archived speakers
+
+      // Only add the exclusion filter if there are speakers to exclude
+      if (excludeSpeakerIds.length > 0) {
+        query = query.not('id', 'in', `(${excludeSpeakerIds.join(',')})`);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
 

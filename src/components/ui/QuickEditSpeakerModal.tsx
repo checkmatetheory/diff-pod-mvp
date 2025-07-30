@@ -140,9 +140,10 @@ export default function QuickEditSpeakerModal({
       onUpdate(updatedSpeaker as Speaker);
       toast.success("Speaker updated successfully!");
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating speaker:', error);
-      if (error.code === '23505') {
+      const errorCode = (error as { code?: string })?.code;
+      if (errorCode === '23505') {
         toast.error("A speaker with this name already exists");
       } else {
         toast.error("Failed to update speaker");

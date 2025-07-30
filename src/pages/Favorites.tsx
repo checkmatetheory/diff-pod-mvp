@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateEventModal } from "@/contexts/CreateEventModalContext";
 import { PublishModal } from "@/components/ui/PublishModal";
 import { FavoriteContentItem } from "@/types/publish";
+import { ensureMockDataExists, isDemoUser } from "@/lib/mockData";
 
 // Using shared FavoriteContentItem from types
 interface FavoriteContent extends FavoriteContentItem {}
@@ -98,9 +99,22 @@ function FavoritesContent() {
 
   useEffect(() => {
     if (user) {
-      fetchFavorites();
+      initializeFavorites();
     }
   }, [user]);
+
+  const initializeFavorites = async () => {
+    // For demo users, ensure mock data exists first
+    if (isDemoUser(user?.email) && user) {
+      try {
+        await ensureMockDataExists(user.id);
+      } catch (error) {
+        console.error('Error ensuring mock data exists:', error);
+      }
+    }
+    
+    fetchFavorites();
+  };
 
   const fetchFavorites = async () => {
     try {
@@ -336,7 +350,7 @@ export default function Favorites() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar onCreateEvent={openModal} />
+        <AppSidebar />
         <SidebarInset className="flex-1">
           <Header />
           <main className="flex-1">

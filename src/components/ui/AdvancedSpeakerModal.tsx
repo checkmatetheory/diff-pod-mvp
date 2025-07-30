@@ -47,6 +47,18 @@ interface AdvancedSpeakerModalProps {
   onDelete: (speakerId: string) => void;
 }
 
+interface SpeakerDependencies {
+  microsites: Array<{
+    id: string;
+    user_sessions?: {
+      session_name: string;
+    };
+    microsite_url: string;
+    is_live: boolean;
+    total_views?: number;
+  }>;
+}
+
 export default function AdvancedSpeakerModal({ 
   speaker, 
   isOpen, 
@@ -58,7 +70,7 @@ export default function AdvancedSpeakerModal({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
-  const [dependencies, setDependencies] = useState<any>(null);
+  const [dependencies, setDependencies] = useState<SpeakerDependencies | null>(null);
   const [loadingDependencies, setLoadingDependencies] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -198,9 +210,10 @@ export default function AdvancedSpeakerModal({
       const updatedSpeaker = { ...speaker, ...updateData };
       onUpdate(updatedSpeaker as Speaker);
       toast.success("Speaker updated successfully!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating speaker:', error);
-      if (error.code === '23505') {
+      const errorCode = (error as { code?: string })?.code;
+      if (errorCode === '23505') {
         toast.error("A speaker with this name already exists");
       } else {
         toast.error("Failed to update speaker");
@@ -434,7 +447,7 @@ export default function AdvancedSpeakerModal({
               <CardContent>
                 <div className="space-y-4">
                   {dependencies?.microsites?.length ? (
-                    dependencies.microsites.map((microsite: any) => (
+                    dependencies.microsites.map((microsite) => (
                       <div key={microsite.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div>
                           <p className="font-medium">{microsite.user_sessions?.session_name || 'Unknown Session'}</p>

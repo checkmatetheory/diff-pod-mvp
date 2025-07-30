@@ -12,14 +12,7 @@ import QuickEditSpeakerModal from "@/components/ui/QuickEditSpeakerModal";
 import AdvancedSpeakerModal from "@/components/ui/AdvancedSpeakerModal";
 import AddSpeakerModal from "@/components/ui/AddSpeakerModal";
 import SelectExistingSpeakerModal from "@/components/ui/SelectExistingSpeakerModal";
-
-interface SessionSidebarProps {
-  session: any;
-  speakers: any[];
-  event: any;
-  setSpeakers: React.Dispatch<React.SetStateAction<any[]>>;
-  fetchAllSpeakers: () => Promise<void>;
-}
+import { SessionSidebarProps, SpeakerMicrosite } from "@/types/session-types";
 
 export const SessionSidebar = ({
   session,
@@ -32,45 +25,67 @@ export const SessionSidebar = ({
   const { toast } = useToast();
   
   // Speaker management state (moved from SessionDetail.tsx)
-  const [selectedSpeakerForEdit, setSelectedSpeakerForEdit] = useState<any>(null);
-  const [selectedSpeakerForAdvanced, setSelectedSpeakerForAdvanced] = useState<any>(null);
+  const [selectedSpeakerForEdit, setSelectedSpeakerForEdit] = useState<SpeakerMicrosite | null>(null);
+  const [selectedSpeakerForAdvanced, setSelectedSpeakerForAdvanced] = useState<SpeakerMicrosite | null>(null);
   const [isQuickEditOpen, setIsQuickEditOpen] = useState(false);
   const [isAdvancedModalOpen, setIsAdvancedModalOpen] = useState(false);
   const [isAddSpeakerModalOpen, setIsAddSpeakerModalOpen] = useState(false);
   const [isSelectExistingModalOpen, setIsSelectExistingModalOpen] = useState(false);
 
   // Speaker management handlers (moved from SessionDetail.tsx)
-  const handleEditSpeaker = (speaker: any) => {
+  const handleEditSpeaker = (speaker: SpeakerMicrosite) => {
     setSelectedSpeakerForEdit(speaker);
     setIsQuickEditOpen(true);
   };
 
-  const handleAdvancedSpeaker = (speaker: any) => {
+  const handleAdvancedSpeaker = (speaker: SpeakerMicrosite) => {
     setSelectedSpeakerForAdvanced(speaker);
     setIsAdvancedModalOpen(true);
   };
 
-  const handleDeleteSpeaker = (speaker: any) => {
-    setSelectedSpeakerForAdvanced(speaker);
-    setIsAdvancedModalOpen(true);
-    // The advanced modal will handle the delete flow
+  const handleDeleteSpeaker = async (speaker: SpeakerMicrosite) => {
+    if (!confirm(`Are you sure you want to remove ${speaker.speakers?.full_name} from this session?`)) {
+      return;
+    }
+
+    try {
+      // Remove the link between speaker microsite and session
+      const { error } = await supabase
+        .from('speaker_microsite_sessions')
+        .delete()
+        .eq('microsite_id', speaker.id)
+        .eq('session_id', session.id);
+
+      if (error) throw error;
+
+      await fetchAllSpeakers();
+      toast({
+        title: "Speaker removed",
+        description: `${speaker.speakers?.full_name} has been removed from this session`,
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      console.error('Error removing speaker:', error);
+      toast({
+        title: "Error removing speaker",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleSpeakerUpdate = (updatedSpeaker: any) => {
-    // Update speaker in local state
-    setSpeakers(prev => prev.map(s => 
-      s.speakers?.id === updatedSpeaker.id 
-        ? { ...s, speakers: updatedSpeaker }
-        : s
-    ));
+  const handleSpeakerUpdate = async (updatedSpeaker: SpeakerMicrosite) => {
+    // Update the speakers list with the updated speaker
+    setSpeakers(prevSpeakers => 
+      prevSpeakers.map(s => 
+        s.id === updatedSpeaker.id ? { ...s, ...updatedSpeaker } : s
+      )
+    );
+    
+    await fetchAllSpeakers();
   };
 
-  const handleSpeakerDelete = (speakerId: string) => {
-    // Remove speaker from local state
-    setSpeakers(prev => prev.filter(s => s.speakers?.id !== speakerId));
-  };
-
-  const handleViewMicrosite = (speaker: any) => {
+  const handleViewMicrosite = (speaker: SpeakerMicrosite) => {
     // Find the microsite data for this speaker
     const micrositeData = speakers.find(s => s.speakers?.id === speaker.id);
     if (micrositeData?.events?.subdomain && speaker.slug) {
@@ -92,7 +107,7 @@ export const SessionSidebar = ({
     setIsSelectExistingModalOpen(true);
   };
 
-  const handleSpeakerCreated = async (newSpeaker: any) => {
+  const handleSpeakerCreated = async (newSpeaker: SpeakerMicrosite) => {
     if (!session?.event_id || !session?.id || !user?.id) {
       toast({
         title: "Error",
@@ -128,7 +143,7 @@ export const SessionSidebar = ({
       console.log('✅ Created microsite for new speaker:', newMicrosite.id);
 
       // Step 2: Create junction table entry to link microsite to this session
-      const { error: junctionError } = await (supabase as any)
+      const { error: junctionError } = await supabase
         .from('speaker_microsite_sessions')
         .insert({
           microsite_id: newMicrosite.id,
@@ -161,7 +176,7 @@ export const SessionSidebar = ({
     }
   };
 
-  const handleRemoveSpeaker = async (speaker: any) => {
+  const handleRemoveSpeaker = async (speaker: SpeakerMicrosite) => {
     if (!session?.event_id || !session?.id) {
       toast({
         title: "Error",
@@ -190,7 +205,7 @@ export const SessionSidebar = ({
       }
 
       // Remove the session link from the junction table
-      const { error: deleteError } = await (supabase as any)
+      const { error: deleteError } = await supabase
         .from('speaker_microsite_sessions')
         .delete()
         .eq('microsite_id', microsite.id)
@@ -207,7 +222,7 @@ export const SessionSidebar = ({
       }
 
       // Check if this was the last session for this speaker in this event
-      const { data: remainingSessions, error: checkError } = await (supabase as any)
+      const { data: remainingSessions, error: checkError } = await supabase
         .from('speaker_microsite_sessions')
         .select('id')
         .eq('microsite_id', microsite.id);
@@ -236,7 +251,7 @@ export const SessionSidebar = ({
     }
   };
 
-  const handleExistingSpeakersSelected = async (selectedSpeakers: any[]) => {
+  const handleExistingSpeakersSelected = async (selectedSpeakers: SpeakerMicrosite[]) => {
     if (!session?.event_id || !session?.id) {
       toast({
         title: "Error",
@@ -287,7 +302,7 @@ export const SessionSidebar = ({
         }
 
         // Step 3: Create junction table entry to link microsite to this session
-        const { error: junctionError } = await (supabase as any)
+        const { error: junctionError } = await supabase
           .from('speaker_microsite_sessions')
           .upsert({
             microsite_id: micrositeId,
@@ -501,7 +516,7 @@ export const SessionSidebar = ({
           setSelectedSpeakerForAdvanced(null);
         }}
         onUpdate={handleSpeakerUpdate}
-        onDelete={handleSpeakerDelete}
+        onDelete={handleDeleteSpeaker}
       />
 
       <AddSpeakerModal

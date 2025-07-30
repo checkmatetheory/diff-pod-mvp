@@ -14,6 +14,11 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { UploadAnalytics } from "@/components/ui/UploadAnalytics";
+import { uploadFileWithTUS, shouldUseTUS, saveUploadState, getStoredUploads, removeUploadState, clearExpiredUploads } from "@/lib/tusUpload";
+import { backgroundUploadService, type UploadEvent } from "@/lib/backgroundUploadService";
+import { networkManager } from "@/lib/networkManager";
+import { UPLOAD_LIMITS, formatFileSize } from "@/constants/upload";
 
 interface UploadedFile {
   id: string;
@@ -45,9 +50,112 @@ const SessionUpload = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
 
+  // Add upload recovery state
+  const [storedUploads, setStoredUploads] = useState<Record<string, any>>({});
+
   useEffect(() => {
     fetchEvents();
+    initializeUploadServices();
   }, []);
+
+  const initializeUploadServices = async () => {
+    try {
+      // Initialize background upload service
+      await backgroundUploadService.initialize();
+      
+      // Set up upload event listeners
+      const unsubscribeProgress = backgroundUploadService.on('progress', handleUploadProgress);
+      const unsubscribeCompleted = backgroundUploadService.on('completed', handleUploadCompleted);
+      const unsubscribeFailed = backgroundUploadService.on('failed', handleUploadFailed);
+      
+      // Load active uploads from background service
+      const activeUploads = backgroundUploadService.getActiveUploads();
+      if (activeUploads.length > 0) {
+        const activeUploadsList = activeUploads.map(upload => ({
+          id: upload.id,
+          name: upload.fileName,
+          type: 'document' as const,
+          size: formatFileSize(upload.fileSize),
+          progress: upload.progress,
+          status: upload.status as 'uploading' | 'processing' | 'complete' | 'error',
+          tags: []
+        }));
+        
+        setUploads(prev => [...prev, ...activeUploadsList]);
+        toast({
+          title: "Resumed uploads",
+          description: `Found ${activeUploads.length} uploads in progress.`,
+        });
+      }
+
+      // Monitor network status
+      const unsubscribeNetwork = networkManager.onConnectionChange((status) => {
+        if (status.online) {
+          toast({
+            title: "Connection restored",
+            description: "Resuming uploads...",
+          });
+        } else {
+          toast({
+            title: "Connection lost",
+            description: "Uploads will resume when connection is restored.",
+            variant: "destructive",
+          });
+        }
+      });
+
+      // Cleanup on unmount
+      return () => {
+        unsubscribeProgress();
+        unsubscribeCompleted();
+        unsubscribeFailed();
+        unsubscribeNetwork();
+      };
+    } catch (error) {
+      console.error('Failed to initialize upload services:', error);
+    }
+  };
+
+  const handleUploadProgress = (event: UploadEvent) => {
+    if (event.type === 'progress') {
+      setUploads(prev => prev.map(upload => 
+        upload.id === event.uploadId 
+          ? { ...upload, progress: event.data.percentage }
+          : upload
+      ));
+    }
+  };
+
+  const handleUploadCompleted = (event: UploadEvent) => {
+    if (event.type === 'completed') {
+      setUploads(prev => prev.map(upload => 
+        upload.id === event.uploadId 
+          ? { ...upload, status: 'complete', progress: 100 }
+          : upload
+      ));
+      
+      toast({
+        title: "Upload completed",
+        description: "Your file has been uploaded successfully.",
+      });
+    }
+  };
+
+  const handleUploadFailed = (event: UploadEvent) => {
+    if (event.type === 'failed') {
+      setUploads(prev => prev.map(upload => 
+        upload.id === event.uploadId 
+          ? { ...upload, status: 'error' }
+          : upload
+      ));
+      
+      toast({
+        title: "Upload failed",
+        description: event.data?.error || "Upload failed with unknown error.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Auto-select event from URL parameter
   useEffect(() => {
@@ -152,11 +260,13 @@ const SessionUpload = () => {
         fileType = 'document';
       }
 
+      const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
       const newUpload: UploadedFile = {
-        id: Date.now().toString() + Math.random(),
+        id: uploadId,
         name: file.name,
         type: fileType,
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+        size: formatFileSize(file.size),
         progress: 0,
         status: 'uploading',
         tags: []
@@ -169,24 +279,100 @@ const SessionUpload = () => {
         // Upload to Supabase Storage
         const fileName = `${user.id}/${Date.now()}-${file.name}`;
         
-        // Set progress to uploading
+        console.log('🚀 Starting optimized upload:', {
+          fileName,
+          fileSize: file.size,
+          fileSizeMB: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+          chunkStrategy: file.size < UPLOAD_LIMITS.MEDIUM_FILE_THRESHOLD ? '2MB chunks' : 'Dynamic chunks'
+        });
+        
+        // Enhanced progress tracking with persistence
+        const onProgress = (percentage: number) => {
+          setUploads(prev => prev.map(upload => 
+            upload.id === uploadId 
+              ? { ...upload, progress: Math.max(upload.progress, percentage) }
+              : upload
+          ));
+        };
+
+        // Set initial progress
         setUploads(prev => prev.map(upload => 
-          upload.id === newUpload.id 
-            ? { ...upload, progress: 50 }
+          upload.id === uploadId 
+            ? { ...upload, progress: 10 }
             : upload
         ));
 
-        const { error: uploadError } = await supabase.storage
-          .from('session-uploads')
-          .upload(fileName, file);
+        console.log('📤 Uploading to Supabase Storage...');
+        
+        const fileSizeMB = file.size / (1024 * 1024);
+        let uploadResult;
 
-        if (uploadError) {
-          throw uploadError;
+        // DEBUG: Add comprehensive debugging
+        console.log('🔍 DEBUG: File size in MB:', fileSizeMB);
+        console.log('🔍 DEBUG: shouldUseTUS function type:', typeof shouldUseTUS);
+        console.log('�� DEBUG: uploadFileWithTUS function type:', typeof uploadFileWithTUS);
+        
+        let shouldUseResumable = false;
+        try {
+          shouldUseResumable = shouldUseTUS(file);
+          console.log('🔍 DEBUG: shouldUseTUS result:', shouldUseResumable);
+        } catch (error) {
+          console.error('🔍 DEBUG: Error calling shouldUseTUS:', error);
         }
+
+        // Use TUS resumable uploads for files larger than 6MB for better reliability
+        if (shouldUseResumable) {
+          console.log(`🔄 Using TUS resumable upload for large file (${fileSizeMB.toFixed(1)}MB)...`);
+          
+          try {
+            // Get the current session for authorization
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+              throw new Error('No active session found');
+            }
+
+            // TUS upload will use the onProgress callback defined above
+
+            console.log('🚀 About to call uploadFileWithTUS...');
+                         // Upload using TUS
+             const tusResult = await uploadFileWithTUS({
+               file,
+               fileName,
+               userId: user.id,
+               projectId: 'qzmpuojqcrrlylmnbgrg',
+               accessToken: session.access_token,
+               onProgress,
+               eventId: selectedEventId // Pass eventId for background service
+             });
+            
+            uploadResult = { data: tusResult, error: null };
+            console.log('�� TUS Upload result:', uploadResult);
+          } catch (tusError) {
+            console.error('❌ TUS Upload failed:', tusError);
+            throw tusError;
+          }
+        } else {
+          console.log(`📤 Using standard upload for file (${fileSizeMB.toFixed(1)}MB)...`);
+          // Use standard upload for smaller files
+          uploadResult = await supabase.storage
+            .from('session-uploads')
+            .upload(fileName, file, {
+              upsert: true,
+            });
+          
+          console.log('📥 Standard upload result:', uploadResult);
+        }
+
+        if (uploadResult.error) {
+          console.error('❌ Upload error details:', uploadResult.error);
+          throw uploadResult.error;
+        }
+
+        console.log('✅ File uploaded successfully!');
 
         // Update progress after upload
         setUploads(prev => prev.map(upload => 
-          upload.id === newUpload.id 
+          upload.id === uploadId 
             ? { ...upload, progress: 90 }
             : upload
         ));
@@ -222,7 +408,7 @@ const SessionUpload = () => {
 
         // Update upload status
         setUploads(prev => prev.map(upload => 
-          upload.id === newUpload.id 
+          upload.id === uploadId 
             ? { ...upload, progress: 100, status: 'processing' }
             : upload
         ));
@@ -245,7 +431,7 @@ const SessionUpload = () => {
 
         // Update to complete and navigate
         setUploads(prev => prev.map(upload => 
-          upload.id === newUpload.id 
+          upload.id === uploadId 
             ? { ...upload, status: 'complete' }
             : upload
         ));
@@ -261,18 +447,19 @@ const SessionUpload = () => {
           navigate(`/session/${session.id}`);
         }, 1000);
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         setUploading(false); // Re-enable on error
-        console.error('Upload error:', error);
+        console.error('❌ Upload failed:', error);
         setUploads(prev => prev.map(upload => 
-          upload.id === newUpload.id 
+          upload.id === uploadId 
             ? { ...upload, status: 'error' }
             : upload
         ));
         
+        const errorMessage = error instanceof Error ? error.message : "Failed to upload file. Please try again.";
         toast({
           title: "Upload failed",
-          description: error.message || "Failed to upload file. Please try again.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -370,7 +557,7 @@ const SessionUpload = () => {
         navigate(`/session/${session.id}`);
       }, 1000);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('URL submission error:', error);
       setUploads(prev => prev.map(upload => 
         upload.id === newUpload.id 
@@ -378,9 +565,10 @@ const SessionUpload = () => {
           : upload
       ));
       
+      const errorMessage = error instanceof Error ? error.message : "Failed to save URL. Please try again.";
       toast({
         title: "Failed to save URL",
-        description: "Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -475,7 +663,7 @@ const SessionUpload = () => {
         navigate(`/session/${session.id}`);
       }, 1000);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Text submission error:', error);
       setUploads(prev => prev.map(upload => 
         upload.id === newUpload.id 
@@ -483,9 +671,10 @@ const SessionUpload = () => {
           : upload
       ));
       
+      const errorMessage = error instanceof Error ? error.message : "Failed to save text content. Please try again.";
       toast({
         title: "Failed to save text content",
-        description: "Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -710,6 +899,11 @@ const SessionUpload = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Upload Analytics */}
+      {uploads.length > 0 && (
+        <UploadAnalytics className="mb-6" />
+      )}
 
       {/* Upload Queue */}
       {uploads.length > 0 && (

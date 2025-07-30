@@ -90,7 +90,7 @@ port = 54324
 [storage]
 enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
-file_size_limit = "50MiB"
+file_size_limit = "2GiB"
 
 # Image transformation API is available to Supabase Pro plan.
 # [storage.image_transformation]
@@ -305,7 +305,7 @@ OPENAI_API_KEY = "env(OPENAI_API_KEY)"
 YOUTUBE_API_KEY = "env(YOUTUBE_API_KEY)"
 
 [analytics]
-enabled = true
+enabled = false
 port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"

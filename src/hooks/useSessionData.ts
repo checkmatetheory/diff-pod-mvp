@@ -1,44 +1,29 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-
-interface UseSessionDataReturn {
-  session: any;
-  loading: boolean;
-  refreshing: boolean;
-  refreshSession: () => Promise<void>;
-}
+import { SessionWithData, UseSessionDataReturn } from '@/types/session-types';
 
 export const useSessionData = (sessionId: string | undefined): UseSessionDataReturn => {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<SessionWithData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { toast } = useToast();
 
-  const refreshSession = async () => {
+  const refreshSession = async (): Promise<void> => {
     if (!sessionId) return;
     
     setRefreshing(true);
     try {
       const { data, error } = await supabase
-        .from("user_sessions")
-        .select("*")
-        .eq("id", sessionId)
+        .from('user_sessions')
+        .select('*')
+        .eq('id', sessionId)
         .single();
-      
+
       if (error) {
         console.error('Error refreshing session:', error);
         return;
       }
-      
-      setSession(data);
-      
-      if (data?.processing_status === 'complete') {
-        toast({
-          title: "Processing complete!",
-          description: "Your content has been processed and is ready to view.",
-        });
-      }
+
+      setSession(data as SessionWithData);
     } catch (error) {
       console.error('Error refreshing session:', error);
     } finally {
@@ -46,50 +31,50 @@ export const useSessionData = (sessionId: string | undefined): UseSessionDataRet
     }
   };
 
-  // Initial session fetch
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!sessionId) return;
-      
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("user_sessions")
-          .select("*")
-          .eq("id", sessionId)
-          .single();
-        
-        if (error) {
-          console.error('Error fetching session:', error);
-          return;
-        }
-        
-        setSession(data);
-      } catch (error) {
-        console.error('Error fetching session:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchSession = async (id: string): Promise<void> => {
+    try {
+      const { data, error } = await supabase
+        .from('user_sessions')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    fetchData();
+      if (error) throw error;
+      setSession(data as SessionWithData);
+    } catch (error) {
+      console.error('Error fetching session:', error);
+      setSession(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (sessionId) {
+      fetchSession(sessionId);
+    } else {
+      setLoading(false);
+    }
   }, [sessionId]);
 
-  // Auto-refresh when processing
-  useEffect(() => {
-    if (!session || session.processing_status === 'complete' || session.processing_status === 'error') {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      refreshSession();
-    }, 10000); // Check every 10 seconds
-
-    return () => clearInterval(interval);
-  }, [session?.processing_status, sessionId]);
-
+  // Return proper typed values, with defaults for null session
   return {
-    session,
+    session: session || {
+      id: '',
+      user_id: '',
+      created_at: null,
+      updated_at: null,
+      session_name: null,
+      processing_status: null,
+      generated_summary: null,
+      generated_title: null,
+      transcript_summary: null,
+      session_data: null,
+      podcast_url: null,
+      audio_duration: null,
+      content_type: null,
+      event_id: null
+    },
     loading,
     refreshing,
     refreshSession

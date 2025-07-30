@@ -1,0 +1,30 @@
+        console.log('📤 Uploading to Supabase Storage...');
+        
+        // For large files, we need to be more patient and handle retries
+        const fileSizeMB = file.size / (1024 * 1024);
+        let uploadResult;
+
+        if (fileSizeMB > 50) {
+          console.log(`🔄 Uploading large file (${fileSizeMB.toFixed(1)}MB)...`);
+          // For very large files, increase timeout and add upsert
+          uploadResult = await supabase.storage
+            .from('session-uploads')
+            .upload(fileName, file, {
+              upsert: true, // Allow overwriting existing files
+            });
+        } else {
+          uploadResult = await supabase.storage
+            .from('session-uploads')
+            .upload(fileName, file, {
+              upsert: true,
+            });
+        }
+
+        console.log('📥 Upload result:', uploadResult);
+
+        if (uploadResult.error) {
+          console.error('❌ Upload error details:', uploadResult.error);
+          throw uploadResult.error;
+        }
+
+        console.log('✅ File uploaded successfully!');

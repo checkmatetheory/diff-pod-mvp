@@ -1,20 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { SessionWithData, SpeakerMicrosite, Speaker, Event, UseSessionSpeakersReturn } from '@/types/session-types';
 
-interface UseSessionSpeakersReturn {
-  speakers: any[];
-  speaker: any;
-  event: any;
-  fetchAllSpeakers: () => Promise<void>;
-  setSpeakers: React.Dispatch<React.SetStateAction<any[]>>;
-}
+export const useSessionSpeakers = (session: SessionWithData | null, sessionId: string | undefined): UseSessionSpeakersReturn => {
+  const [speakers, setSpeakers] = useState<SpeakerMicrosite[]>([]);
+  const [speaker, setSpeaker] = useState<Speaker | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
 
-export const useSessionSpeakers = (session: any, sessionId: string | undefined): UseSessionSpeakersReturn => {
-  const [speakers, setSpeakers] = useState<any[]>([]);
-  const [speaker, setSpeaker] = useState<any>(null);
-  const [event, setEvent] = useState<any>(null);
-
-  const fetchSpeaker = async (speakerId: string) => {
+  const fetchSpeaker = useCallback(async (speakerId: string): Promise<void> => {
     if (!speakerId) {
       setSpeaker(null);
       return;
@@ -33,14 +26,14 @@ export const useSessionSpeakers = (session: any, sessionId: string | undefined):
         return;
       }
       
-      setSpeaker(data);
+      setSpeaker(data as Speaker);
     } catch (error) {
       console.error('Error fetching speaker:', error);
       setSpeaker(null);
     }
-  };
+  }, []);
 
-  const fetchEvent = async (eventId: string) => {
+  const fetchEvent = useCallback(async (eventId: string): Promise<void> => {
     if (!eventId) {
       setEvent(null);
       return;
@@ -59,21 +52,21 @@ export const useSessionSpeakers = (session: any, sessionId: string | undefined):
         return;
       }
 
-      setEvent(data);
+      setEvent(data as Event);
     } catch (error) {
       console.error('Error fetching event subdomain:', error);
       setEvent(null);
     }
-  };
+  }, []);
 
-  const fetchAllSpeakers = async () => {
+  const fetchAllSpeakers = useCallback(async (): Promise<void> => {
     if (!session?.event_id || !sessionId) return;
     
     try {
       // APPROACH 1: Try junction table method first (most accurate)
       console.log('Attempting junction table query for session:', sessionId);
       
-      const { data: sessionLinks, error: linkError } = await (supabase as any)
+      const { data: sessionLinks, error: linkError } = await supabase
         .from('speaker_microsite_sessions')
         .select('microsite_id')
         .eq('session_id', sessionId);
@@ -82,7 +75,7 @@ export const useSessionSpeakers = (session: any, sessionId: string | undefined):
         console.log('Found session links:', sessionLinks);
         const micrositeIds = sessionLinks.map(link => link.microsite_id);
 
-        const { data: microsites, error: micrositeError } = await (supabase as any)
+        const { data: microsites, error: micrositeError } = await supabase
           .from('speaker_microsites')
           .select(`
             *,
@@ -97,7 +90,7 @@ export const useSessionSpeakers = (session: any, sessionId: string | undefined):
 
         if (!micrositeError && microsites && microsites.length > 0) {
           console.log('✅ Successfully fetched speakers from junction table:', microsites);
-          setSpeakers(microsites);
+          setSpeakers(microsites as SpeakerMicrosite[]);
           return;
         }
       }
@@ -110,7 +103,7 @@ export const useSessionSpeakers = (session: any, sessionId: string | undefined):
       console.error('❌ fetchAllSpeakers failed completely:', error);
       setSpeakers([]);
     }
-  };
+  }, [session?.event_id, sessionId]);
 
   // Fetch speaker data when session loads
   useEffect(() => {
@@ -122,7 +115,7 @@ export const useSessionSpeakers = (session: any, sessionId: string | undefined):
       fetchAllSpeakers();
       fetchEvent(session.event_id);
     }
-  }, [session, sessionId]);
+  }, [session, sessionId, fetchSpeaker, fetchEvent, fetchAllSpeakers]);
 
   return {
     speakers,

@@ -112,9 +112,10 @@ export default function CreateEventModal({ onEventCreated }: CreateEventModalPro
 
   const validateCurrentStep = async (): Promise<boolean> => {
     switch (currentStep) {
-      case 1:
+      case 1: {
         const step1Valid = await trigger(["name", "subdomain", "description"]);
         return step1Valid;
+      }
       case 2:
         // Brand customization doesn't have required validation
         return true;

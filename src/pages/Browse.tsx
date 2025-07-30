@@ -33,6 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateEventModal } from "@/contexts/CreateEventModalContext";
 import { PublishModal } from "@/components/ui/PublishModal";
 import { BaseContentItem } from "@/types/publish";
+import { ensureMockDataExists, isDemoUser } from "@/lib/mockData";
 
 interface ContentItem extends BaseContentItem {
   content_url?: string;
@@ -55,7 +56,7 @@ function BrowseContent() {
   const { openModal } = useCreateEventModal();
 
   // Check if this is the demo user
-  const isDemoUser = user?.email === 'testlast@pod.com';
+  const isDemo = isDemoUser(user?.email);
 
   // Helper functions for viral clips (from SessionDetail)
   const formatDuration = (seconds: number) => {
@@ -105,91 +106,41 @@ function BrowseContent() {
     }
   }, [user]);
 
+  // Helper function to generate deterministic virality score based on item ID
+  const generateViralityScore = (id: string): number => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      const char = id.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash % 31) + 70;
+  };
+
   const fetchContent = async () => {
     try {
-      // Helper function to generate deterministic virality score based on item ID
-      const generateViralityScore = (id: string): number => {
-        // Simple hash function to convert UUID to number
-        let hash = 0;
-        for (let i = 0; i < id.length; i++) {
-          const char = id.charCodeAt(i);
-          hash = ((hash << 5) - hash) + char;
-          hash = hash & hash; // Convert to 32-bit integer
-        }
-        // Convert to range 70-100
-        return Math.abs(hash % 31) + 70;
-      };
-
       let enrichedContent: ContentItem[] = [];
       
-      if (isDemoUser) {
-        // Mock data for demo user
-        const mockData = [
-          {
-            id: '1',
-            title: 'AI Revolution in FinTech',
-            speaker_name: 'Sarah Chen',
-            event_name: 'FinTech Summit 2024',
-            type: 'reel' as const,
-            duration: 45,
-            thumbnail_url: '/placeholder.svg',
-            content_url: '/placeholder-video.mp4',
-          },
-          {
-            id: '2',
-            title: 'The Future of Web3',
-            speaker_name: 'Marcus Rodriguez',
-            event_name: 'Tech Innovation Expo',
-            type: 'reel' as const,
-            duration: 62,
-            thumbnail_url: '/placeholder.svg',
-            content_url: '/placeholder-video.mp4',
-          },
-          {
-            id: '3',
-            title: 'Sustainable Energy Solutions',
-            speaker_name: 'Dr. Emily Watson',
-            event_name: 'Climate Tech Summit',
-            type: 'reel' as const,
-            duration: 38,
-            thumbnail_url: '/placeholder.svg',
-            content_url: '/placeholder-video.mp4',
-          },
-          {
-            id: '4',
-            title: 'Quantum Computing Breakthroughs',
-            speaker_name: 'James Park',
-            event_name: 'Quantum Innovation Day',
-            type: 'reel' as const,
-            duration: 55,
-            thumbnail_url: '/placeholder.svg',
-            content_url: '/placeholder-video.mp4',
-          },
-          {
-            id: '5',
-            title: 'Healthcare AI Ethics',
-            speaker_name: 'Dr. Lisa Zhang',
-            event_name: 'HealthTech Conference',
-            type: 'reel' as const,
-            duration: 41,
-            thumbnail_url: '/placeholder.svg',
-            content_url: '/placeholder-video.mp4',
-          },
-          {
-            id: '6',
-            title: 'Blockchain in Supply Chain',
-            speaker_name: 'Alex Thompson',
-            event_name: 'Supply Chain Innovation',
-            type: 'reel' as const,
-            duration: 48,
-            thumbnail_url: '/placeholder.svg',
-            content_url: '/placeholder-video.mp4',
-          }
-        ];
-        
-        // Add virality data to mock content
-        enrichedContent = mockData.map(item => ({
-        ...item,
+      if (isDemo && user) {
+        // For demo users, ensure mock data exists in database and fetch it
+        enrichedContent = await ensureMockDataExists(user.id);
+      } else if (user) {
+        // For real users, fetch their actual content from database
+        const { data, error } = await supabase
+          .from('content_items')
+          .select('*')
+          .eq('created_by', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching content:', error);
+          throw error;
+        }
+
+        // Add virality data to real content
+        enrichedContent = (data || []).map(item => ({
+          ...item,
+          type: item.type as 'reel' | 'photo', // Type assertion for database compatibility
           viralityScore: generateViralityScore(item.id),
           reasoning: `This video has strong potential due to its engaging content and timely topic discussion.`,
           transcript: `Sample transcript for ${item.title}...`,
@@ -197,7 +148,7 @@ function BrowseContent() {
           suggestedHashtags: ['#Innovation', '#Leadership', '#TechTalk'],
         }));
       } else {
-        // Real data for real users - new users will have empty content
+        // No user logged in
         enrichedContent = [];
       }
       

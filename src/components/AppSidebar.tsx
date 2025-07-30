@@ -1,42 +1,46 @@
-import { useState } from "react";
-import { 
-  Home, 
-  Calendar, 
-  Building2, 
-  TrendingUp, 
-  Users, 
-  FileText, 
-  Clock, 
-  Star, 
-  History,
-  PlayCircle,
-  Headphones,
-  Video,
-  Archive,
-  Search,
-  Plus,
-  Settings
-} from "lucide-react";
+import React, { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import {
+  Calendar,
+  Home,
+  Settings,
+  Upload,
+  BarChart3,
+  Star,
+  Users,
+  Search,
+  Plus
+} from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/UserMenu";
 
-const mainNavItems = [
+// Define proper interface for navigation items
+interface NavItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  color?: string;
+}
+
+// Define navigation items
+const mainNavItems: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Analytics", url: "/analytics", icon: TrendingUp },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Events", url: "/events", icon: Calendar },
   { title: "All Speakers", url: "/speakers", icon: Users },
   { title: "Browse", url: "/browse", icon: Search },
@@ -44,17 +48,11 @@ const mainNavItems = [
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
-const contentTypeItems = [
-  { title: "Conference Production", url: "#", icon: Building2 },
-  { title: "Event Consulting", url: "#", icon: TrendingUp },
-  { title: "Industry Reports", url: "#", icon: FileText },
+const contentTypeItems: NavItem[] = [
+  { title: "Upload Session", url: "/upload", icon: Upload },
 ];
 
-interface AppSidebarProps {
-  onCreateEvent?: () => void;
-}
-
-export function AppSidebar({ onCreateEvent }: AppSidebarProps = {}) {
+export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
@@ -63,7 +61,7 @@ export function AppSidebar({ onCreateEvent }: AppSidebarProps = {}) {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const NavItem = ({ item, showColor = false }: { item: any; showColor?: boolean }) => (
+  const NavItem = ({ item, showColor = false }: { item: NavItem; showColor?: boolean }) => (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive(item.url)}>
         <NavLink to={item.url} className="flex items-center gap-3">
@@ -78,20 +76,14 @@ export function AppSidebar({ onCreateEvent }: AppSidebarProps = {}) {
   );
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar">
-      <SidebarHeader className="p-6 border-b border-sidebar-border/50">
-        <div className="flex items-center gap-3">
-          {!isCollapsed ? (
+    <Sidebar variant="sidebar" collapsible="icon">
+      <SidebarHeader className="border-b border-sidebar-border/50 bg-sidebar/95 backdrop-blur-sm p-4">
+        <div className="flex items-center">
+          {!isCollapsed && (
             <img 
               src="/diffused logo white no bg.png" 
               alt="Diffused" 
-              className="h-10 w-auto"
-            />
-          ) : (
-            <img 
-              src="/diffused logo white no bg.png" 
-              alt="Diffused" 
-              className="h-8 w-auto"
+              className="h-10 w-auto transition-all duration-200"
             />
           )}
         </div>
@@ -105,7 +97,7 @@ export function AppSidebar({ onCreateEvent }: AppSidebarProps = {}) {
               className="h-10 bg-sidebar-accent/10 border-sidebar-border/50 text-sidebar-foreground placeholder:text-sidebar-foreground/50"
             />
             <Button 
-              variant="gradient-accent"
+              variant="default"
               size="sm" 
               className="w-full transition-all duration-300 font-semibold"
               onClick={() => navigate('/upload')}
@@ -117,65 +109,35 @@ export function AppSidebar({ onCreateEvent }: AppSidebarProps = {}) {
         )}
       </SidebarHeader>
 
-      <SidebarContent>
-        {/* Main Navigation */}
+      <SidebarContent className="bg-sidebar/95 backdrop-blur-sm">
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/70 text-xs font-medium tracking-wider">
+            NAVIGATION
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {mainNavItems.map((item) => (
-                <NavItem key={item.title} item={item} />
+                <NavItem key={item.url} item={item} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Event Management */}
         <SidebarGroup>
-          <SidebarGroupLabel>Event Management</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/70 text-xs font-medium tracking-wider">
+            QUICK ACTIONS
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={false}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onCreateEvent?.();
-                  }}
-                >
-                  <button className="flex items-center gap-3 w-full">
-                    <Plus 
-                      className="h-4 w-4 flex-shrink-0" 
-                      style={{ color: "hsl(var(--accent))" }}
-                    />
-                    {!isCollapsed && <span className="truncate">Add New Event</span>}
-                  </button>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Service Centre */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Service Centre</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {contentTypeItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton className="flex items-center gap-3 cursor-default">
-                    <item.icon className="h-4 w-4 flex-shrink-0" />
-                    {!isCollapsed && <span className="truncate">{item.title}</span>}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <NavItem key={item.url} item={item} showColor />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-6 border-t border-sidebar-border/50">
+      <SidebarFooter className="border-t border-sidebar-border/50 bg-sidebar/95 backdrop-blur-sm p-4">
         {!isCollapsed && (
           <div className="text-xs text-sidebar-foreground/60 text-center">
             <p className="font-medium">Conference Virality Made Easy</p>

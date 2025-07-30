@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -27,11 +27,73 @@ interface AddSpeakerModalProps {
 
 export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: AddSpeakerModalProps) {
   const { user } = useAuth();
+
+  // Form persistence key
+  const FORM_STORAGE_KEY = 'addSpeakerModal_formData';
+  
+  // Helper functions for form persistence
+  const saveFormToStorage = (formData: {
+    full_name: string;
+    email: string;
+    company: string;
+    job_title: string;
+    linkedin_url: string;
+    bio: string;
+    headshot_url: string;
+  }) => {
+    try {
+      localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify({
+        ...formData,
+        timestamp: Date.now(),
+        userId: user?.id // Ensure form is user-specific
+      }));
+    } catch (error) {
+      console.warn('Failed to save form data:', error);
+    }
+  };
+  
+  const loadFormFromStorage = () => {
+    try {
+      const saved = localStorage.getItem(FORM_STORAGE_KEY);
+      if (saved) {
+        const parsedData = JSON.parse(saved);
+        // Check if data is recent (within 24 hours) and for current user
+        const isRecent = (Date.now() - parsedData.timestamp) < 24 * 60 * 60 * 1000;
+        const isCurrentUser = parsedData.userId === user?.id;
+        
+        if (isRecent && isCurrentUser) {
+          return {
+            full_name: parsedData.full_name || "",
+            email: parsedData.email || "",
+            company: parsedData.company || "",
+            job_title: parsedData.job_title || "",
+            linkedin_url: parsedData.linkedin_url || "",
+            bio: parsedData.bio || "",
+            headshot_url: parsedData.headshot_url || ""
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load form data:', error);
+    }
+    return null;
+  };
+  
+  const clearSavedForm = () => {
+    try {
+      localStorage.removeItem(FORM_STORAGE_KEY);
+    } catch (error) {
+      console.warn('Failed to clear form data:', error);
+    }
+  };
+  
+  // Load saved form data or use defaults
+  const savedFormData = loadFormFromStorage();
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(savedFormData || {
     full_name: "",
     email: "",
     company: "",
@@ -44,6 +106,17 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  // Auto-save form data when it changes
+  useEffect(() => {
+    if (user && isOpen) {
+      // Only save if modal is open and user is authenticated
+      const hasData = Object.values(formData).some(value => value.trim() !== "");
+      if (hasData) {
+        saveFormToStorage(formData);
+      }
+    }
+  }, [formData, user, isOpen]);
 
   // Image optimization function for avatars
   const optimizeImageForAvatar = (file: File): Promise<File> => {
@@ -123,11 +196,12 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
         description: "Speaker headshot has been optimized and added.",
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading image:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload image. Please try again.";
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload image. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -219,13 +293,15 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
         description: `${data.full_name} has been added to your speaker network.`,
       });
 
+      clearSavedForm();
       onClose();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating speaker:', error);
+      const errorMessage = error instanceof Error ? error.message : "Please try again.";
       toast({
         title: "Failed to create speaker",
-        description: error.message || "Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -245,6 +321,7 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
         bio: "",
         headshot_url: ""
       });
+      clearSavedForm();
       onClose();
     }
   };

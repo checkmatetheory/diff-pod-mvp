@@ -39,6 +39,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AddSpeakerModal from "@/components/ui/AddSpeakerModal";
+import { UPLOAD_LIMITS, formatFileSize, isFileSizeValid, isFileTypeValid, hasBlockedPattern } from "@/constants/upload";
+import { uploadFileWithTUS, shouldUseTUS } from "@/lib/tusUpload";
 
 interface Event {
   id: string;
@@ -181,7 +183,7 @@ const SpeakerContentUpload = () => {
       .replace(/\s+/g, '-') // Replace spaces with hyphens
       .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
       .toLowerCase() // Convert to lowercase
-      .trim('-'); // Remove leading/trailing hyphens
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
     
     return `${sanitizedName}${extension}`;
   };
@@ -196,13 +198,45 @@ const SpeakerContentUpload = () => {
       return;
     }
 
-    // Filter for video files only
-    const videoFiles = files.filter(file => file.type.includes('video'));
+    // Security: Comprehensive file validation using centralized constants
+    const videoFiles = files.filter(file => {
+      // Check file type
+      if (!isFileTypeValid(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not a supported video format. Please use MP4, MOV, AVI, or WebM.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Check file size
+      if (!isFileSizeValid(file.size)) {
+        toast({
+          title: "File too large",
+          description: `${file.name} (${formatFileSize(file.size)}) exceeds the 15GB limit. Please compress or split your video.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Security: Check for suspicious file names
+      if (hasBlockedPattern(file.name)) {
+        toast({
+          title: "Invalid file",
+          description: `${file.name} appears to be an executable file. Only video files are allowed.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      return true;
+    });
     
     if (videoFiles.length === 0) {
       toast({
-        title: "Video files only",
-        description: "Please upload video files to create viral clips.",
+        title: "No valid video files",
+        description: "Please upload valid video files (MP4, MOV, AVI, WebM) up to 15GB each.",
         variant: "destructive",
       });
       return;
@@ -231,11 +265,56 @@ const SpeakerContentUpload = () => {
           upload.id === newUpload.id ? { ...upload, progress: 50 } : upload
         ));
 
-        const { error: uploadError } = await supabase.storage
-          .from('session-uploads')
-          .upload(fileName, file);
+        const fileSizeMB = file.size / (1024 * 1024);
+        let uploadResult;
 
-        if (uploadError) throw uploadError;
+        // Use TUS resumable uploads for files larger than 6MB for better reliability
+        if (shouldUseTUS(file)) {
+          console.log(`🔄 Using TUS resumable upload for large file (${fileSizeMB.toFixed(1)}MB)...`);
+          
+          // Get the current session for authorization
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            throw new Error('No active session found');
+          }
+
+          // Set up progress tracking for TUS upload
+          const onProgress = (percentage: number) => {
+            setUploads(prev => prev.map(upload => 
+              upload.id === newUpload.id 
+                ? { ...upload, progress: Math.max(50, Math.min(90, percentage)) }
+                : upload
+            ));
+          };
+
+          // Upload using TUS
+          const tusResult = await uploadFileWithTUS({
+            file,
+            fileName,
+            userId: user.id,
+            projectId: 'qzmpuojqcrrlylmnbgrg', // Extract from Supabase URL
+            accessToken: session.access_token,
+            onProgress
+          });
+          
+          uploadResult = { data: tusResult, error: null };
+          console.log('📥 TUS Upload result:', uploadResult);
+        } else {
+          console.log(`📤 Using standard upload for small file (${fileSizeMB.toFixed(1)}MB)...`);
+          // Use standard upload for smaller files
+          uploadResult = await supabase.storage
+            .from('session-uploads')
+            .upload(fileName, file, {
+              upsert: true,
+            });
+          
+          console.log('📥 Standard upload result:', uploadResult);
+        }
+
+        if (uploadResult.error) {
+          console.error('❌ Upload error details:', uploadResult.error);
+          throw uploadResult.error;
+        }
 
         setUploads(prev => prev.map(upload => 
           upload.id === newUpload.id ? { ...upload, progress: 90 } : upload
@@ -938,7 +1017,7 @@ const SpeakerContentUpload = () => {
                         </Badge>
                         <Badge variant="outline" className="gap-1 border-green-500/20 text-green-600 bg-green-50">
                           <Zap className="h-3 w-3" />
-                          Up to 2GB
+                          Up to 15GB
                         </Badge>
                         <Badge variant="outline" className="gap-1 border-purple-500/20 text-purple-600 bg-purple-50">
                           <Scissors className="h-3 w-3" />
