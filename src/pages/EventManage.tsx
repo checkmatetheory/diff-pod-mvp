@@ -92,6 +92,7 @@ const EventManage = () => {
   const [loading, setLoading] = useState(true);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [savingBranding, setSavingBranding] = useState(false);
+  const [deletingEvent, setDeletingEvent] = useState(false);
   const [activeTab, setActiveTab] = useState("sessions");
   const [sessionSearchTerm, setSessionSearchTerm] = useState('');
   const [stats, setStats] = useState({
@@ -306,6 +307,39 @@ const EventManage = () => {
       });
     } finally {
       setSavingBranding(false);
+    }
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!event || !user) return;
+    
+    setDeletingEvent(true);
+    try {
+      // Delete the event (cascading deletes will handle related data)
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', event.id)
+        .eq('user_id', user.id); // Additional security check
+
+      if (error) throw error;
+
+      toast({
+        title: "Event deleted",
+        description: "The event and all associated data have been permanently removed.",
+      });
+
+      // Redirect to events list
+      navigate('/events');
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete event. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingEvent(false);
     }
   };
 
@@ -757,6 +791,60 @@ const EventManage = () => {
                             <p className="text-sm text-gray-600 font-mono">
                               {event?.id}
                             </p>
+                          </div>
+                          
+                          {/* Danger Zone */}
+                          <div className="border-t border-red-200/50 pt-6 mt-8">
+                            <div className="p-6 bg-red-50/50 backdrop-blur-sm rounded-xl border border-red-200/50">
+                              <h4 className="text-lg font-semibold text-red-800 mb-3 flex items-center gap-2">
+                                <Trash2 className="h-5 w-5" />
+                                Danger Zone
+                              </h4>
+                              <p className="text-sm text-red-700 mb-4">
+                                Once you delete an event, there is no going back. This will permanently delete:
+                              </p>
+                              <ul className="text-sm text-red-700 mb-6 list-disc list-inside space-y-1">
+                                <li>All session recordings and generated content</li>
+                                <li>Speaker microsites and attribution data</li>
+                                <li>Analytics and performance metrics</li>
+                                <li>Revenue tracking and conversion data</li>
+                              </ul>
+                              
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="destructive" 
+                                    className="bg-red-600 hover:bg-red-700"
+                                    disabled={deletingEvent}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    {deletingEvent ? "Deleting..." : "Delete Event"}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="backdrop-blur-md bg-white/95">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle className="text-red-600">
+                                      Are you absolutely sure?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription className="space-y-2">
+                                      <p>This action cannot be undone. This will permanently delete the event:</p>
+                                      <p className="font-semibold">"{event?.name}"</p>
+                                      <p>Including all sessions, speakers, analytics, and revenue data.</p>
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={handleDeleteEvent}
+                                      className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                                      disabled={deletingEvent}
+                                    >
+                                      {deletingEvent ? "Deleting..." : "Yes, delete event"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </div>
                         </div>
                       </div>
