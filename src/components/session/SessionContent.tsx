@@ -5,11 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { 
   FileText, 
-  MessageSquare, 
   Quote, 
   RefreshCw, 
   Copy, 
-  Download,
   Loader2,
   AlertCircle,
   CheckCircle,
@@ -148,18 +146,10 @@ export const SessionContent = ({
         
         <CardContent className="p-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-5 w-full h-12 mx-6 mt-6 mb-0">
+            <TabsList className="grid grid-cols-3 w-full h-12 mx-6 mt-6 mb-0">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Overview
-              </TabsTrigger>
-              <TabsTrigger value="blog" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Blog Post
-              </TabsTrigger>
-              <TabsTrigger value="social" className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Social Media
               </TabsTrigger>
               <TabsTrigger value="quotes" className="flex items-center gap-2">
                 <Quote className="h-4 w-4" />
@@ -306,90 +296,7 @@ export const SessionContent = ({
                 )}
               </TabsContent>
 
-              {/* Blog Content Tab */}
-              <TabsContent value="blog" className="mt-0">
-                {sessionData.blog_content ? (
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold">Blog Post Content</h3>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onCopy(sessionData.blog_content as string, 'Blog Post')}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDownload('markdown')}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="prose prose-sm max-w-none">
-                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {sessionData.blog_content as string}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No blog content generated yet.</p>
-                )}
-              </TabsContent>
-
-              {/* Social Media Tab */}
-              <TabsContent value="social" className="mt-0">
-                {sessionData.social_posts ? (
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold">Social Media Posts</h3>
-                    
-                    {(sessionData.social_posts as Record<string, unknown>).twitter && (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium text-blue-500">Twitter/X Post</h4>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onCopy((sessionData.social_posts as Record<string, unknown>).twitter as string, 'Twitter Post')}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="p-3 bg-muted rounded-lg">
-                          <p className="text-sm">
-                            {(sessionData.social_posts as Record<string, unknown>).twitter as string}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {(sessionData.social_posts as Record<string, unknown>).linkedin && (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium text-blue-700">LinkedIn Post</h4>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onCopy((sessionData.social_posts as Record<string, unknown>).linkedin as string, 'LinkedIn Post')}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="p-3 bg-muted rounded-lg">
-                          <p className="text-sm">
-                            {(sessionData.social_posts as Record<string, unknown>).linkedin as string}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No social media content generated yet.</p>
-                )}
-              </TabsContent>
+              {/* Blog & Social tabs removed */}
 
               {/* Key Quotes Tab */}
               <TabsContent value="quotes" className="mt-0">
