@@ -457,6 +457,26 @@ serve(async (req) => {
           .eq('id', sessionId)
           .single();
 
+        // If this is a YouTube video, fetch and set the title
+        if (fullVideoUrl && isYouTubeUrl(fullVideoUrl)) {
+          console.log('🎬 Fetching YouTube title for better session naming...');
+          try {
+            const youtubeTitle = await fetchYouTubeTitle(fullVideoUrl);
+            if (youtubeTitle && youtubeTitle !== 'YouTube Video') {
+              console.log(`✅ Found YouTube title: "${youtubeTitle}"`);
+              await supabase
+                .from('user_sessions')
+                .update({ 
+                  generated_title: youtubeTitle,
+                  session_name: youtubeTitle // Override the generic "Video Session - youtube.com"
+                })
+                .eq('id', sessionId);
+            }
+          } catch (error) {
+            console.log('⚠️ Failed to fetch YouTube title, using fallback:', error.message);
+          }
+        }
+
         const processingJob: ProcessingJob = {
           id: `job_${sessionId}_${Date.now()}`,
           sessionId: sessionId,
@@ -1120,4 +1140,69 @@ function extractContentFromResponse(content: string) {
       .slice(0, 5),
     podcastScript: (podcastMatch?.[1] || podcastMatch?.[2] || 'Welcome to today\'s episode where we explore valuable insights...').trim()
   };
+}
+
+// Helper function to detect YouTube URLs
+function isYouTubeUrl(url: string): boolean {
+  return /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(url);
+}
+
+// Helper function to fetch YouTube video title
+async function fetchYouTubeTitle(url: string): Promise<string> {
+  try {
+    console.log('🔍 Fetching YouTube title from:', url);
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; DiffusedBot/1.0)'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const html = await response.text();
+    
+    // Try multiple title extraction methods
+    // 1. JSON-LD structured data (most reliable)
+    const jsonLdMatch = html.match(/"name"\s*:\s*"([^"]+)"/);
+    if (jsonLdMatch) {
+      const title = jsonLdMatch[1]
+        .replace(/\\u[\dA-F]{4}/gi, (match) => String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16)))
+        .replace(/\\"/g, '"')
+        .trim();
+      if (title && title !== 'YouTube') {
+        return title;
+      }
+    }
+    
+    // 2. Standard HTML title tag
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+    if (titleMatch) {
+      const title = titleMatch[1]
+        .replace(' - YouTube', '')
+        .replace(/^\s*/, '')
+        .replace(/\s*$/, '')
+        .trim();
+      if (title && title !== 'YouTube') {
+        return title;
+      }
+    }
+    
+    // 3. og:title meta tag
+    const ogTitleMatch = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i);
+    if (ogTitleMatch) {
+      const title = ogTitleMatch[1].trim();
+      if (title && title !== 'YouTube') {
+        return title;
+      }
+    }
+    
+    console.log('⚠️ Could not extract title from YouTube page');
+    return 'YouTube Video';
+    
+  } catch (error) {
+    console.error('❌ Failed to fetch YouTube title:', error.message);
+    return 'YouTube Video';
+  }
 }
