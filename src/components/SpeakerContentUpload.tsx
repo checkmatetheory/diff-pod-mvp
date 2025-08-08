@@ -568,13 +568,18 @@ const SpeakerContentUpload = () => {
       const isYouTubeUrl = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput);
       
       // Start processing with edge function
+      // NOTE: We use Vizard for YouTube links so it can ingest the URL directly.
+      // If we stop using Vizard, switch back to Whisper path (set youtubeUrl only
+      // and implement RAPIDAPI_KEY in the edge function for audio download).
       const { error: processError } = await supabase.functions.invoke('process-session', {
         body: { 
           sessionId: session.id,
           filePath: null,
           fileMimeType: null,
           textContent: null,
-          youtubeUrl: isYouTubeUrl ? urlInput : null
+          youtubeUrl: isYouTubeUrl ? urlInput : null,
+          processVideo: isYouTubeUrl,
+          videoUrl: isYouTubeUrl ? urlInput : null
         }
       });
 

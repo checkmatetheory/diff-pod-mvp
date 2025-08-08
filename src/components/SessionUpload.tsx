@@ -402,10 +402,14 @@ const SessionUpload = () => {
       ));
 
       // Process URL
+      // NOTE: Prefer Vizard for YouTube links so it ingests URLs directly.
+      // If Vizard is removed later, revert to Whisper path and set only youtubeUrl.
       const { error: processError } = await supabase.functions.invoke('process-session', {
         body: { 
           sessionId: session.id,
-          youtubeUrl: urlInput
+          youtubeUrl: urlInput,
+          processVideo: /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput),
+          videoUrl: /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput) ? urlInput : null
         }
       });
 
