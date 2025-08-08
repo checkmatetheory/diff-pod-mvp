@@ -513,6 +513,8 @@ serve(async (req) => {
         
       } catch (error) {
         console.error('❌ Video processing failed:', error);
+        console.error('❌ Full error details:', JSON.stringify(error, null, 2));
+        
         await supabase
           .from('user_sessions')
           .update({ 
@@ -521,8 +523,11 @@ serve(async (req) => {
           })
           .eq('id', sessionId);
         
-        // Continue with other processing methods
-        throw new Error(`Video processing failed: ${error.message}`);
+        // Continue with fallback processing instead of throwing
+        console.log('🔄 Video processing failed, falling back to basic text processing...');
+        processingMethod = 'video_processing_failed_fallback';
+        contentType = 'video';
+        extractedText = `Video processing temporarily unavailable. Video URL: ${fullVideoUrl}`;
       }
     } else if (processVideo) {
       console.warn('⚠️ Video processing requested but no video URL or file path provided');
