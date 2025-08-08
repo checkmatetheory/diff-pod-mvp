@@ -17,6 +17,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { SessionContentProps } from "@/types/session-types";
+import { supabase } from "@/integrations/supabase/client";
 
 export const SessionContent = ({
   session,
@@ -264,13 +265,52 @@ export const SessionContent = ({
                       </div>
                       <div>
                         <h3 className="font-semibold flex items-center gap-2">
-                          Generating AI Clips
+                          {(session as any).video_processing_job_id ? 'Retrieving AI Clips' : 'Generating AI Clips'}
                           {videoStatus && (
                             <Badge variant="secondary" className="capitalize">{videoStatus}</Badge>
                           )}
                         </h3>
-                        <p className="text-sm text-muted-foreground">We’re analyzing your video to extract the most viral moments. This usually takes a few minutes.</p>
+                        <p className="text-sm text-muted-foreground">
+                          {(session as any).video_processing_job_id 
+                            ? 'Your video was processed successfully. Retrieving the generated clips...' 
+                            : 'We\'re analyzing your video to extract the most viral moments. This usually takes a few minutes.'
+                          }
+                        </p>
                       </div>
+                      {/* Manual clip retrieval button when clips are missing */}
+                      {(session as any).video_processing_job_id && !videoClips.length && (
+                        <Button 
+                          onClick={async () => {
+                            try {
+                              console.log('🔍 Manually checking for clips...');
+                              const { data, error } = await supabase.functions.invoke('vizard-poll', {
+                                body: { 
+                                  sessionId: session.id, 
+                                  jobId: (session as any).video_processing_job_id 
+                                }
+                              });
+                              
+                              if (error) {
+                                console.error('❌ Manual poll error:', error);
+                              } else {
+                                console.log('📊 Manual poll result:', data);
+                                if (data.status === 'completed') {
+                                  setTimeout(() => onRefreshSession(), 1000);
+                                }
+                              }
+                            } catch (error) {
+                              console.error('❌ Manual polling failed:', error);
+                            }
+                          }}
+                          variant="outline" 
+                          size="sm"
+                          className="mt-3"
+                          disabled={refreshing}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          {refreshing ? 'Checking...' : 'Check for Clips'}
+                        </Button>
+                      )}
                     </div>
                     {/* Animated placeholders */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

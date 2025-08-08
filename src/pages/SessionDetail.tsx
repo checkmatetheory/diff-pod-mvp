@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useSessionSpeakers } from "@/hooks/useSessionSpeakers";
+import { useVizardPolling } from "@/hooks/useVizardPolling";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "@/components/Header";
@@ -25,6 +26,20 @@ const SessionDetail = () => {
   // Use custom hooks for data fetching
   const { session, loading, refreshing, refreshSession } = useSessionData(id);
   const { speakers, speaker, event, fetchAllSpeakers, setSpeakers } = useSessionSpeakers(session, id);
+  
+  // Vizard polling for video processing - enhanced to continue polling until clips are retrieved
+  const shouldPoll = session?.video_processing_job_id && 
+                     !session?.session_data?.video_clips?.length &&
+                     (session?.video_processing_status === 'submitted' || 
+                      session?.video_processing_status === 'processing' ||
+                      !session?.video_processing_status);
+  
+  useVizardPolling({
+    sessionId: session?.id,
+    jobId: session?.video_processing_job_id,
+    isActive: shouldPoll,
+    onComplete: refreshSession
+  });
   
   // Local component state (not extracted to hooks)
   const [isEditing, setIsEditing] = useState(false);
