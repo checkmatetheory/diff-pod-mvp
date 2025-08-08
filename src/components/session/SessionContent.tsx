@@ -29,7 +29,7 @@ export const SessionContent = ({
   onCopy,
   onDownload
 }: SessionContentProps) => {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("clips");
 
   const sessionData = session.session_data as Record<string, unknown> | undefined;
   const videoStatus = (session as any).video_processing_status as string | undefined;
@@ -147,6 +147,10 @@ export const SessionContent = ({
         <CardContent className="p-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid grid-cols-3 w-full h-12 mx-6 mt-6 mb-0">
+              <TabsTrigger value="clips" className="flex items-center gap-2">
+                <Play className="h-4 w-4" />
+                AI Clips
+              </TabsTrigger>
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Overview
@@ -154,10 +158,6 @@ export const SessionContent = ({
               <TabsTrigger value="quotes" className="flex items-center gap-2">
                 <Quote className="h-4 w-4" />
                 Key Quotes
-              </TabsTrigger>
-              <TabsTrigger value="clips" className="flex items-center gap-2">
-                <Play className="h-4 w-4" />
-                AI Clips
               </TabsTrigger>
             </TabsList>
 
