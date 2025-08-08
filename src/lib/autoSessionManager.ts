@@ -5,7 +5,10 @@ export class AutoSessionManager {
 
   static initialize() {
     if (typeof window === 'undefined') return
+    
     this.startBackgroundMonitor()
+    this.setupVisibilityTriggers()
+    
     // Prime session on boot
     supabase.auth.getSession().then(({ data }) => {
       const exp = data.session?.expires_at ?? 0
@@ -15,6 +18,40 @@ export class AutoSessionManager {
       }
     })
     console.log('🤖 AutoSessionManager initialized')
+  }
+
+  private static setupVisibilityTriggers() {
+    // Refresh when tab becomes visible (user returns from being idle)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        console.log('🔄 Tab became visible, checking session...')
+        this.checkAndRefreshIfNeeded()
+      }
+    })
+
+    // Refresh when browser comes back online
+    window.addEventListener('online', () => {
+      console.log('🌐 Browser came online, checking session...')
+      this.checkAndRefreshIfNeeded()
+    })
+
+    // Refresh when window regains focus
+    window.addEventListener('focus', () => {
+      console.log('👁️ Window focused, checking session...')
+      this.checkAndRefreshIfNeeded()
+    })
+  }
+
+  private static async checkAndRefreshIfNeeded() {
+    const { data } = await supabase.auth.getSession()
+    const exp = data.session?.expires_at ?? 0
+    const now = Math.floor(Date.now() / 1000)
+    
+    // Refresh if expired or expiring within 2 minutes
+    if (exp && exp - now < 120) {
+      console.log('⚡ Session expired/expiring, forcing refresh...')
+      await this.forceRefresh()
+    }
   }
 
   static async forceRefresh() {
