@@ -401,15 +401,19 @@ const SessionUpload = () => {
         upload.id === uploadId ? { ...upload, progress: 80 } : upload
       ));
 
-      // Process URL
-      // NOTE: Prefer Vizard for YouTube links so it ingests URLs directly.
-      // If Vizard is removed later, revert to Whisper path and set only youtubeUrl.
+      // Process URL - Universal Video Processing
+      // Route all Vizard-supported platforms through video processing pipeline
+      const isYouTubeUrl = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput);
+      const isSupportedByVizard = /(?:youtube\.com|youtu\.be|vimeo\.com|drive\.google\.com|loom\.com|streamyard\.com|tiktok\.com|twitter\.com|x\.com|facebook\.com|linkedin\.com|twitch\.tv|rumble\.com)/.test(urlInput);
+      
       const { error: processError } = await supabase.functions.invoke('process-session', {
         body: { 
           sessionId: session.id,
-          youtubeUrl: /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput) ? null : urlInput,
-          processVideo: /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput),
-          videoUrl: /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput) ? urlInput : null
+          // Only set youtubeUrl for non-video URLs (regular web links for text scraping)
+          youtubeUrl: isSupportedByVizard ? null : urlInput,
+          // All Vizard-supported video URLs get video processing
+          processVideo: isSupportedByVizard,
+          videoUrl: isSupportedByVizard ? urlInput : null
         }
       });
 
@@ -659,7 +663,7 @@ const SessionUpload = () => {
         <CardContent>
           <div className="flex gap-2">
             <Input
-              placeholder="https://youtube.com/watch?v=..."
+                              placeholder="🔗 Paste YouTube, Vimeo, Google Drive, Loom, or any video URL..."
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               disabled={!canUpload}

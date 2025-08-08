@@ -517,13 +517,13 @@ const SpeakerContentUpload = () => {
     e.preventDefault();
     if (!urlInput.trim() || !user || !selectedEventId || selectedSpeakerIds.length === 0) return;
 
-    // Validate video URL
-    const isVideoUrl = /(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/|zoom\.us\/rec\/|teams\.microsoft\.com\/|meet\.google\.com\/)/.test(urlInput);
+    // Validate video URL - supports all major video platforms
+    const isVideoUrl = /(?:youtube\.com|youtu\.be|vimeo\.com|drive\.google\.com|loom\.com|streamyard\.com|tiktok\.com|twitter\.com|x\.com|facebook\.com|linkedin\.com|twitch\.tv|rumble\.com|zoom\.us\/rec\/|teams\.microsoft\.com\/|meet\.google\.com\/)/.test(urlInput);
     
     if (!isVideoUrl) {
       toast({
         title: "Video URL required",
-        description: "Please enter a YouTube, Vimeo, Zoom, or other video platform URL.",
+        description: "Please enter a URL from YouTube, Vimeo, Google Drive, Loom, TikTok, Twitter, Facebook, LinkedIn, Twitch, Rumble, Zoom, Teams, or Google Meet.",
         variant: "destructive",
       });
       return;
@@ -564,22 +564,23 @@ const SpeakerContentUpload = () => {
 
       updateUpload(newUpload.id, { progress: 90, status: 'processing' });
 
-      // Detect if it's a YouTube URL
+      // Detect video platform support
       const isYouTubeUrl = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput);
+      const isSupportedByVizard = /(?:youtube\.com|youtu\.be|vimeo\.com|drive\.google\.com|loom\.com|streamyard\.com|tiktok\.com|twitter\.com|x\.com|facebook\.com|linkedin\.com|twitch\.tv|rumble\.com)/.test(urlInput);
       
       // Start processing with edge function
-      // NOTE: We use Vizard for YouTube links so it can ingest the URL directly.
-      // If we stop using Vizard, switch back to Whisper path (set youtubeUrl only
-      // and implement RAPIDAPI_KEY in the edge function for audio download).
+      // NOTE: We use Vizard for all supported video platforms (YouTube, Vimeo, Google Drive, Loom, etc.)
+      // Non-video URLs will be handled by existing text scraping/transcription path
+      // TODO: Add support for Zoom/Teams/Meet via universal transcription service
       const { error: processError } = await supabase.functions.invoke('process-session', {
         body: { 
           sessionId: session.id,
           filePath: null,
           fileMimeType: null,
           textContent: null,
-          youtubeUrl: isYouTubeUrl ? null : urlInput,
-          processVideo: isYouTubeUrl,
-          videoUrl: isYouTubeUrl ? urlInput : null
+          youtubeUrl: isSupportedByVizard ? null : urlInput,
+          processVideo: isSupportedByVizard,
+          videoUrl: isSupportedByVizard ? urlInput : null
         }
       });
 
