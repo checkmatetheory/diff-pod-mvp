@@ -577,7 +577,7 @@ const SpeakerContentUpload = () => {
           filePath: null,
           fileMimeType: null,
           textContent: null,
-          youtubeUrl: isYouTubeUrl ? urlInput : null,
+          youtubeUrl: isYouTubeUrl ? null : urlInput,
           processVideo: isYouTubeUrl,
           videoUrl: isYouTubeUrl ? urlInput : null
         }

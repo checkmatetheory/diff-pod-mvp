@@ -407,7 +407,7 @@ const SessionUpload = () => {
       const { error: processError } = await supabase.functions.invoke('process-session', {
         body: { 
           sessionId: session.id,
-          youtubeUrl: urlInput,
+          youtubeUrl: /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput) ? null : urlInput,
           processVideo: /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput),
           videoUrl: /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput) ? urlInput : null
         }
