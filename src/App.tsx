@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreateEventModalProvider } from "@/contexts/CreateEventModalContext";
+import { AddSpeakerModalProvider } from "@/contexts/AddSpeakerModalContext";
+import { UploadFlowProvider } from "@/contexts/UploadFlowContext";
 import GlobalCreateEventModal from "@/components/GlobalCreateEventModal";
 import { AvatarPreloader } from "@/components/AvatarPreloader";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -37,7 +39,9 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <CreateEventModalProvider>
-        <TooltipProvider>
+        <AddSpeakerModalProvider>
+          <UploadFlowProvider>
+            <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -74,6 +78,8 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+          </UploadFlowProvider>
+        </AddSpeakerModalProvider>
       </CreateEventModalProvider>
     </AuthProvider>
   </QueryClientProvider>

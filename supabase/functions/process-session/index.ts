@@ -313,8 +313,12 @@ const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const ALLOWED_ORIGINS = [
   'http://localhost:8080',
+  'http://localhost:8081',
   'http://localhost:3000',
   'http://localhost:8088',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:8088',
   'https://diff-pod-mvp.vercel.app',
   'https://diff-pod-4hadk414b-diffused.vercel.app',
 ];
@@ -333,10 +337,11 @@ serve(async (req) => {
   const isAllowedOrigin = origin && ALLOWED_ORIGINS.includes(origin);
 
   const corsHeaders = {
-    'Access-Control-Allow-Origin': isAllowedOrigin ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Origin': isAllowedOrigin ? origin : '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, accept',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
     'Access-Control-Max-Age': '86400', // 24 hours
+    'Access-Control-Allow-Credentials': 'true',
   };
 
   if (req.method === 'OPTIONS') {
@@ -363,9 +368,14 @@ serve(async (req) => {
     console.log('- SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
     console.log('- SUPABASE_SERVICE_KEY:', supabaseServiceKey ? '✅ Set' : '❌ Missing');
     
+    // Check for VIZARD_API_KEY as well if video processing is requested
+    const vizardApiKey = Deno.env.get('VIZARD_API_KEY');
+    
     if (!openaiApiKey || !supabaseUrl || !supabaseServiceKey) {
       throw new Error('Critical environment variables missing');
     }
+    
+    console.log('- VIZARD_API_KEY:', vizardApiKey ? '✅ Set' : '❌ Missing (video processing will be disabled)');
 
     // Enhanced request body parsing with validation
     let requestBody;
@@ -422,8 +432,21 @@ serve(async (req) => {
     let videoProcessingJobId: string | null = null;
 
     // NEW: Video processing with AI adapter system
-    if (processVideo && videoUrl) {
+    if (processVideo && (videoUrl || filePath)) {
       console.log('🎬 Processing video for AI clips...');
+      
+      // Construct proper video URL for Vizard
+      let fullVideoUrl = videoUrl;
+      if (!fullVideoUrl && filePath) {
+        // Convert Supabase storage path to public URL
+        const publicUrlResponse = supabase.storage
+          .from('session-uploads')
+          .getPublicUrl(filePath);
+        fullVideoUrl = publicUrlResponse.data.publicUrl;
+      }
+      
+      console.log('🔗 Video URL for processing:', fullVideoUrl);
+      
       try {
         const aiAdapter = AIAdapterFactory.getAdapter();
         
@@ -437,14 +460,14 @@ serve(async (req) => {
         const processingJob: ProcessingJob = {
           id: `job_${sessionId}_${Date.now()}`,
           sessionId: sessionId,
-          videoUrl: videoUrl,
+          videoUrl: fullVideoUrl,
           eventName: sessionData?.events?.name || 'Unknown Event',
           speakerName: sessionData?.speaker_microsites?.name || 'Unknown Speaker',
           language: 'en',
           preferredDurations: [30, 60, 90], // Generate clips of various lengths
           maxClips: 10,
           minViralityScore: 66,
-          webhookUrl: `${supabaseUrl}/functions/v1/video-processing-webhook`
+          webhookUrl: `${supabaseUrl.replace('/supabase', '')}/functions/v1/video-processing-webhook`
         };
 
         const submission = await aiAdapter.submitJob(processingJob);
@@ -466,7 +489,7 @@ serve(async (req) => {
         // Set defaults for other processing
         processingMethod = 'video_ai_clipping';
         contentType = 'video';
-        extractedText = `Video submitted for AI processing: ${videoUrl}`;
+        extractedText = `Video submitted for AI processing: ${fullVideoUrl}`;
         
       } catch (error) {
         console.error('❌ Video processing failed:', error);
@@ -481,6 +504,8 @@ serve(async (req) => {
         // Continue with other processing methods
         throw new Error(`Video processing failed: ${error.message}`);
       }
+    } else if (processVideo) {
+      console.warn('⚠️ Video processing requested but no video URL or file path provided');
     }
     // Existing processing logic continues...
     else if (textContent) {

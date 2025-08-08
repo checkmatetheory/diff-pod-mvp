@@ -86,7 +86,10 @@ class NetworkManager {
 
       try {
         const start = Date.now();
-        const response = await fetch('/favicon.ico', {
+        // Use a reliable endpoint for connectivity testing
+        const testUrl = '/favicon.ico';
+        
+        const response = await fetch(testUrl, {
           method: 'HEAD',
           cache: 'no-cache',
           signal: AbortSignal.timeout(5000)

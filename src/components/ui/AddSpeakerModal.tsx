@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAddSpeakerModal } from "@/contexts/AddSpeakerModalContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -27,96 +28,17 @@ interface AddSpeakerModalProps {
 
 export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: AddSpeakerModalProps) {
   const { user } = useAuth();
-
-  // Form persistence key
-  const FORM_STORAGE_KEY = 'addSpeakerModal_formData';
+  const { formData, updateFormData, resetForm } = useAddSpeakerModal();
   
-  // Helper functions for form persistence
-  const saveFormToStorage = (formData: {
-    full_name: string;
-    email: string;
-    company: string;
-    job_title: string;
-    linkedin_url: string;
-    bio: string;
-    headshot_url: string;
-  }) => {
-    try {
-      localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify({
-        ...formData,
-        timestamp: Date.now(),
-        userId: user?.id // Ensure form is user-specific
-      }));
-    } catch (error) {
-      console.warn('Failed to save form data:', error);
-    }
-  };
-  
-  const loadFormFromStorage = () => {
-    try {
-      const saved = localStorage.getItem(FORM_STORAGE_KEY);
-      if (saved) {
-        const parsedData = JSON.parse(saved);
-        // Check if data is recent (within 24 hours) and for current user
-        const isRecent = (Date.now() - parsedData.timestamp) < 24 * 60 * 60 * 1000;
-        const isCurrentUser = parsedData.userId === user?.id;
-        
-        if (isRecent && isCurrentUser) {
-          return {
-            full_name: parsedData.full_name || "",
-            email: parsedData.email || "",
-            company: parsedData.company || "",
-            job_title: parsedData.job_title || "",
-            linkedin_url: parsedData.linkedin_url || "",
-            bio: parsedData.bio || "",
-            headshot_url: parsedData.headshot_url || ""
-          };
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to load form data:', error);
-    }
-    return null;
-  };
-  
-  const clearSavedForm = () => {
-    try {
-      localStorage.removeItem(FORM_STORAGE_KEY);
-    } catch (error) {
-      console.warn('Failed to clear form data:', error);
-    }
-  };
-  
-  // Load saved form data or use defaults
-  const savedFormData = loadFormFromStorage();
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
-  
-  const [formData, setFormData] = useState(savedFormData || {
-    full_name: "",
-    email: "",
-    company: "",
-    job_title: "",
-    linkedin_url: "",
-    bio: "",
-    headshot_url: ""
-  });
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    updateFormData({ [field]: value });
   };
 
-  // Auto-save form data when it changes
-  useEffect(() => {
-    if (user && isOpen) {
-      // Only save if modal is open and user is authenticated
-      const hasData = Object.values(formData).some(value => value.trim() !== "");
-      if (hasData) {
-        saveFormToStorage(formData);
-      }
-    }
-  }, [formData, user, isOpen]);
+
 
   // Image optimization function for avatars
   const optimizeImageForAvatar = (file: File): Promise<File> => {
@@ -189,7 +111,7 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
         .from('assets')
         .getPublicUrl(fileName);
 
-      setFormData(prev => ({ ...prev, headshot_url: publicUrl }));
+      updateFormData({ headshot_url: publicUrl });
 
       toast({
         title: "Image uploaded successfully",
@@ -249,7 +171,7 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
 
 
   const removeImage = () => {
-    setFormData(prev => ({ ...prev, headshot_url: "" }));
+    updateFormData({ headshot_url: "" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -277,23 +199,14 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
 
       onSpeakerCreated(data);
       
-      // Reset form
-      setFormData({
-        full_name: "",
-        email: "",
-        company: "",
-        job_title: "",
-        linkedin_url: "",
-        bio: "",
-        headshot_url: ""
-      });
+      // Reset form using context
+      resetForm();
       
       toast({
         title: "Speaker created successfully!",
         description: `${data.full_name} has been added to your speaker network.`,
       });
 
-      clearSavedForm();
       onClose();
 
     } catch (error: unknown) {
@@ -311,17 +224,8 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
 
   const handleClose = () => {
     if (!loading) {
-      // Reset form when closing
-      setFormData({
-        full_name: "",
-        email: "",
-        company: "",
-        job_title: "",
-        linkedin_url: "",
-        bio: "",
-        headshot_url: ""
-      });
-      clearSavedForm();
+      // Reset form when closing using context
+      resetForm();
       onClose();
     }
   };
@@ -482,7 +386,13 @@ export default function AddSpeakerModal({ isOpen, onClose, onSpeakerCreated }: A
             <Button 
               type="submit" 
               disabled={loading || !formData.full_name}
-              className="bg-blue-600 hover:bg-blue-700"
+              style={{
+                backgroundColor: '#2563eb',
+                color: 'white',
+                fontWeight: '500',
+                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+                border: 'none'
+              }}
             >
               {loading ? "Adding Speaker..." : "Add Speaker"}
             </Button>

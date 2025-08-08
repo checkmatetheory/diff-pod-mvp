@@ -14,7 +14,8 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  Mic
+  Mic,
+  Play
 } from 'lucide-react';
 import { SessionContentProps } from "@/types/session-types";
 
@@ -144,7 +145,7 @@ export const SessionContent = ({
         
         <CardContent className="p-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-4 w-full h-12 mx-6 mt-6 mb-0">
+            <TabsList className="grid grid-cols-5 w-full h-12 mx-6 mt-6 mb-0">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Overview
@@ -160,6 +161,10 @@ export const SessionContent = ({
               <TabsTrigger value="quotes" className="flex items-center gap-2">
                 <Quote className="h-4 w-4" />
                 Key Quotes
+              </TabsTrigger>
+              <TabsTrigger value="clips" className="flex items-center gap-2">
+                <Play className="h-4 w-4" />
+                AI Clips
               </TabsTrigger>
             </TabsList>
 
@@ -239,6 +244,49 @@ export const SessionContent = ({
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* AI Clips Tab */}
+              <TabsContent value="clips" className="mt-0">
+                {Array.isArray(sessionData.video_clips) && (sessionData.video_clips as any[]).length > 0 ? (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">AI-Generated Clips</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {(sessionData.video_clips as any[])
+                        .filter((c) => (c?.viralityScore ?? 0) >= 66)
+                        .sort((a, b) => (b?.viralityScore ?? 0) - (a?.viralityScore ?? 0))
+                        .map((clip) => (
+                          <div key={clip.id} className="border rounded-lg overflow-hidden bg-card">
+                            {clip.thumbnailUrl && (
+                              <img src={clip.thumbnailUrl} alt={clip.title} className="w-full h-40 object-cover" />
+                            )}
+                            <div className="p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium truncate">{clip.title || 'Clip'}</div>
+                                <Badge variant="secondary">{clip.duration || 0}s</Badge>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>Virality</span>
+                                <Badge variant="outline">{clip.viralityScore ?? 0}</Badge>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {clip.videoUrl && (
+                                  <a className="btn btn-sm" href={clip.videoUrl} target="_blank" rel="noreferrer">
+                                    <Button size="sm" variant="default" className="gap-2">
+                                      <Play className="h-4 w-4" />
+                                      Play
+                                    </Button>
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No clips yet. They will appear here once processing completes.</p>
+                )}
               </TabsContent>
 
               {/* Blog Content Tab */}

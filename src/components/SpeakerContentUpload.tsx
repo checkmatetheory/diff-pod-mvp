@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAddSpeakerModal } from "@/contexts/AddSpeakerModalContext";
+import { useUploadFlow } from "@/contexts/UploadFlowContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +42,7 @@ import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AddSpeakerModal from "@/components/ui/AddSpeakerModal";
 import { UPLOAD_LIMITS, formatFileSize, isFileSizeValid, isFileTypeValid, hasBlockedPattern } from "@/constants/upload";
-import { uploadFileWithTUS, shouldUseTUS } from "@/lib/tusUpload";
+import { s3CompatibleUpload, type S3UploadProgress, type S3UploadResult } from "@/lib/s3CompatibleUpload";
 
 interface Event {
   id: string;
@@ -73,18 +75,32 @@ const SpeakerContentUpload = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   
-  // State management
-  const [currentStep, setCurrentStep] = useState(1);
+  // Use persistent upload flow context
+  const {
+    currentStep,
+    selectedEventId,
+    selectedSpeakerIds,
+    uploads,
+    setSelectedEventId,
+    addSpeaker,
+    removeSpeaker,
+    setUploads,
+    addUpload,
+    updateUpload,
+    removeUpload,
+    canProceedToStep2,
+    canProceedToStep3,
+    goToStep
+  } = useUploadFlow();
+  
+  // Local component state (not persisted)
   const [events, setEvents] = useState<Event[]>([]);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<string>("");
-  const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploads, setUploads] = useState<UploadedFile[]>([]);
   
-  // Modal state
-  const [showAddSpeakerModal, setShowAddSpeakerModal] = useState(false);
+  // Use global modal context instead of local state
+  const { isOpen: showAddSpeakerModal, openModal, closeModal } = useAddSpeakerModal();
   
   // Content inputs
   const [dragActive, setDragActive] = useState(false);
@@ -155,18 +171,13 @@ const SpeakerContentUpload = () => {
 
   const handleSpeakerCreated = (newSpeaker: Speaker) => {
     setSpeakers(prev => [newSpeaker, ...prev]);
-    setSelectedSpeakerIds(prev => [...prev, newSpeaker.id]);
+    addSpeaker(newSpeaker.id);
+    
+    // Close modal after successful creation
+    closeModal();
   };
 
-  const addSpeaker = (speakerId: string) => {
-    if (!selectedSpeakerIds.includes(speakerId)) {
-      setSelectedSpeakerIds(prev => [...prev, speakerId]);
-    }
-  };
 
-  const removeSpeaker = (speakerId: string) => {
-    setSelectedSpeakerIds(prev => prev.filter(id => id !== speakerId));
-  };
 
 
 
@@ -252,7 +263,7 @@ const SpeakerContentUpload = () => {
         status: 'uploading'
       };
       
-      setUploads(prev => [...prev, newUpload]);
+      addUpload(newUpload);
       
       try {
         setUploading(true);
@@ -261,64 +272,64 @@ const SpeakerContentUpload = () => {
         const sanitizedFilename = sanitizeFilename(file.name);
         const fileName = `${user.id}/${Date.now()}-${sanitizedFilename}`;
         
-        setUploads(prev => prev.map(upload => 
-          upload.id === newUpload.id ? { ...upload, progress: 50 } : upload
-        ));
-
-        const fileSizeMB = file.size / (1024 * 1024);
-        let uploadResult;
-
-        // Use TUS resumable uploads for files larger than 6MB for better reliability
-        if (shouldUseTUS(file)) {
-          console.log(`🔄 Using TUS resumable upload for large file (${fileSizeMB.toFixed(1)}MB)...`);
-          
-          // Get the current session for authorization
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            throw new Error('No active session found');
-          }
-
-          // Set up progress tracking for TUS upload
-          const onProgress = (percentage: number) => {
-            setUploads(prev => prev.map(upload => 
-              upload.id === newUpload.id 
-                ? { ...upload, progress: Math.max(50, Math.min(90, percentage)) }
-                : upload
-            ));
-          };
-
-          // Upload using TUS
-          const tusResult = await uploadFileWithTUS({
-            file,
-            fileName,
-            userId: user.id,
-            projectId: 'qzmpuojqcrrlylmnbgrg', // Extract from Supabase URL
-            accessToken: session.access_token,
-            onProgress
-          });
-          
-          uploadResult = { data: tusResult, error: null };
-          console.log('📥 TUS Upload result:', uploadResult);
-        } else {
-          console.log(`📤 Using standard upload for small file (${fileSizeMB.toFixed(1)}MB)...`);
-          // Use standard upload for smaller files
-          uploadResult = await supabase.storage
-            .from('session-uploads')
-            .upload(fileName, file, {
-              upsert: true,
+        // 🚀 Use SECURE MULTIPART UPLOAD - Production-ready with 2-3 minute target  
+        console.log(`🚀 Using SECURE MULTIPART upload for ${(file.size / 1024 / 1024).toFixed(1)}MB file`);
+        console.log('✅ Features: Parallel multipart upload, presigned URLs, session-based auth, 2-3min target');
+        
+        // Import the secure multipart upload service
+        const { secureMultipartUpload } = await import('@/lib/secureMultipartUpload');
+        
+        const uploadResult = await secureMultipartUpload.uploadFile({
+          file,
+          sessionId: selectedEventId,
+          concurrency: 8, // Optimize for speed
+          partSize: file.size > 500 * 1024 * 1024 ? 50 * 1024 * 1024 : undefined, // 50MB for large files
+          onProgress: (progress) => {
+            const percentage = Math.round(progress.percentage);
+            updateUpload(newUpload.id, { progress: percentage });
+            
+            if (progress.speed > 0) {
+              const speedMBps = (progress.speed / 1024 / 1024).toFixed(1);
+              const timeMin = Math.round(progress.timeRemaining / 60);
+              console.log(`📊 Multipart Upload: ${percentage}% (${speedMBps} MB/s, ~${timeMin}m) - ${progress.stage} - Parts: ${progress.completedParts}/${progress.totalParts} (${progress.activeParts} active)`);
+            }
+          },
+          onSuccess: (result) => {
+            console.log('✅ Secure multipart upload completed:', {
+              uploadId: result.uploadId,
+              filePath: result.filePath,
+              duration: `${(result.duration / 1000).toFixed(1)}s`,
+              averageSpeed: `${(result.averageSpeed / 1024 / 1024).toFixed(1)} MB/s`,
+              totalParts: result.totalParts
             });
-          
-          console.log('📥 Standard upload result:', uploadResult);
+          },
+          onError: (error) => {
+            console.error('❌ S3 upload failed:', error);
+          }
+        });
+        
+        // 🔍 VALIDATE UPLOAD RESULT STRUCTURE
+        if (!uploadResult || !uploadResult.filePath) {
+          console.error('❌ Invalid upload result:', { uploadResult });
+          throw new Error('Upload failed - invalid result structure or missing filePath');
         }
 
-        if (uploadResult.error) {
-          console.error('❌ Upload error details:', uploadResult.error);
-          throw uploadResult.error;
+        console.log('🔍 Upload result validated:', {
+          uploadId: uploadResult.uploadId,
+          filePath: uploadResult.filePath,
+          duration: uploadResult.duration,
+          totalParts: uploadResult.totalParts
+        });
+
+        const finalResult = { data: { path: uploadResult.filePath }, error: null };
+        console.log('✅ SECURE MULTIPART upload successful:', finalResult);
+
+        // Double-check that we have a valid path
+        if (!finalResult.data?.path) {
+          throw new Error('Upload failed - no file path returned');
         }
 
-        setUploads(prev => prev.map(upload => 
-          upload.id === newUpload.id ? { ...upload, progress: 90 } : upload
-        ));
+        // Don't override progress - real progress should already be at 100%
 
         // Create session record
         const { data: session, error: sessionError } = await supabase
@@ -336,17 +347,24 @@ const SpeakerContentUpload = () => {
 
         if (sessionError) throw sessionError;
 
-        setUploads(prev => prev.map(upload => 
-          upload.id === newUpload.id ? { ...upload, progress: 100, status: 'processing' } : upload
-        ));
+        // Update to processing status only - progress should already be 100% from real events
+        updateUpload(newUpload.id, { status: 'processing' });
 
-        // Start processing
+        // Start processing with comprehensive parameters
+        console.log('🚀 Invoking process-session with video processing:', {
+          sessionId: session.id,
+          filePath: finalResult.data.path,
+          fileMimeType: file.type
+        });
+
         const { error: processError } = await supabase.functions.invoke('process-session', {
           body: { 
             sessionId: session.id, 
-            filePath: fileName,
+            filePath: finalResult.data.path,
             fileMimeType: file.type,
-            textContent: null
+            textContent: null,
+            processVideo: true, // Enable video processing with Vizard
+            videoUrl: finalResult.data.path // Pass the file path as video URL
           }
         });
 
@@ -354,9 +372,7 @@ const SpeakerContentUpload = () => {
           console.error('Function invocation error:', processError);
         }
 
-        setUploads(prev => prev.map(upload => 
-          upload.id === newUpload.id ? { ...upload, status: 'complete' } : upload
-        ));
+        updateUpload(newUpload.id, { status: 'complete' });
 
         // Generate speaker microsites for each selected speaker
         await generateSpeakerMicrosites(session.id);
@@ -364,9 +380,7 @@ const SpeakerContentUpload = () => {
       } catch (error: any) {
         setUploading(false);
         console.error('Upload error:', error);
-        setUploads(prev => prev.map(upload => 
-          upload.id === newUpload.id ? { ...upload, status: 'error' } : upload
-        ));
+        updateUpload(newUpload.id, { status: 'error' });
         
         toast({
           title: "Upload failed",
@@ -523,14 +537,12 @@ const SpeakerContentUpload = () => {
       status: 'uploading'
     };
     
-    setUploads(prev => [...prev, newUpload]);
+    addUpload(newUpload);
 
     try {
       setUploading(true);
       
-      setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id ? { ...upload, progress: 50 } : upload
-      ));
+      updateUpload(newUpload.id, { progress: 50 });
 
       // Create session record for URL
       const { data: session, error: sessionError } = await supabase
@@ -550,9 +562,7 @@ const SpeakerContentUpload = () => {
 
       if (sessionError) throw sessionError;
 
-      setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id ? { ...upload, progress: 90, status: 'processing' } : upload
-      ));
+      updateUpload(newUpload.id, { progress: 90, status: 'processing' });
 
       // Detect if it's a YouTube URL
       const isYouTubeUrl = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput);
@@ -572,9 +582,7 @@ const SpeakerContentUpload = () => {
         console.error('Processing error:', processError);
       }
 
-      setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id ? { ...upload, progress: 100, status: 'complete' } : upload
-      ));
+              updateUpload(newUpload.id, { progress: 100, status: 'complete' });
 
       // Generate speaker microsites
       await generateSpeakerMicrosites(session.id);
@@ -592,9 +600,7 @@ const SpeakerContentUpload = () => {
     } catch (error: any) {
       setUploading(false);
       console.error('URL submission error:', error);
-      setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id ? { ...upload, status: 'error' } : upload
-      ));
+      updateUpload(newUpload.id, { status: 'error' });
       
       toast({
         title: "Failed to process video URL",
@@ -646,8 +652,7 @@ const SpeakerContentUpload = () => {
     );
   }
 
-  const canProceedToStep2 = selectedEventId && events.length > 0;
-  const canProceedToStep3 = canProceedToStep2 && selectedSpeakerIds.length > 0;
+
 
   return (
     <div className="space-y-8">
@@ -781,7 +786,7 @@ const SpeakerContentUpload = () => {
 
                 <div className="flex justify-end">
                   <Button 
-                    onClick={() => setCurrentStep(2)}
+                    onClick={() => goToStep(2)}
                     disabled={!canProceedToStep2}
                     className="px-8"
                   >
@@ -870,7 +875,7 @@ const SpeakerContentUpload = () => {
             {/* Add New Speaker Button */}
             <div className="flex justify-center pt-4 border-t">
               <Button 
-                onClick={() => setShowAddSpeakerModal(true)}
+                onClick={openModal}
                 variant="outline"
                 className="flex items-center gap-2"
               >
@@ -906,14 +911,14 @@ const SpeakerContentUpload = () => {
             <div className="flex justify-between">
               <Button 
                 variant="outline"
-                onClick={() => setCurrentStep(1)}
+                onClick={() => goToStep(1)}
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Back to Event
               </Button>
               
               <Button 
-                onClick={() => setCurrentStep(3)}
+                onClick={() => goToStep(3)}
                 disabled={!canProceedToStep3}
                 className="px-8"
               >
@@ -1061,7 +1066,7 @@ const SpeakerContentUpload = () => {
               <div className="flex justify-start">
                 <Button 
                   variant="outline"
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => goToStep(2)}
                 >
                   <ChevronLeft className="h-4 w-4 mr-2" />
                   Back to Speaker
@@ -1118,7 +1123,7 @@ const SpeakerContentUpload = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setUploads(prev => prev.filter(u => u.id !== upload.id))}
+                            onClick={() => removeUpload(upload.id)}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -1179,7 +1184,7 @@ const SpeakerContentUpload = () => {
       {/* Add Speaker Modal */}
       <AddSpeakerModal 
         isOpen={showAddSpeakerModal}
-        onClose={() => setShowAddSpeakerModal(false)}
+        onClose={closeModal}
         onSpeakerCreated={handleSpeakerCreated}
       />
     </div>

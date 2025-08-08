@@ -14,10 +14,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { UploadAnalytics } from "@/components/ui/UploadAnalytics";
-import { uploadFileWithTUS, shouldUseTUS, saveUploadState, getStoredUploads, removeUploadState, clearExpiredUploads } from "@/lib/tusUpload";
-import { backgroundUploadService, type UploadEvent } from "@/lib/backgroundUploadService";
-import { networkManager } from "@/lib/networkManager";
+import { s3CompatibleUpload, type S3UploadProgress, type S3UploadResult } from "@/lib/s3CompatibleUpload";
 import { UPLOAD_LIMITS, formatFileSize } from "@/constants/upload";
 
 interface UploadedFile {
@@ -28,6 +25,8 @@ interface UploadedFile {
   progress: number;
   status: 'uploading' | 'processing' | 'complete' | 'error';
   tags: string[];
+  speed?: string;
+  timeRemaining?: string;
 }
 
 interface Event {
@@ -39,6 +38,14 @@ interface Event {
 
 const SessionUpload = () => {
   const navigate = useNavigate();
+
+  // Helper function to detect video files
+  const isVideoFile = (mimeType: string): boolean => {
+    return mimeType.startsWith('video/') || 
+           ['.mp4', '.mov', '.avi', '.mkv', '.webm'].some(ext => 
+             mimeType.includes(ext.substring(1))
+           );
+  };
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [dragActive, setDragActive] = useState(false);
@@ -49,184 +56,61 @@ const SessionUpload = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [activeUploads, setActiveUploads] = useState<Set<string>>(new Set());
 
-  // Add upload recovery state
-  const [storedUploads, setStoredUploads] = useState<Record<string, any>>({});
-
+  // Auto-select event from URL params
   useEffect(() => {
-    fetchEvents();
-    initializeUploadServices();
-  }, []);
+    const eventId = searchParams.get('eventId');
+    if (eventId) {
+      setSelectedEventId(eventId);
+    }
+  }, [searchParams]);
 
-  const initializeUploadServices = async () => {
-    try {
-      // Initialize background upload service
-      await backgroundUploadService.initialize();
-      
-      // Set up upload event listeners
-      const unsubscribeProgress = backgroundUploadService.on('progress', handleUploadProgress);
-      const unsubscribeCompleted = backgroundUploadService.on('completed', handleUploadCompleted);
-      const unsubscribeFailed = backgroundUploadService.on('failed', handleUploadFailed);
-      
-      // Load active uploads from background service
-      const activeUploads = backgroundUploadService.getActiveUploads();
-      if (activeUploads.length > 0) {
-        const activeUploadsList = activeUploads.map(upload => ({
-          id: upload.id,
-          name: upload.fileName,
-          type: 'document' as const,
-          size: formatFileSize(upload.fileSize),
-          progress: upload.progress,
-          status: upload.status as 'uploading' | 'processing' | 'complete' | 'error',
-          tags: []
-        }));
-        
-        setUploads(prev => [...prev, ...activeUploadsList]);
-        toast({
-          title: "Resumed uploads",
-          description: `Found ${activeUploads.length} uploads in progress.`,
-        });
-      }
+  // Load events
+  useEffect(() => {
+    if (!user) return;
 
-      // Monitor network status
-      const unsubscribeNetwork = networkManager.onConnectionChange((status) => {
-        if (status.online) {
+    const loadEvents = async () => {
+      try {
+        const { data: events, error } = await supabase
+          .from('events')
+          .select('id, name, subdomain, is_active')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error loading events:', error);
           toast({
-            title: "Connection restored",
-            description: "Resuming uploads...",
-          });
-        } else {
-          toast({
-            title: "Connection lost",
-            description: "Uploads will resume when connection is restored.",
+            title: "Error loading events",
+            description: "Could not load your events. Please try again.",
             variant: "destructive",
           });
+          return;
         }
-      });
 
-      // Cleanup on unmount
-      return () => {
-        unsubscribeProgress();
-        unsubscribeCompleted();
-        unsubscribeFailed();
-        unsubscribeNetwork();
-      };
-    } catch (error) {
-      console.error('Failed to initialize upload services:', error);
-    }
-  };
+        setEvents(events || []);
 
-  const handleUploadProgress = (event: UploadEvent) => {
-    if (event.type === 'progress') {
-      setUploads(prev => prev.map(upload => 
-        upload.id === event.uploadId 
-          ? { ...upload, progress: event.data.percentage }
-          : upload
-      ));
-    }
-  };
-
-  const handleUploadCompleted = (event: UploadEvent) => {
-    if (event.type === 'completed') {
-      setUploads(prev => prev.map(upload => 
-        upload.id === event.uploadId 
-          ? { ...upload, status: 'complete', progress: 100 }
-          : upload
-      ));
-      
-      toast({
-        title: "Upload completed",
-        description: "Your file has been uploaded successfully.",
-      });
-    }
-  };
-
-  const handleUploadFailed = (event: UploadEvent) => {
-    if (event.type === 'failed') {
-      setUploads(prev => prev.map(upload => 
-        upload.id === event.uploadId 
-          ? { ...upload, status: 'error' }
-          : upload
-      ));
-      
-      toast({
-        title: "Upload failed",
-        description: event.data?.error || "Upload failed with unknown error.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Auto-select event from URL parameter
-  useEffect(() => {
-    const eventId = searchParams.get('event');
-    if (eventId && events.length > 0) {
-      const eventExists = events.find(e => e.id === eventId);
-      if (eventExists) {
-        setSelectedEventId(eventId);
+        // Auto-select first event if none selected
+        if (!selectedEventId && events?.length > 0) {
+          setSelectedEventId(events[0].id);
+        }
+      } catch (error) {
+        console.error('Error in loadEvents:', error);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, [searchParams, events]);
+    };
 
-  const fetchEvents = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('id, name, subdomain, is_active')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+    loadEvents();
+  }, [user, selectedEventId]);
 
-      if (error) {
-        console.error('Error fetching events:', error);
-        setEvents([]);
-      } else {
-        setEvents(data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      setEvents([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Check if user can upload
+  const canUpload = selectedEventId && !uploading;
 
-  const selectedEvent = events.find(e => e.id === selectedEventId);
-  const canUpload = selectedEventId && events.length > 0;
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    if (!canUpload) {
-      toast({
-        title: "Please select an event first",
-        description: "Choose which event this content belongs to before uploading.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const files = Array.from(e.dataTransfer.files);
-    processFiles(files);
-  };
-
+  /**
+   * Process files using direct cloud upload
+   */
   const processFiles = async (files: File[]) => {
     if (!user) {
       toast({
@@ -245,6 +129,20 @@ const SessionUpload = () => {
       });
       return;
     }
+
+    // Validate file sizes
+    for (const file of files) {
+      if (file.size > UPLOAD_LIMITS.MAX_FILE_SIZE) {
+        toast({
+          title: "File too large",
+          description: `${file.name} is ${formatFileSize(file.size)}. Maximum size is ${formatFileSize(UPLOAD_LIMITS.MAX_FILE_SIZE)}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setUploading(true);
 
     for (const file of files) {
       // Determine file type
@@ -275,105 +173,70 @@ const SessionUpload = () => {
       setUploads(prev => [...prev, newUpload]);
       
       try {
-        setUploading(true); // Disable buttons
-        // Upload to Supabase Storage
-        const fileName = `${user.id}/${Date.now()}-${file.name}`;
+        // Track this upload
+        setActiveUploads(prev => new Set([...prev, uploadId]));
+
+        // 🚀 Use SECURE MULTIPART UPLOAD - Production-ready with 2-3 minute target
+        console.log(`🚀 Using SECURE MULTIPART upload for ${file.name} (${formatFileSize(file.size)})`);
+        console.log('✅ Features: Parallel multipart upload, presigned URLs, session-based auth, 2-3min target');
         
-        console.log('🚀 Starting optimized upload:', {
-          fileName,
-          fileSize: file.size,
-          fileSizeMB: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-          chunkStrategy: file.size < UPLOAD_LIMITS.MEDIUM_FILE_THRESHOLD ? '2MB chunks' : 'Dynamic chunks'
+        // Import the secure multipart upload service
+        const { secureMultipartUpload } = await import('@/lib/secureMultipartUpload');
+        
+        const uploadResult = await secureMultipartUpload.uploadFile({
+          file,
+          sessionId: selectedEventId,
+          concurrency: 8, // Optimize for speed
+          partSize: file.size > 500 * 1024 * 1024 ? 50 * 1024 * 1024 : undefined, // 50MB for large files
+          onProgress: (progress) => {
+            const percentage = Math.round(progress.percentage);
+            
+            setUploads(prev => prev.map(upload => 
+              upload.id === uploadId 
+                ? { 
+                    ...upload, 
+                    progress: percentage,
+                    status: progress.stage === 'completed' ? 'processing' : 'uploading',
+                    speed: progress.speed > 0 ? `${(progress.speed / 1024 / 1024).toFixed(1)} MB/s` : undefined,
+                    timeRemaining: progress.timeRemaining > 0 ? `${Math.round(progress.timeRemaining / 60)}m` : undefined
+                  }
+                : upload
+            ));
+            
+            if (progress.speed > 0) {
+              const speedMBps = (progress.speed / 1024 / 1024).toFixed(1);
+              const timeMin = Math.round(progress.timeRemaining / 60);
+              console.log(`📊 Multipart Progress: ${percentage}% (${speedMBps} MB/s, ~${timeMin}m) - ${progress.stage} - Parts: ${progress.completedParts}/${progress.totalParts} (${progress.activeParts} active)`);
+            }
+          },
+          onSuccess: (result) => {
+            console.log('✅ Secure multipart upload completed:', {
+              uploadId: result.uploadId,
+              filePath: result.filePath,
+              duration: `${(result.duration / 1000).toFixed(1)}s`,
+              averageSpeed: `${(result.averageSpeed / 1024 / 1024).toFixed(1)} MB/s`,
+              totalParts: result.totalParts
+            });
+          },
+          onError: (error) => {
+            console.error('❌ S3 upload failed:', error);
+          }
         });
         
-        // Enhanced progress tracking with persistence
-        const onProgress = (percentage: number) => {
-          setUploads(prev => prev.map(upload => 
-            upload.id === uploadId 
-              ? { ...upload, progress: Math.max(upload.progress, percentage) }
-              : upload
-          ));
+        const finalResult = {
+          uploadId,
+          filePath: uploadResult.filePath,
+          duration: uploadResult.duration
         };
+        console.log('✅ SECURE MULTIPART upload successful:', finalResult);
 
-        // Set initial progress
+        console.log('✅ File uploaded successfully with direct cloud upload!');
+
+        // Don't override progress - real progress should already be at 100%
+        // Just update status to processing
         setUploads(prev => prev.map(upload => 
           upload.id === uploadId 
-            ? { ...upload, progress: 10 }
-            : upload
-        ));
-
-        console.log('📤 Uploading to Supabase Storage...');
-        
-        const fileSizeMB = file.size / (1024 * 1024);
-        let uploadResult;
-
-        // DEBUG: Add comprehensive debugging
-        console.log('🔍 DEBUG: File size in MB:', fileSizeMB);
-        console.log('🔍 DEBUG: shouldUseTUS function type:', typeof shouldUseTUS);
-        console.log('�� DEBUG: uploadFileWithTUS function type:', typeof uploadFileWithTUS);
-        
-        let shouldUseResumable = false;
-        try {
-          shouldUseResumable = shouldUseTUS(file);
-          console.log('🔍 DEBUG: shouldUseTUS result:', shouldUseResumable);
-        } catch (error) {
-          console.error('🔍 DEBUG: Error calling shouldUseTUS:', error);
-        }
-
-        // Use TUS resumable uploads for files larger than 6MB for better reliability
-        if (shouldUseResumable) {
-          console.log(`🔄 Using TUS resumable upload for large file (${fileSizeMB.toFixed(1)}MB)...`);
-          
-          try {
-            // Get the current session for authorization
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-              throw new Error('No active session found');
-            }
-
-            // TUS upload will use the onProgress callback defined above
-
-            console.log('🚀 About to call uploadFileWithTUS...');
-                         // Upload using TUS
-             const tusResult = await uploadFileWithTUS({
-               file,
-               fileName,
-               userId: user.id,
-               projectId: 'qzmpuojqcrrlylmnbgrg',
-               accessToken: session.access_token,
-               onProgress,
-               eventId: selectedEventId // Pass eventId for background service
-             });
-            
-            uploadResult = { data: tusResult, error: null };
-            console.log('�� TUS Upload result:', uploadResult);
-          } catch (tusError) {
-            console.error('❌ TUS Upload failed:', tusError);
-            throw tusError;
-          }
-        } else {
-          console.log(`📤 Using standard upload for file (${fileSizeMB.toFixed(1)}MB)...`);
-          // Use standard upload for smaller files
-          uploadResult = await supabase.storage
-            .from('session-uploads')
-            .upload(fileName, file, {
-              upsert: true,
-            });
-          
-          console.log('📥 Standard upload result:', uploadResult);
-        }
-
-        if (uploadResult.error) {
-          console.error('❌ Upload error details:', uploadResult.error);
-          throw uploadResult.error;
-        }
-
-        console.log('✅ File uploaded successfully!');
-
-        // Update progress after upload
-        setUploads(prev => prev.map(upload => 
-          upload.id === uploadId 
-            ? { ...upload, progress: 90 }
+            ? { ...upload, status: 'processing' }
             : upload
         ));
 
@@ -406,25 +269,30 @@ const SessionUpload = () => {
           throw sessionError;
         }
 
-        // Update upload status
-        setUploads(prev => prev.map(upload => 
-          upload.id === uploadId 
-            ? { ...upload, progress: 100, status: 'processing' }
-            : upload
-        ));
+        // Status should remain processing from above - don't override progress
 
-        // Start processing
+        // Start processing with enhanced metadata
+        console.log('🚀 Invoking process-session for text/audio content:', {
+          sessionId: session.id,
+          filePath: uploadResult.filePath,
+          fileMimeType: file.type,
+          hasTextContent: !!textContent
+        });
+
         const { error: processError } = await supabase.functions.invoke('process-session', {
           body: { 
             sessionId: session.id, 
-            filePath: fileName,
-            fileMimeType: file.type, // Pass the explicit MIME type
-            textContent: textContent
+            filePath: uploadResult.filePath,
+            fileMimeType: file.type,
+            textContent: textContent,
+            fileSize: file.size,
+            originalFileName: file.name,
+            processVideo: isVideoFile(file.type), // Enable video processing for video files
+            videoUrl: isVideoFile(file.type) ? uploadResult.filePath : null
           }
         });
 
         if (processError) {
-          setUploading(false); // Re-enable on error
           console.error('Function invocation error:', processError);
           // Don't throw here, still mark as complete for now
         }
@@ -437,541 +305,440 @@ const SessionUpload = () => {
         ));
 
         toast({
-          title: "Upload successful",
-          description: `Your session has been uploaded to ${selectedEvent?.name} and is being processed.`,
+          title: "Upload successful!",
+          description: `${file.name} has been uploaded and is being processed.`,
         });
 
-        // Navigate to session detail after a delay
+        // Navigate to session detail after a short delay
         setTimeout(() => {
-          setUploading(false); // Re-enable after navigation
           navigate(`/session/${session.id}`);
-        }, 1000);
+        }, 1500);
 
-      } catch (error: unknown) {
-        setUploading(false); // Re-enable on error
-        console.error('❌ Upload failed:', error);
+      } catch (error) {
+        console.error('Upload error:', error);
+        
         setUploads(prev => prev.map(upload => 
           upload.id === uploadId 
-            ? { ...upload, status: 'error' }
+            ? { ...upload, status: 'error', progress: 0 }
             : upload
         ));
-        
-        const errorMessage = error instanceof Error ? error.message : "Failed to upload file. Please try again.";
+
         toast({
           title: "Upload failed",
-          description: errorMessage,
+          description: error instanceof Error ? error.message : "Unknown error occurred",
           variant: "destructive",
+        });
+      } finally {
+        // Remove from active uploads
+        setActiveUploads(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(uploadId);
+          return newSet;
         });
       }
     }
+
+    setUploading(false);
   };
 
-  const handleUrlSubmit = async (e: React.FormEvent) => {
+  // Handle file drop
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!urlInput.trim() || !user) return;
+    setDragActive(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    processFiles(files);
+  };
 
-    if (!canUpload) {
-      toast({
-        title: "Please select an event first",
-        description: "Choose which event this content belongs to before adding a URL.",
-        variant: "destructive",
-      });
-      return;
+  // Handle file input
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      processFiles(files);
     }
+  };
 
+  // Handle URL submission
+  const handleUrlSubmit = async () => {
+    if (!urlInput.trim() || !canUpload) return;
+
+    const uploadId = `url_${Date.now()}`;
     const newUpload: UploadedFile = {
-      id: Date.now().toString(),
+      id: uploadId,
       name: urlInput,
       type: 'url',
       progress: 0,
       status: 'uploading',
       tags: []
     };
-    
+
     setUploads(prev => [...prev, newUpload]);
+    setUploading(true);
 
     try {
-      // Update progress to show uploading
+      // Update progress
       setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id 
-          ? { ...upload, progress: 50 }
-          : upload
+        upload.id === uploadId ? { ...upload, progress: 50 } : upload
       ));
 
-      // Create session record for URL
+      // Create session record
       const { data: session, error: sessionError } = await supabase
         .from('user_sessions')
         .insert({
-          session_name: `URL Session - ${new URL(urlInput).hostname}`,
+          session_name: `URL Content - ${new Date().toLocaleDateString()}`,
           user_id: user.id,
           event_id: selectedEventId,
           processing_status: 'uploaded',
-          session_data: { source_url: urlInput }
+          content_type: 'transcript'
         })
         .select()
         .single();
 
-      if (sessionError) {
-        throw sessionError;
-      }
+      if (sessionError) throw sessionError;
 
-      // Update progress after session creation
+      // Update progress
       setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id 
-          ? { ...upload, progress: 90, status: 'processing' }
-          : upload
+        upload.id === uploadId ? { ...upload, progress: 80 } : upload
       ));
 
-      // Detect if it's a YouTube URL
-      const isYouTubeUrl = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(urlInput);
-      
-      // Start processing with edge function
+      // Process URL
       const { error: processError } = await supabase.functions.invoke('process-session', {
         body: { 
           sessionId: session.id,
-          filePath: null,
-          fileMimeType: null,
-          textContent: null,
-          youtubeUrl: isYouTubeUrl ? urlInput : null
+          youtubeUrl: urlInput
         }
       });
 
-      if (processError) {
-        console.error('Processing error:', processError);
-        // Don't throw here, still mark as complete for now
-      }
+      if (processError) throw processError;
 
-      // Update to complete
+      // Complete
       setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id 
-          ? { ...upload, progress: 100, status: 'complete' }
-          : upload
+        upload.id === uploadId ? { ...upload, progress: 100, status: 'complete' } : upload
       ));
 
       toast({
-        title: "URL added successfully",
-        description: `Your URL has been saved to ${selectedEvent?.name} and is being processed.`,
+        title: "URL processing started!",
+        description: "Your URL content is being processed.",
       });
 
       setTimeout(() => {
         navigate(`/session/${session.id}`);
-      }, 1000);
+      }, 1500);
 
-    } catch (error: unknown) {
-      console.error('URL submission error:', error);
+    } catch (error) {
+      console.error('URL processing error:', error);
       setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id 
-          ? { ...upload, status: 'error' }
-          : upload
+        upload.id === uploadId ? { ...upload, status: 'error' } : upload
       ));
-      
-      const errorMessage = error instanceof Error ? error.message : "Failed to save URL. Please try again.";
+
       toast({
-        title: "Failed to save URL",
-        description: errorMessage,
+        title: "URL processing failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
+    } finally {
+      setUploading(false);
+      setUrlInput("");
     }
-
-    setUrlInput("");
   };
 
-  const handleTextSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!textInput.trim() || !user) return;
+  // Handle text submission
+  const handleTextSubmit = async () => {
+    if (!textInput.trim() || !canUpload) return;
 
-    if (!canUpload) {
-      toast({
-        title: "Please select an event first",
-        description: "Choose which event this content belongs to before adding text content.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    const uploadId = `text_${Date.now()}`;
     const newUpload: UploadedFile = {
-      id: Date.now().toString(),
-      name: `Text: ${textInput.slice(0, 50)}...`,
+      id: uploadId,
+      name: `Text Content - ${new Date().toLocaleDateString()}`,
       type: 'text',
       progress: 0,
       status: 'uploading',
       tags: []
     };
-    
+
     setUploads(prev => [...prev, newUpload]);
+    setUploading(true);
 
     try {
-      // Update progress to show uploading
+      // Update progress
       setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id 
-          ? { ...upload, progress: 50 }
-          : upload
+        upload.id === uploadId ? { ...upload, progress: 50 } : upload
       ));
 
-      // Create session record for text content
+      // Create session record
       const { data: session, error: sessionError } = await supabase
         .from('user_sessions')
         .insert({
-          session_name: `Text Session - ${textInput.slice(0, 50)}`, // Limit session name length
+          session_name: `Text Content - ${new Date().toLocaleDateString()}`,
           user_id: user.id,
           event_id: selectedEventId,
           processing_status: 'uploaded',
+          content_type: 'transcript',
           session_data: { text_content: textInput }
         })
         .select()
         .single();
 
-      if (sessionError) {
-        throw sessionError;
-      }
+      if (sessionError) throw sessionError;
 
-      // Update progress after session creation
+      // Update progress
       setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id 
-          ? { ...upload, progress: 90, status: 'processing' }
-          : upload
+        upload.id === uploadId ? { ...upload, progress: 80 } : upload
       ));
 
-      // Start processing with edge function
+      // Process text
       const { error: processError } = await supabase.functions.invoke('process-session', {
         body: { 
           sessionId: session.id,
-          filePath: null, // No file path for text
-          fileType: 'text',
           textContent: textInput
         }
       });
 
-      if (processError) {
-        console.error('Processing error:', processError);
-        // Don't throw here, still mark as complete for now
-      }
+      if (processError) throw processError;
 
-      // Update to complete
+      // Complete
       setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id 
-          ? { ...upload, progress: 100, status: 'complete' }
-          : upload
+        upload.id === uploadId ? { ...upload, progress: 100, status: 'complete' } : upload
       ));
 
       toast({
-        title: "Text added successfully",
-        description: `Your text content has been saved to ${selectedEvent?.name} and is being processed.`,
+        title: "Text processing started!",
+        description: "Your text content is being processed.",
       });
 
       setTimeout(() => {
         navigate(`/session/${session.id}`);
-      }, 1000);
+      }, 1500);
 
-    } catch (error: unknown) {
-      console.error('Text submission error:', error);
+    } catch (error) {
+      console.error('Text processing error:', error);
       setUploads(prev => prev.map(upload => 
-        upload.id === newUpload.id 
-          ? { ...upload, status: 'error' }
-          : upload
+        upload.id === uploadId ? { ...upload, status: 'error' } : upload
       ));
-      
-      const errorMessage = error instanceof Error ? error.message : "Failed to save text content. Please try again.";
+
       toast({
-        title: "Failed to save text content",
-        description: errorMessage,
+        title: "Text processing failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
+    } finally {
+      setUploading(false);
+      setTextInput("");
     }
-
-    setTextInput("");
   };
 
-  const removeUpload = (id: string) => {
-    setUploads(prev => prev.filter(upload => upload.id !== id));
+  // Remove upload
+  const removeUpload = (uploadId: string) => {
+    // Cancel active upload if it exists
+    if (activeUploads.has(uploadId)) {
+      s3CompatibleUpload.cancelUpload(uploadId);
+    }
+    
+    setUploads(prev => prev.filter(upload => upload.id !== uploadId));
   };
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-32 bg-gray-200 rounded-lg"></div>
-        </div>
+      <div className="container mx-auto p-6">
+        <div className="text-center">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Upload Session Content</h1>
+        <p className="text-muted-foreground mt-2">
+          Upload your conference videos, audio files, or text content for AI-powered analysis and viral clip generation.
+        </p>
+      </div>
+
       {/* Event Selection */}
-      <Card className="shadow-card">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            Select Target Event
+            <Calendar className="h-5 w-5" />
+            Select Event
           </CardTitle>
           <CardDescription>
-            Choose which event this content will be associated with. This determines where it appears on your public event page.
+            Choose which event this content belongs to
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {events.length === 0 ? (
-            <Alert>
+        <CardContent>
+          <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select an event..." />
+            </SelectTrigger>
+            <SelectContent>
+              {events.map((event) => (
+                <SelectItem key={event.id} value={event.id}>
+                  {event.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          {events.length === 0 && (
+            <Alert className="mt-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                No active events found. <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/events')}>Create an event first</Button> to start adding content.
+                No active events found. Please create an event first before uploading content.
               </AlertDescription>
             </Alert>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="event-select">Target Event</Label>
-                <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-                  <SelectTrigger id="event-select">
-                    <SelectValue placeholder="Choose an event to add content to..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {events.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{event.name}</span>
-                          <span className="text-xs text-muted-foreground">/{event.subdomain}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedEvent && (
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <Calendar className="h-5 w-5 text-blue-600 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-blue-900">Adding content to: {selectedEvent.name}</h4>
-                        <p className="text-sm text-blue-700">
-                          Public URL: <code className="bg-blue-100 px-1 rounded text-xs">{window.location.origin}/event/{selectedEvent.subdomain}</code>
-                        </p>
-                        <p className="text-xs text-blue-600 mt-1">
-                          All uploaded content will appear on this event's public page for viral sharing and lead capture.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {!selectedEventId && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Please select an event before uploading content. This ensures your content appears on the correct event page.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </>
           )}
         </CardContent>
       </Card>
 
-      {/* Upload Area */}
-      <Card className="shadow-card">
+      {/* File Upload */}
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5 text-primary" />
-            Upload Session Content
+            <Upload className="h-5 w-5" />
+            Upload Files
           </CardTitle>
           <CardDescription>
-            Upload PDFs, video/audio files, text documents, or paste links. Content will be processed and added to speaker microsites.
+            Drag and drop your files here, or click to browse
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Drag & Drop Area */}
+        <CardContent>
           <div
             className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-              canUpload ? "cursor-pointer" : "cursor-not-allowed opacity-50",
-              dragActive && canUpload
-                ? "border-primary bg-primary/5" 
-                : canUpload 
-                ? "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30"
-                : "border-muted-foreground/25"
+              "border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors",
+              dragActive && "border-blue-500 bg-blue-50",
+              !canUpload && "opacity-50 cursor-not-allowed"
             )}
-            onDragEnter={canUpload ? handleDrag : undefined}
-            onDragLeave={canUpload ? handleDrag : undefined}
-            onDragOver={canUpload ? handleDrag : undefined}
-            onDrop={canUpload ? handleDrop : undefined}
-            onClick={canUpload ? () => document.getElementById('file-input')?.click() : undefined}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              if (canUpload) setDragActive(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              setDragActive(false);
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
           >
-            <div className="flex flex-col items-center gap-4">
-              <div className="p-4 rounded-full bg-primary/10">
-                <Upload className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground mb-1">
-                  {canUpload ? "Drop files here or click to browse" : "Select an event first"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {canUpload ? "Supports PDF, MP4, MP3, MOV, WAV, TXT, DOC (up to 500MB)" : "Choose a target event above to enable file uploads"}
-                </p>
-              </div>
-              {canUpload && (
-                <div className="flex flex-wrap justify-center gap-2 mt-2">
-                  <Badge variant="outline" className="gap-1 border-green-500/20 text-green-600 bg-green-50">
-                    <FileText className="h-3 w-3" />
-                    PDF → Content
-                  </Badge>
-                  <Badge variant="outline" className="gap-1 border-primary/20 text-primary bg-primary/5">
-                    <FileVideo className="h-3 w-3" />
-                    Video
-                  </Badge>
-                  <Badge variant="outline" className="gap-1 border-accent/20 text-accent bg-accent/5">
-                    <FileAudio className="h-3 w-3" />
-                    Audio
-                  </Badge>
-                  <Badge variant="outline" className="gap-1 border-primary/20 text-primary bg-primary/5">
-                    <FileText className="h-3 w-3" />
-                    Text
-                  </Badge>
-                  <Badge variant="outline" className="gap-1 border-muted-foreground/20 text-muted-foreground bg-muted/50">
-                    <File className="h-3 w-3" />
-                    Documents
-                  </Badge>
-                </div>
-              )}
-              <input
-                id="file-input"
-                type="file"
-                multiple
-                accept="audio/*,video/*,text/*,.txt,.md,.pdf,.doc,.docx"
-                className="hidden"
-                disabled={!canUpload || uploading}
-                onChange={(e) => {
-                  if (e.target.files && canUpload) {
-                    processFiles(Array.from(e.target.files));
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          {/* URL Input */}
-          <div className={cn(
-            "flex items-center gap-2 p-4 border rounded-lg bg-muted/30",
-            !canUpload && "opacity-50"
-          )}>
-            <Link className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <form onSubmit={handleUrlSubmit} className="flex-1 flex gap-2">
-              <Input
-                placeholder={canUpload ? "Paste YouTube, Vimeo, or Zoom link..." : "Select an event first"}
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                className="flex-1"
-                disabled={!canUpload || uploading}
-              />
-              <Button type="submit" size="sm" disabled={!urlInput.trim() || !canUpload || uploading}>
-                {uploading ? "Processing..." : "Add Link"}
-              </Button>
-            </form>
-          </div>
-
-          {/* Text Content Input */}
-          <div className={cn("space-y-3", !canUpload && "opacity-50")}>
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Or paste text content directly</span>
-            </div>
-            <form onSubmit={handleTextSubmit} className="space-y-3">
-              <Textarea
-                placeholder={canUpload ? "Paste blog post, article, or any text content to add to speaker microsites..." : "Select an event first to enable text input"}
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                className="min-h-[120px] resize-none"
-                disabled={!canUpload || uploading}
-              />
-              <Button 
-                type="submit" 
-                size="sm" 
-                disabled={!textInput.trim() || !canUpload || uploading}
-                variant="default" 
-                className="bg-primary hover:bg-primary/90"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                {!canUpload ? "Select an event first" : uploading ? "Processing..." : "Process Text"}
-              </Button>
-            </form>
+            <input
+              type="file"
+              multiple
+              accept="video/*,audio/*,.pdf,.doc,.docx,.txt,.md"
+              onChange={handleFileInput}
+              className="hidden"
+              id="file-upload"
+              disabled={!canUpload}
+            />
+            <label htmlFor="file-upload" className={cn("cursor-pointer", !canUpload && "cursor-not-allowed")}>
+              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <p className="text-lg font-medium text-gray-900 mb-2">
+                Choose files or drag and drop
+              </p>
+              <p className="text-sm text-gray-500">
+                Video files, audio files, PDFs, documents up to {formatFileSize(UPLOAD_LIMITS.MAX_FILE_SIZE)}
+              </p>
+            </label>
           </div>
         </CardContent>
       </Card>
 
-      {/* Upload Analytics */}
-      {uploads.length > 0 && (
-        <UploadAnalytics className="mb-6" />
-      )}
+      {/* URL Input */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link className="h-5 w-5" />
+            Process URL
+          </CardTitle>
+          <CardDescription>
+            Enter a YouTube URL or other video link
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Input
+              placeholder="https://youtube.com/watch?v=..."
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              disabled={!canUpload}
+            />
+            <Button onClick={handleUrlSubmit} disabled={!canUpload || !urlInput.trim()}>
+              Process
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Upload Queue */}
+      {/* Text Input */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Process Text
+          </CardTitle>
+          <CardDescription>
+            Paste text content directly for analysis
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Textarea
+              placeholder="Paste your text content here..."
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              rows={6}
+              disabled={!canUpload}
+            />
+            <Button onClick={handleTextSubmit} disabled={!canUpload || !textInput.trim()}>
+              Process Text
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Upload Progress */}
       {uploads.length > 0 && (
-        <Card className="shadow-card">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Processing Queue</CardTitle>
+            <CardTitle>Upload Progress</CardTitle>
             <CardDescription>
-              {uploads.filter(u => u.status === 'complete').length} of {uploads.length} complete
+              Track your upload and processing status
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {uploads.map((upload) => (
-              <div key={upload.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                <div className="p-2 rounded bg-primary/10">
-                  {upload.type === 'video' && <FileVideo className="h-4 w-4 text-primary" />}
-                  {upload.type === 'audio' && <FileAudio className="h-4 w-4 text-primary" />}
-                  {upload.type === 'url' && <Link className="h-4 w-4 text-primary" />}
-                  {upload.type === 'text' && <FileText className="h-4 w-4 text-primary" />}
-                  {upload.type === 'document' && <File className="h-4 w-4 text-primary" />}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium truncate">{upload.name}</p>
+          <CardContent>
+            <div className="space-y-4">
+              {uploads.map((upload) => (
+                <div key={upload.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      {upload.status === 'complete' && (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800">
-                          <Check className="h-3 w-3 mr-1" />
-                          Complete
-                        </Badge>
-                      )}
-                      {upload.status === 'processing' && (
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                          Processing
-                        </Badge>
-                      )}
-                      {upload.status === 'error' && (
-                        <Badge variant="destructive">Error</Badge>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                      {upload.type === 'video' && <FileVideo className="h-4 w-4" />}
+                      {upload.type === 'audio' && <FileAudio className="h-4 w-4" />}
+                      {upload.type === 'text' && <FileText className="h-4 w-4" />}
+                      {upload.type === 'url' && <Link className="h-4 w-4" />}
+                      {upload.type === 'document' && <File className="h-4 w-4" />}
+                      <span className="font-medium">{upload.name}</span>
+                      {upload.size && <Badge variant="secondary">{upload.size}</Badge>}
+                      {upload.speed && <Badge variant="outline">{upload.speed}</Badge>}
+                      {upload.timeRemaining && <Badge variant="outline">{upload.timeRemaining}</Badge>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {upload.status === 'complete' && <Check className="h-4 w-4 text-green-500" />}
+                      {upload.status === 'error' && <X className="h-4 w-4 text-red-500" />}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
                         onClick={() => removeUpload(upload.id)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2 mt-1">
-                    {upload.size && (
-                      <span className="text-xs text-muted-foreground">{upload.size}</span>
-                    )}
-                    <div className="flex-1">
-                      <Progress value={upload.progress} className="h-1" />
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {Math.round(upload.progress)}%
-                    </span>
+                  <Progress value={upload.progress} className="mb-2" />
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>{upload.status}</span>
+                    <span>{upload.progress}%</span>
                   </div>
-                  {selectedEvent && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Adding to: {selectedEvent.name}
-                    </p>
-                  )}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
