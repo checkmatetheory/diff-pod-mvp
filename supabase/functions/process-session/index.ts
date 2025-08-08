@@ -535,11 +535,9 @@ serve(async (req) => {
       contentType = 'text';
       processingMethod = 'direct_text';
     } else if (youtubeUrl) {
-      // YouTube link processing
-      console.log('🎥 Processing YouTube URL...');
-      extractedText = await processYouTubeLink(youtubeUrl);
-      contentType = 'youtube';
-      processingMethod = 'youtube_whisper_transcription';
+      // Non-video URL processing (text scraping from web pages)
+      console.log('🌐 Processing web URL for text content...');
+      throw new Error('Web URL text scraping is not yet implemented. Please use video URLs or upload files directly.');
     } else if (filePath) {
       console.log('📄 Processing uploaded file...', { filePath, fileMimeType });
       
@@ -742,62 +740,8 @@ function isTextFile(mimeType: string | undefined, fileName: string): boolean {
          textExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
 }
 
-// YouTube processing
-async function processYouTubeLink(youtubeUrl: string): Promise<string> {
-  console.log('🎥 Processing YouTube URL:', youtubeUrl);
-  
-  try {
-    // Extract video ID from YouTube URL
-    const videoId = extractYouTubeVideoId(youtubeUrl);
-    if (!videoId) {
-      throw new Error('Invalid YouTube URL');
-    }
-
-    // Download audio using youtube-dl equivalent API
-    const audioBuffer = await downloadYouTubeAudio(videoId);
-    
-    // Transcribe with Whisper
-    return await transcribeAudioWithWhisper(audioBuffer, `youtube_${videoId}.mp3`);
-    
-  } catch (error) {
-    console.error('YouTube processing failed:', error);
-    throw new Error(`Failed to process YouTube video: ${error.message}`);
-  }
-}
-
-function extractYouTubeVideoId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/
-  ];
-  
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
-  
-  return null;
-}
-
-async function downloadYouTubeAudio(videoId: string): Promise<ArrayBuffer> {
-  // Use a YouTube audio extraction service
-  // Note: You may need to use a service like RapidAPI's YouTube MP3 converter
-  // or deploy your own youtube-dl service
-  
-  const response = await fetch(`https://youtube-mp3-download1.p.rapidapi.com/dl?id=${videoId}`, {
-    headers: {
-      'X-RapidAPI-Key': Deno.env.get('RAPIDAPI_KEY') || '',
-      'X-RapidAPI-Host': 'youtube-mp3-download1.p.rapidapi.com'
-    }
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to download YouTube audio');
-  }
-  
-  return await response.arrayBuffer();
-}
+// Note: YouTube video processing is now handled by Vizard via the processVideo pipeline
+// RapidAPI-based YouTube audio download has been removed in favor of Vizard's direct video processing
 
 // Audio processing with Whisper
 async function processAudioWithWhisper(audioBuffer: ArrayBuffer, fileName: string): Promise<string> {
