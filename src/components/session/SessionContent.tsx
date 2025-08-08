@@ -14,8 +14,9 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  Mic,
-  Play
+  Play,
+  Scissors,
+  Sparkles
 } from 'lucide-react';
 import { SessionContentProps } from "@/types/session-types";
 
@@ -33,6 +34,8 @@ export const SessionContent = ({
   const [activeTab, setActiveTab] = useState("overview");
 
   const sessionData = session.session_data as Record<string, unknown> | undefined;
+  const videoStatus = (session as any).video_processing_status as string | undefined;
+  const videoClips = (sessionData?.video_clips as any[]) || [];
 
   if (isProcessing) {
     return (
@@ -208,28 +211,7 @@ export const SessionContent = ({
                     </div>
                   )}
 
-                  {/* Podcast Section */}
-                  {session.podcast_url && (
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                          <Mic className="h-5 w-5" />
-                          Generated Podcast
-                        </h3>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDownload('audio')}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <audio controls className="w-full">
-                        <source src={session.podcast_url} type="audio/mpeg" />
-                        Your browser does not support the audio element.
-                      </audio>
-                    </div>
-                  )}
+                  {/* Podcast UI removed: keeping UI focused on clips experience */}
 
                   {/* Processing Info */}
                   <div className="pt-4 border-t">
@@ -285,7 +267,42 @@ export const SessionContent = ({
                     </div>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">No clips yet. They will appear here once processing completes.</p>
+                  <div className="border rounded-lg p-6 bg-muted/30">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Scissors className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold flex items-center gap-2">
+                          Generating AI Clips
+                          {videoStatus && (
+                            <Badge variant="secondary" className="capitalize">{videoStatus}</Badge>
+                          )}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">We’re analyzing your video to extract the most viral moments. This usually takes a few minutes.</p>
+                      </div>
+                    </div>
+                    {/* Animated placeholders */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[1,2,3,4].map((i) => (
+                        <div key={i} className="border rounded-lg overflow-hidden bg-card">
+                          <div className="w-full h-40 bg-muted animate-pulse" />
+                          <div className="p-3 space-y-2">
+                            <div className="h-4 w-2/3 bg-muted rounded animate-pulse" />
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span>Virality</span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded border">
+                                <Sparkles className="h-3 w-3 text-yellow-500" />
+                                <span className="h-3 w-6 bg-muted inline-block animate-pulse rounded" />
+                              </span>
+                            </div>
+                            <div className="h-8 w-20 bg-muted rounded animate-pulse" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">You’ll see clips appear here automatically once they’re ready.</p>
+                  </div>
                 )}
               </TabsContent>
 
