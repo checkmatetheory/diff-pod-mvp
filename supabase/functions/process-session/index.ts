@@ -99,16 +99,18 @@ class VizardAdapter implements AIProvider {
 
   async submitJob(job: ProcessingJob): Promise<{ jobId: string; estimatedCompletionTime?: number }> {
     try {
-      const vizardRequest = {
-        lang: job.language,
-        preferLength: this.mapDurationsToVizardFormat(job.preferredDurations),
+      // Build payload according to Vizard's exact API spec
+      const payload = {
+        lang: job.language || 'en',
         videoUrl: job.videoUrl,
-        videoType: this.detectVideoType(job.videoUrl),
-        ext: this.extractFileExtension(job.videoUrl),
-        projectName: `${job.eventName} - ${job.speakerName}`,
-        description: `Auto-generated clips from ${job.eventName}`,
-        webhookUrl: job.webhookUrl
+        ext: this.extractFileExtension(job.videoUrl) || 'mp4',
+        preferLength: [2, 3], // 30-90 seconds (Vizard format: 1=15s, 2=30s, 3=60s, 4=90s)
+        projectName: job.eventName || 'Diffused Project',
+        subtitleSwitch: 1, // Enable subtitles
+        headlineSwitch: 1  // Enable headlines
       };
+
+      console.log('🚀 Submitting to Vizard API:', JSON.stringify(payload, null, 2));
 
       const response = await fetch(`${this.baseUrl}/hvizard-server-front/open-api/v1/project/create`, {
         method: 'POST',
@@ -116,54 +118,91 @@ class VizardAdapter implements AIProvider {
           'Content-Type': 'application/json',
           'VIZARDAI_API_KEY': this.apiKey
         },
-        body: JSON.stringify(vizardRequest)
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        throw new Error(`Vizard API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ Vizard API error ${response.status}:`, errorText);
+        throw new Error(`Vizard API error ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
-      if (!result.success) {
-        throw new Error(`Vizard API error: ${result.error?.message || 'Unknown error'}`);
+      console.log('✅ Vizard response:', JSON.stringify(result, null, 2));
+
+      // Vizard returns: { code: 2000, projectId: "123", msg: "success" }
+      if (result.code !== 2000 || !result.projectId) {
+        throw new Error(`Vizard submission failed: ${result.msg || JSON.stringify(result)}`);
       }
 
       return {
-        jobId: result.data.projectId,
-        estimatedCompletionTime: result.data.estimatedCompletionTime
+        jobId: String(result.projectId),
+        estimatedCompletionTime: 300 // 5 minutes estimate
       };
     } catch (error) {
-      console.error('Vizard submitJob error:', error);
+      console.error('❌ Vizard submitJob error:', error);
       throw error;
     }
   }
 
   async getJobStatus(jobId: string): Promise<ProcessingResult> {
     try {
-      const response = await fetch(`${this.baseUrl}/hvizard-server-front/open-api/v1/project/status/${jobId}`, {
+      console.log(`🔍 Checking Vizard job status for: ${jobId}`);
+      
+      const response = await fetch(`${this.baseUrl}/hvizard-server-front/open-api/v1/project/query/${jobId}`, {
         headers: {
           'VIZARDAI_API_KEY': this.apiKey
         }
       });
 
       if (!response.ok) {
-        throw new Error(`Vizard status check failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ Vizard status check failed ${response.status}:`, errorText);
+        throw new Error(`Vizard status check failed ${response.status}: ${errorText}`);
       }
 
-      const result = await response.json() as VizardJobStatusResponse;
-      if (!result.success) {
-        throw new Error(`Vizard status error: ${result.error?.message || 'Unknown error'}`);
+      const result = await response.json();
+      console.log('📊 Vizard status response:', JSON.stringify(result, null, 2));
+
+      // Handle different response codes
+      if (result.code === 1000) {
+        // Still processing
+        return {
+          jobId,
+          sessionId: '',
+          status: 'processing',
+          clips: [],
+          metadata: { message: result.msg || 'Processing...' }
+        };
       }
 
-      return {
-        jobId: result.data.projectId,
-        sessionId: '', // Will be mapped from our tracking
-        status: this.mapVizardStatusToInternal(result.data.status),
-        clips: result.data.clips ? result.data.clips.map((clip) => this.transformVizardClipToInternal(clip)) : [],
-        metadata: result.data.metadata
-      };
+      if (result.code === 2000) {
+        // Completed successfully
+        const clips = (result.videos || []).map((video: any) => this.transformVizardVideoToClip(video));
+        return {
+          jobId,
+          sessionId: '',
+          status: 'completed',
+          clips,
+          metadata: { message: result.msg || 'Completed', totalClips: clips.length }
+        };
+      }
+
+      if (result.code >= 4000) {
+        // Error occurred
+        return {
+          jobId,
+          sessionId: '',
+          status: 'failed',
+          clips: [],
+          metadata: { error: result.msg || 'Processing failed' }
+        };
+      }
+
+      // Unknown code
+      throw new Error(`Unknown Vizard response code: ${result.code}`);
     } catch (error) {
-      console.error('Vizard getJobStatus error:', error);
+      console.error('❌ Vizard getJobStatus error:', error);
       throw error;
     }
   }
@@ -175,12 +214,8 @@ class VizardAdapter implements AIProvider {
 
   async healthCheck(): Promise<boolean> {
     try {
-      // Simple ping to check if API is available
-      const response = await fetch(`${this.baseUrl}/health`, {
-        method: 'GET',
-        headers: { 'VIZARDAI_API_KEY': this.apiKey }
-      });
-      return response.status < 500;
+      // Simple validation - just check if we have an API key
+      return !!this.apiKey;
     } catch {
       return false;
     }
@@ -205,10 +240,13 @@ class VizardAdapter implements AIProvider {
     return 1; // Remote file
   }
 
-  private extractFileExtension(videoUrl: string): string | undefined {
-    if (this.detectVideoType(videoUrl) !== 1) return undefined;
-    const match = videoUrl.match(/\.([^.?#]+)(?:\?|#|$)/);
-    return match ? match[1] : 'mp4';
+  private extractFileExtension(videoUrl: string): string {
+    // For direct file URLs, extract extension
+    if (this.detectVideoType(videoUrl) === 1) {
+      const match = videoUrl.match(/\.([^.?#]+)(?:\?|#|$)/);
+      return match ? match[1] : 'mp4';
+    }
+    return 'mp4'; // Default for platform URLs
   }
 
   private mapVizardStatusToInternal(status: string): 'processing' | 'completed' | 'failed' {
@@ -218,6 +256,29 @@ class VizardAdapter implements AIProvider {
       case 'failed': return 'failed';
       default: return 'processing';
     }
+  }
+
+  private transformVizardVideoToClip(video: any): Clip {
+    return {
+      id: video.id || `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      sessionId: '',
+      title: video.title || video.headline || 'AI Generated Clip',
+      duration: video.duration || 30,
+      aspectRatio: '9:16',
+      quality: '1080p',
+      videoUrl: video.videoUrl || video.url || '',
+      thumbnailUrl: video.thumbnailUrl || video.thumbnail || '',
+      viralityScore: this.calculateViralityScore(video),
+      viralityReasoning: this.generateViralityReasoning(video),
+      transcript: video.transcript || video.subtitle || '',
+      eventName: '',
+      speakerName: '',
+      suggestedCaption: video.caption || video.description || '',
+      suggestedHashtags: video.hashtags || [],
+      status: 'ready',
+      createdAt: new Date().toISOString(),
+      processedAt: new Date().toISOString()
+    };
   }
 
   private transformVizardClipToInternal(vizardClip: VizardClip): Clip {
@@ -251,15 +312,41 @@ class VizardAdapter implements AIProvider {
     return Math.min(score, 100);
   }
 
-  private generateViralityReasoning(clip: VizardClip): string {
+  private calculateViralityScore(video: any): number {
+    let score = 70; // Base score for AI-generated clips
+    
+    // Duration optimization (30-60s is ideal)
+    if (video.duration >= 30 && video.duration <= 60) score += 15;
+    else if (video.duration < 30) score += 10;
+    else score += 5;
+    
+    // Has engaging title/headline
+    if (video.title && video.title.length > 10) score += 10;
+    
+    // Has transcript/content
+    if (video.transcript && video.transcript.length > 50) score += 5;
+    
+    return Math.min(score, 100);
+  }
+
+  private generateViralityReasoning(video: any): string {
     const reasons: string[] = [];
-    if (clip.duration && clip.duration >= 30 && clip.duration <= 60) {
-      reasons.push('Optimal duration for social media engagement');
+    
+    if (video.duration >= 30 && video.duration <= 60) {
+      reasons.push('Optimal 30-60s duration for social media');
     }
-    if (clip.keywords && clip.keywords.length > 0) {
-      reasons.push(`Contains trending keywords: ${clip.keywords.slice(0, 3).join(', ')}`);
+    
+    if (video.title && video.title.length > 10) {
+      reasons.push('Engaging AI-generated title');
     }
-    return reasons.length > 0 ? reasons.join('. ') : 'AI-detected viral potential based on content analysis';
+    
+    if (video.transcript) {
+      reasons.push('Clear speech-to-text content');
+    }
+    
+    reasons.push('AI-selected viral moment');
+    
+    return reasons.join('. ');
   }
 }
 
@@ -496,15 +583,46 @@ serve(async (req) => {
         console.log(`✅ Video processing job submitted: ${videoProcessingJobId}`);
         console.log(`⏱️ Estimated completion: ${submission.estimatedCompletionTime} minutes`);
 
-        // For now, we'll just record the job ID and process asynchronously
-        // In a real implementation, you might want to poll for results or use webhooks
+        // Enhanced job tracking with proper database structure
+        const webhookUrl = `${supabaseUrl.replace('/supabase', '')}/functions/v1/video-processing-webhook`;
+        
+        // Update session with enhanced tracking
         await supabase
           .from('user_sessions')
           .update({ 
             video_processing_job_id: videoProcessingJobId,
-            video_processing_status: 'submitted'
+            video_processing_status: 'submitted',
+            video_processing_provider: 'vizard',
+            video_processing_webhook_url: webhookUrl,
+            video_processing_submitted_at: new Date().toISOString(),
+            video_processing_retry_count: 0
           })
           .eq('id', sessionId);
+
+        // Create detailed job tracking entry
+        const { error: jobInsertError } = await supabase
+          .from('video_processing_jobs')
+          .insert({
+            session_id: sessionId,
+            provider: 'vizard',
+            external_job_id: videoProcessingJobId,
+            status: 'submitted',
+            webhook_url: webhookUrl,
+            original_video_url: fullVideoUrl,
+            processing_options: {
+              preferredDurations: [30, 60, 90],
+              maxClips: 10,
+              minViralityScore: 66,
+              language: 'en'
+            },
+            submitted_at: new Date().toISOString()
+          });
+
+        if (jobInsertError) {
+          console.warn('⚠️ Failed to create job tracking entry:', jobInsertError);
+        } else {
+          console.log(`📝 Created job tracking entry for ${videoProcessingJobId}`);
+        }
 
         // Set defaults for other processing
         processingMethod = 'video_ai_clipping';

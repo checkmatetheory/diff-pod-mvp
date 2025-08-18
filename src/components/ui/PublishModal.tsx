@@ -128,26 +128,40 @@ export function PublishModal<T extends BaseContentItem | FavoriteContentItem>({
           {/* ===== VIDEO PREVIEW SECTION ===== */}
           <div className="space-y-4">
             <div className="relative bg-black rounded-lg overflow-hidden aspect-[9/16] max-w-sm mx-auto">
-              {/* Placeholder/Thumbnail */}
-              <div className="w-full h-full bg-gradient-to-br from-blueLight via-accentLight to-accent flex items-center justify-center">
-                <div className="w-20 h-20 bg-white/40 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center">
-                    <div className="w-5 h-5 bg-white/80 rounded-full"></div>
+              {/* Actual Video Player */}
+              {displayContent.content_url ? (
+                <video
+                  src={displayContent.content_url}
+                  poster={displayContent.thumbnail_url}
+                  controls
+                  className="w-full h-full object-cover"
+                  onClick={togglePlayback}
+                  preload="metadata"
+                />
+              ) : (
+                /* Fallback Placeholder */
+                <div className="w-full h-full bg-gradient-to-br from-blueLight via-accentLight to-accent flex items-center justify-center">
+                  <div className="w-20 h-20 bg-white/40 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center">
+                      <div className="w-5 h-5 bg-white/80 rounded-full"></div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               
-              {/* Play/Pause Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  className="bg-black/50 hover:bg-black/70 text-white rounded-full w-16 h-16"
-                  onClick={togglePlayback}
-                >
-                  {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-                </Button>
-              </div>
+              {/* Play/Pause Overlay - only show when no video controls */}
+              {!displayContent.content_url && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    className="bg-black/50 hover:bg-black/70 text-white rounded-full w-16 h-16"
+                    onClick={togglePlayback}
+                  >
+                    {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
+                  </Button>
+                </div>
+              )}
 
               {/* Virality Score Badge */}
               {displayContent.viralityScore && (
