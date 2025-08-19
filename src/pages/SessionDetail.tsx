@@ -10,6 +10,7 @@ import { useVizardPolling } from "@/hooks/useVizardPolling";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "@/components/Header";
+import { videoRecoveryService } from "@/lib/videoRecoveryService";
 
 // New extracted components
 import { SessionLoadingSkeleton } from "@/components/session/SessionLoadingSkeleton";
@@ -26,6 +27,21 @@ const SessionDetail = () => {
   // Use custom hooks for data fetching
   const { session, loading, refreshing, refreshSession } = useSessionData(id);
   const { speakers, speaker, event, fetchAllSpeakers, setSpeakers } = useSessionSpeakers(session, id);
+  
+  // Initialize video recovery service
+  useEffect(() => {
+    if (id) {
+      videoRecoveryService.initialize(id);
+    }
+  }, [id]);
+  
+  // Enhanced video recovery detection
+  useEffect(() => {
+    if (session && videoRecoveryService.needsRecovery(session)) {
+      console.log('🔧 Video recovery needed, initiating automatic recovery...');
+      videoRecoveryService.autoRecover(session.id, session.video_processing_job_id);
+    }
+  }, [session]);
   
   // Vizard polling for video processing - enhanced to continue polling until clips are retrieved
   const shouldPoll = session?.video_processing_job_id && 
@@ -108,7 +124,8 @@ const SessionDetail = () => {
   const hasError = session.processing_status === 'error';
   const isComplete = session.processing_status === 'complete';
   
-  // Debug logging
+  // Enhanced debug logging with recovery status
+  const healthCheck = videoRecoveryService.healthCheck(session);
   console.log('🔍 SessionDetail Debug:', {
     sessionId: session.id,
     processingStatus: session.processing_status,
@@ -119,7 +136,8 @@ const SessionDetail = () => {
     hasBlogContent: !!session.session_data?.blog_content,
     hasSocialPosts: !!session.session_data?.social_posts,
     hasKeyQuotes: !!session.session_data?.key_quotes,
-    sessionDataKeys: session.session_data ? Object.keys(session.session_data) : 'No session_data'
+    sessionDataKeys: session.session_data ? Object.keys(session.session_data) : 'No session_data',
+    videoHealthCheck: healthCheck
   });
 
   return (
