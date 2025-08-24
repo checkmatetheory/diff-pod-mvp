@@ -20,20 +20,44 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🛠️ Starting manual clip fix for session 9a395756-cb1f-482e-95d1-f14239462b78...');
+    // Parse request body for dynamic session and project IDs
+    let sessionIdFromBody = '';
+    let vizardProjectIdFromBody = '';
+    try {
+      const body = await req.json();
+      sessionIdFromBody = body?.sessionId || '';
+      vizardProjectIdFromBody = body?.vizardProjectId || '';
+    } catch (_) {
+      // No body provided; will fallback to validation error below
+    }
+
+    console.log('🛠️ Starting manual clip fix...', {
+      sessionId: sessionIdFromBody || '(missing)',
+      vizardProjectId: vizardProjectIdFromBody || '(missing)'
+    });
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const sessionId = '9a395756-cb1f-482e-95d1-f14239462b78';
-    const vizardProjectId = '22680049';
+    const sessionId = sessionIdFromBody;
+    const vizardProjectId = vizardProjectIdFromBody;
+
+    if (!sessionId || !vizardProjectId) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'sessionId and vizardProjectId are required'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // Step 1: Get Vizard API key
-    const vizardApiKey = Deno.env.get('VIZARDAI_API_KEY');
+    const vizardApiKey = Deno.env.get('VIZARD_API_KEY');
     if (!vizardApiKey) {
-      throw new Error('VIZARDAI_API_KEY not configured');
+      throw new Error('VIZARD_API_KEY not configured');
     }
 
     console.log(`🎯 Fetching clips from Vizard project: ${vizardProjectId}`);

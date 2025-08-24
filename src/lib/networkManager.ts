@@ -96,10 +96,13 @@ class NetworkManager {
         });
         
         const rtt = Date.now() - start;
-        
+
         if (response.ok) {
           this.networkStatus.online = true;
-          this.networkStatus.rtt = Math.min(this.networkStatus.rtt, rtt);
+          // Use exponential moving average to avoid permanently biased low RTT
+          const previousRtt = this.networkStatus.rtt || rtt;
+          const alpha = 0.2; // weight for new measurement
+          this.networkStatus.rtt = Math.round(alpha * rtt + (1 - alpha) * previousRtt);
         }
       } catch (error) {
         console.warn('Connectivity test failed:', error);
