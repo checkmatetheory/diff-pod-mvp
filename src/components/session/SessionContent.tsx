@@ -135,7 +135,10 @@ export const SessionContent = ({
       setTimeout(async () => {
         if (videoClips.length === 0 || !hasValidVideoUrls(videoClips)) {
           const { data, error } = await supabase.functions.invoke('manual-clip-fix', {
-            body: {}
+            body: {
+              sessionId: session?.id,
+              vizardProjectId: session?.video_processing_job_id
+            }
           });
           
           if (data?.success) {
@@ -690,8 +693,8 @@ export const SessionContent = ({
               ) : (
                 <p className="text-muted-foreground">No key quotes found in this session.</p>
               )}
-            </div>
-              </TabsContent>
+            </TabsContent>
+          </div>
           </Tabs>
 
       {/* Professional Publish Modal */}
